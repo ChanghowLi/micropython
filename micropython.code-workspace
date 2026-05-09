@@ -1,0 +1,34 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		// --- Makefile Tools 插件 (ms-vscode.makefile-tools) ---
+		// Makefile 所在的目录
+		"makefile.makefilePath": "/home/vmdlans/Projects/FromGit/micropython/ports/renesas-ra/Makefile",
+		// make 命令的执行目录（必须！所有相对路径以此为基准）
+		"makefile.makeDirectory": "/home/vmdlans/Projects/FromGit/micropython/ports/renesas-ra",
+		// 构建前自动运行 make
+		"makefile.buildBeforeLaunch": true,
+		// make 构建目标（默认就是 all，可以不改）
+		"makefile.buildTarget": "all",
+		// 传给 make 的参数，比如指定 BOARD
+		"makefile.configurations": [
+			{
+				"name": "EK_RA6M2",
+				"makeArgs": [
+					"BOARD=EK_RA6M2"
+				]
+			}
+		],
+		// 默认选择哪个配置
+		"makefile.defaultConfiguration": "EK_RA6M2",
+
+		// --- C/C++ 插件 (ms-vscode.cpptools) ---
+		// 让 IntelliSense 通过 compile_commands.json 获取编译参数
+		"C_Cpp.intelliSenseEngine": "default",
+		"C_Cpp.default.compileCommands": "/home/vmdlans/Projects/FromGit/micropython/ports/renesas-ra/build-EK_RA6M2/compile_commands.json"
+	}
+}
