@@ -1,0 +1,26 @@
+# e2 studio workspace dir
+.metadata
+.settings
+
+# FSP Generation
+.secure_xml
+ra_cfg.txt
+.api_xml
+.secure_azone
+.secure_rzone
+
+# build output dir
+*/Debug/ra
+*/Debug/ra_gen
+*/Debug/src
+*/Debug/compile_commands.json
+*/Debug/makefile
+*/Debug/makefile.init
+*/Debug/micropython.elf
+*/Debug/micropython.elf.in
+*/Debug/micropython.map
+*/Debug/micropython.rpd
+*/Debug/micropython.sbd
+*/Debug/micropython.srec
+*/Debug/objects.mk
+*/Debug/sources.mk

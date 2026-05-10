@@ -48,9 +48,9 @@ GIT_SUBMODULES += lib/fsp lib/tinyusb
 MCU_SERIES_UPPER = $(shell echo $(MCU_SERIES) | tr '[:lower:]' '[:upper:]')
 CMSIS_MCU_LOWER = $(shell echo $(CMSIS_MCU) | tr '[:upper:]' '[:lower:]')
 
-LD_DIR=boards
-CMSIS_DIR=lib/cmsis/inc
-HAL_DIR=lib/fsp
+LD_DIR = boards
+CMSIS_DIR ?= lib/cmsis/inc
+HAL_DIR ?= lib/fsp
 STARTUP_FILE ?= lib/fsp/ra/fsp/src/bsp/cmsis/Device/RENESAS/Source/startup.o
 SYSTEM_FILE ?= lib/fsp/ra/fsp/src/bsp/cmsis/Device/RENESAS/Source/system.o
 
@@ -102,12 +102,18 @@ CFLAGS_CORTEX_M += -mfpu=fpv5-sp-d16 -mfloat-abi=hard
 SUPPORTS_HARDWARE_FP_SINGLE = 1
 endif
 
+ifeq ($(MCU_SERIES),$(filter $(MCU_SERIES),m85))
+CFLAGS_CORTEX_M += -mfpu=fpv5-sp-d16 -mfloat-abi=hard
+SUPPORTS_HARDWARE_FP_SINGLE = 1
+endif
+
 # Options for particular MCU series
 CFLAGS_MCU_RA4M1 = $(CFLAGS_CORTEX_M) -mtune=cortex-m4 -mcpu=cortex-m4
 CFLAGS_MCU_RA4W1 = $(CFLAGS_CORTEX_M) -mtune=cortex-m4 -mcpu=cortex-m4
 CFLAGS_MCU_RA6M1 = $(CFLAGS_CORTEX_M) -mtune=cortex-m4 -mcpu=cortex-m4
 CFLAGS_MCU_RA6M2 = $(CFLAGS_CORTEX_M) -mtune=cortex-m4 -mcpu=cortex-m4
 CFLAGS_MCU_RA6M5 = $(CFLAGS_CORTEX_M) -mtune=cortex-m33 -mcpu=cortex-m33
+CFLAGS_MCU_RA8P1 = $(CFLAGS_CORTEX_M) -mtune=cortex-m85 -mcpu=cortex-m85+nopacbti
 
 ASFLAGS += $(CFLAGS_CORTEX_M) -mcpu=cortex-$(MCU_SERIES)
 CFLAGS += $(INC) -Wall -Wpointer-arith -Werror -Wdouble-promotion -Wfloat-conversion -std=gnu99 $(CFLAGS_EXTRA)
@@ -407,10 +413,12 @@ $(PY_BUILD)/formatfloat.o: COPT += -Os
 $(PY_BUILD)/parsenum.o: COPT += -Os
 $(PY_BUILD)/mpprint.o: COPT += -Os
 
-all: $(TOP)/lib/fsp/README.md $(BUILD)/firmware.hex $(BUILD)/firmware.bin
+FSP_README = $(TOP)/$(HAL_DIR)/README.md
+
+all: $(FSP_README) $(BUILD)/firmware.hex $(BUILD)/firmware.bin
 
 # For convenience, automatically fetch required submodules if they don't exist
-$(TOP)/lib/fsp/README.md:
+$(FSP_README):
 	$(ECHO) "fsp submodule not found, fetching it now..."
 	(cd $(TOP) && git submodule update --init lib/fsp)
 
