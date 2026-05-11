@@ -72,7 +72,7 @@ INC += -I$(TOP)/lib/tinyusb/hw
 INC += -I$(TOP)/lib/tinyusb/src
 INC += -I$(TOP)/shared/tinyusb
 INC += -Ilwip_inc
-ifeq ($(CMSIS_MCU),$(filter $(CMSIS_MCU),RA4M1 RA4W1 RA6M1 RA6M2 RA6M5))
+ifeq ($(CMSIS_MCU),$(filter $(CMSIS_MCU),RA4M1 RA4W1 RA6M1 RA6M2 RA6M5 RA8P1))
 INC += -Ira
 endif
 INC += -I$(BOARD_DIR)/ra_gen
@@ -85,6 +85,11 @@ CFLAGS += -D$(CMSIS_MCU)
 CFLAGS += -DRA_HAL_H='<$(CMSIS_MCU)_hal.h>'
 CFLAGS += -DRA_CFG_H='<$(FSP_BOARD_NAME)_conf.h>'
 CFLAGS += -DCFG_TUSB_MCU=OPT_MCU_RAXXX
+ifeq ($(MCU_SERIES),$(filter $(MCU_SERIES),m85))
+CFLAGS += -D_RENESAS_RA_
+CFLAGS += -D_RA_CORE=CPU0
+CFLAGS += -D_RA_ORDINAL=1
+endif
 
 # Basic Cortex-M flags
 CFLAGS_CORTEX_M = -mthumb
@@ -116,6 +121,11 @@ CFLAGS_MCU_RA6M5 = $(CFLAGS_CORTEX_M) -mtune=cortex-m33 -mcpu=cortex-m33
 CFLAGS_MCU_RA8P1 = $(CFLAGS_CORTEX_M) -mtune=cortex-m85 -mcpu=cortex-m85+nopacbti
 
 ASFLAGS += $(CFLAGS_CORTEX_M) -mcpu=cortex-$(MCU_SERIES)
+ifeq ($(MCU_SERIES),$(filter $(MCU_SERIES),m85))
+ASFLAGS += -D_RENESAS_RA_
+ASFLAGS += -D_RA_CORE=CPU0
+ASFLAGS += -D_RA_ORDINAL=1
+endif
 CFLAGS += $(INC) -Wall -Wpointer-arith -Werror -Wdouble-promotion -Wfloat-conversion -std=gnu99 $(CFLAGS_EXTRA)
 #CFLAGS += -D$(CMSIS_MCU)
 CFLAGS += $(CFLAGS_MCU_$(CMSIS_MCU))
@@ -316,14 +326,14 @@ HAL_SRC_C += $(HAL_DIR)/ra/fsp/src/r_flash_lp/r_flash_lp.c
 endif
 endif
 
-ifeq ($(CMSIS_MCU),$(filter $(CMSIS_MCU),RA6M1 RA6M2 RA6M5))
+ifeq ($(CMSIS_MCU),$(filter $(CMSIS_MCU),RA6M1 RA6M2 RA6M5 RA8P1))
 ifeq ($(USE_FSP_FLASH), 1)
 CFLAGS += -DUSE_FSP_FLASH
 HAL_SRC_C += $(HAL_DIR)/ra/fsp/src/r_flash_hp/r_flash_hp.c
 endif
 endif
 
-ifeq ($(CMSIS_MCU),$(filter $(CMSIS_MCU),RA4M1 RA4W1 RA6M1 RA6M2 RA6M5))
+ifeq ($(CMSIS_MCU),$(filter $(CMSIS_MCU),RA4M1 RA4W1 RA6M1 RA6M2 RA6M5 RA8P1))
 HAL_SRC_C += $(addprefix ra/,\
 	ra_adc.c \
 	ra_dac.c \
@@ -392,7 +402,7 @@ OBJ += $(addprefix $(BUILD)/, $(SRC_CXX:.cpp=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_O))
 OBJ += $(BUILD)/pins_$(BOARD).o
 
-ifeq ($(CMSIS_MCU),RA6M5)
+ifeq ($(CMSIS_MCU),RA6M5 RA8P1)
 $(BUILD)/shared/runtime/gchelper_thumb2.o: $(TOP)/shared/runtime/gchelper_thumb2.s
 	$(ECHO) "AS $<"
 	$(Q)$(AS) $(ASFLAGS) -o $@ $<
@@ -450,6 +460,16 @@ $(BUILD)/firmware.hex: $(BUILD)/firmware.elf
 $(BUILD)/firmware.elf: $(OBJ)
 	$(call GENERATE_ELF,$@,$^)
 
+print:
+	@echo "TOP: " $(TOP)
+	@echo "BUILD: " $(BUILD)
+	@echo "CMSIS_MCU: " $(CMSIS_MCU)
+	@echo "GIT_SUBMODULES: " $(GIT_SUBMODULES)
+	@echo "HAL_DIR: " $(HAL_DIR)
+	@echo "CFLAGS: "
+	@$(foreach f,$(CFLAGS),echo "    "$(f);)
+	@echo "ASFLAGS: " $(ASFLAGS)
+
 MAKE_PINS = boards/make-pins.py
 BOARD_PINS = $(BOARD_DIR)/pins.csv
 PREFIX_FILE = boards/ra_pin_prefix.c
@@ -467,6 +487,9 @@ AF_FILE = boards/ra6m2_af.csv
 endif
 ifeq ($(CMSIS_MCU),$(filter $(CMSIS_MCU),RA6M5))
 AF_FILE = boards/ra6m5_af.csv
+endif
+ifeq ($(BOARD),"CPKCOR_RA8P1")
+AF_FILE = boards/cpkcor_ra8p1.csv
 endif
 GEN_PINS_SRC = $(BUILD)/pins_$(BOARD).c
 GEN_PINS_HDR = $(HEADER_BUILD)/pins.h
