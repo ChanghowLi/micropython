@@ -1,0 +1,20 @@
+# e2 studio workspace dir
+.metadata
+.settings
+
+# FSP Generation
+ra
+ra_cfg
+ra_gen
+script
+.secure_xml
+ra_cfg.txt
+.api_xml
+.secure_azone
+.secure_rzone
+
+# build output dir
+Debug
+
+# JLink log file
+JLinkLog.log
