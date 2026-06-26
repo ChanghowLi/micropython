@@ -12,7 +12,17 @@
 
 # ---- Toolchain ----
 # Match e2 studio: ARM GCC 13.2
-E2S_GCC = /home/vmdlans/Programs/e2s_2025_12/toolchains/gcc_arm/arm-gnu-toolchain-13.2.Rel1-x86_64-arm-none-eabi
+# E2S_GCC can be set via:
+#   1. Command line:  make BOARD=... E2S_GCC=/path/to/gcc
+#   2. Environment:   export E2S_GCC=/path/to/gcc
+#   3. local.mk:      create this file and set E2S_GCC ?= /path/to/gcc
+-include local.mk
+
+ifeq ($(E2S_GCC),)
+$(error E2S_GCC is not set. Set it via command line, environment, \
+        or create 'local.mk' with: E2S_GCC ?= /path/to/arm-none-eabi)
+endif
+
 CROSS_COMPILE = $(E2S_GCC)/bin/arm-none-eabi-
 
 include ../../py/mkenv.mk

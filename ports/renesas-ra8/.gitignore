@@ -18,3 +18,6 @@ Debug
 
 # JLink log file
 JLinkLog.log
+
+# local config
+local.mk

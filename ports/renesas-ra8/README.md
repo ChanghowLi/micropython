@@ -1,3 +1,25 @@
+# Note
+
+在 `ports/renesas-ra8` 目录下创建 `local.mk`，里面写 E2S_GCC 的路径
+
+```makefile
+# 根据安装路径填写
+E2S_GCC ?= D:/Programs/Dev/e2s_2025_12_BSP_6.4.0/toolchains/gcc_arm/13.2.rel1
+```
+
+先用 e2studio 生成工程，然后在 `ports/renesas-ra8` 目录执行
+
+```bash
+make BOARD=CPKCOR_RA8P1 genhdr
+```
+
+对于 windows，如果没有使用 Microsoft Store 里的 Python，则需要指定 python
+
+```bash
+# 如果 shell 中有 python
+make BOARD=CPKCOR_RA8P1 genhdr PYTHON=python
+```
+
 # RA8P1 MicroPython 最小化移植方案
 
 ## 核心思路
