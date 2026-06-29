@@ -7,8 +7,7 @@
 #   make BOARD=CPKCOR_RA8P1 -j$(nproc)    # build for CPKCOR-RA8P1
 #   make BOARD=EK_RA8P1 -j$(nproc)         # build for EK-RA8P1
 #
-# The e2 studio project must be located at the path specified by
-# E2STUDIO_DIR in boards/<BOARD>/mpconfigboard.mk.
+# The FSP project inputs are selected by boards/<BOARD>/mpconfigboard.mk.
 
 # ---- Toolchain ----
 # Match e2 studio: ARM GCC 13.2
@@ -27,6 +26,11 @@ CROSS_COMPILE = $(E2S_GCC)/bin/arm-none-eabi-
 
 include ../../py/mkenv.mk
 
+ifeq ($(OS),Windows_NT)
+# Avoid the non-executable Microsoft Store python3 alias on Windows.
+PYTHON = python
+endif
+
 # ---- Board selection ----
 BOARD ?= CPKCOR_RA8P1
 BUILD = build-$(BOARD)
@@ -44,12 +48,19 @@ MICROPY_ROM_TEXT_COMPRESSION ?= 1
 include $(TOP)/py/py.mk
 
 # ---- FSP paths ----
-# All paths relative to the e2 studio project root
-E2STUDIO = $(E2STUDIO_DIR)
-FSP_DIR = $(E2STUDIO)/ra/fsp
-FREERTOS_DIR = $(E2STUDIO)/ra/aws/FreeRTOS/FreeRTOS
-CMSIS_DIR = $(E2STUDIO)/ra/arm/CMSIS_6/CMSIS
-BOARD_DIR = $(E2STUDIO)/ra/board/ra8p1_cpkcor
+# Board mpconfigboard.mk files may override these for a different FSP layout.
+FSP_PROJECT_DIR ?= $(E2STUDIO_DIR)
+RA_CFG_DIR ?= $(FSP_PROJECT_DIR)/ra_cfg
+RA_GEN_DIR ?= $(FSP_PROJECT_DIR)/ra_gen
+BOARD_SRC_DIR ?= $(FSP_PROJECT_DIR)/src
+FSP_DIR ?= $(FSP_PROJECT_DIR)/ra/fsp
+FREERTOS_DIR ?= $(FSP_PROJECT_DIR)/ra/aws/FreeRTOS/FreeRTOS
+CMSIS_DIR ?= $(FSP_PROJECT_DIR)/ra/arm/CMSIS_6/CMSIS
+FSP_BOARD_DIR ?= $(FSP_PROJECT_DIR)/ra/board/ra8p1_cpkcor
+LD_SCRIPT ?= $(FSP_PROJECT_DIR)/script/fsp.ld
+LD_SCRIPT_DIR ?= $(dir $(LD_SCRIPT))
+FSP_LD_GENERATED_DIR ?= $(FSP_PROJECT_DIR)/Debug
+BSP_LINKER_INFO_DIR ?= $(FSP_LD_GENERATED_DIR)
 
 # ---- Compiler flags ----
 # Match e2 studio settings exactly: cortex-m85+nopacbti
@@ -77,12 +88,12 @@ INC += -I$(BUILD)
 INC += -Iboards/$(BOARD)
 
 # e2 studio includes (in order from the e2 studio build)
-INC += -I$(E2STUDIO)/ra_gen
-INC += -I$(E2STUDIO)/ra_cfg/fsp_cfg/bsp
-INC += -I$(E2STUDIO)/ra_cfg/fsp_cfg
-INC += -I$(E2STUDIO)/ra_cfg/aws
-INC += -I$(E2STUDIO)/src
-INC += -I$(E2STUDIO)/src/utils
+INC += -I$(RA_GEN_DIR)
+INC += -I$(RA_CFG_DIR)/fsp_cfg/bsp
+INC += -I$(RA_CFG_DIR)/fsp_cfg
+INC += -I$(RA_CFG_DIR)/aws
+INC += -I$(BOARD_SRC_DIR)
+INC += -I$(BOARD_SRC_DIR)/utils
 INC += -I$(FSP_DIR)/inc
 INC += -I$(FSP_DIR)/inc/api
 INC += -I$(FSP_DIR)/inc/instances
@@ -92,9 +103,9 @@ INC += -I$(FSP_DIR)/src/bsp/mcu/all
 INC += -I$(FSP_DIR)/src/bsp/mcu/ra8p1
 INC += -I$(FREERTOS_DIR)/Source/include
 INC += -I$(CMSIS_DIR)/Core/Include
-INC += -I$(E2STUDIO)/ra/board/ra8p1_cpkcor
-# e2 studio build output directory (bsp_linker_info.h etc.)
-INC += -I$(E2STUDIO)/Debug
+INC += -I$(FSP_BOARD_DIR)
+# FSP's bsp_linker.c includes the linker-generator output bsp_linker_info.h.
+INC += -I$(BSP_LINKER_INFO_DIR)
 
 CFLAGS += $(INC)
 
@@ -102,9 +113,9 @@ CFLAGS += $(INC)
 # Match e2studio: NO -nostdlib (crt0.o initializes C runtime properly)
 # CPU flags MUST be passed to linker for correct multilib selection
 LDFLAGS += $(CFLAGS_CORTEX_M85)
-LDFLAGS += -T $(E2STUDIO)/script/fsp.ld
-LDFLAGS += -L$(E2STUDIO)/Debug
-LDFLAGS += -L$(E2STUDIO)/script
+LDFLAGS += -T $(LD_SCRIPT)
+LD_SEARCH_DIRS = $(sort $(FSP_LD_GENERATED_DIR) $(LD_SCRIPT_DIR))
+LDFLAGS += $(addprefix -L,$(LD_SEARCH_DIRS))
 LDFLAGS += -Wl,-Map=$@.map -Wl,--cref -Wl,--gc-sections
 LDFLAGS += --specs=nano.specs
 
@@ -113,10 +124,10 @@ LIBS = -Wl,--start-group -lgcc -lm -lc -Wl,--end-group
 
 # ---- Source files ----
 
-# -- MicroPython integration sources (our port-specific files) --
+# -- MicroPython integration sources --
 SRC_C = \
-    repl_thread_entry.c \
-    mphalport.c \
+    $(BOARD_SRC_DIR)/repl_thread_entry.c \
+    $(BOARD_SRC_DIR)/mphalport.c \
     shared/libc/printf.c \
     shared/libc/string0.c \
     shared/readline/readline.c \
@@ -124,12 +135,12 @@ SRC_C = \
 
 # -- Generated e2 studio sources (ra_gen/) --
 SRC_C += \
-    $(E2STUDIO)/ra_gen/common_data.c \
-    $(E2STUDIO)/ra_gen/hal_data.c \
-    $(E2STUDIO)/ra_gen/main.c \
-    $(E2STUDIO)/ra_gen/pin_data.c \
-    $(E2STUDIO)/ra_gen/repl_thread.c \
-    $(E2STUDIO)/ra_gen/vector_data.c \
+    $(RA_GEN_DIR)/common_data.c \
+    $(RA_GEN_DIR)/hal_data.c \
+    $(RA_GEN_DIR)/main.c \
+    $(RA_GEN_DIR)/pin_data.c \
+    $(RA_GEN_DIR)/repl_thread.c \
+    $(RA_GEN_DIR)/vector_data.c \
 
 # -- FSP BSP sources (startup, system, clocks, etc.) --
 SRC_C += \
@@ -166,19 +177,18 @@ SRC_C += \
     $(FSP_DIR)/src/rm_freertos_port/port.c \
 
 # -- User sources from e2 studio (console, warmstart, fault handler, etc.) --
-# NOTE: we do NOT include src/repl_thread_entry.c — it's replaced by our own
 SRC_C += \
-    $(E2STUDIO)/src/console.c \
-    $(E2STUDIO)/src/hal_warmstart.c \
-    $(E2STUDIO)/src/cm85_fault_handle.c \
-    $(E2STUDIO)/src/SEGGER_RTT/SEGGER_RTT.c \
-    $(E2STUDIO)/src/SEGGER_RTT/SEGGER_RTT_printf.c \
-    $(E2STUDIO)/src/utils/log.c \
+    $(BOARD_SRC_DIR)/console.c \
+    $(BOARD_SRC_DIR)/hal_warmstart.c \
+    $(BOARD_SRC_DIR)/cm85_fault_handle.c \
+    $(BOARD_SRC_DIR)/SEGGER_RTT/SEGGER_RTT.c \
+    $(BOARD_SRC_DIR)/SEGGER_RTT/SEGGER_RTT_printf.c \
+    $(BOARD_SRC_DIR)/utils/log.c \
 
 # -- Board-specific sources --
 SRC_C += \
-    $(BOARD_DIR)/board_init.c \
-    $(BOARD_DIR)/board_leds.c \
+    $(FSP_BOARD_DIR)/board_init.c \
+    $(FSP_BOARD_DIR)/board_leds.c \
 
 # -- Memory manager (heap_4 for static+dynamic allocation) --
 SRC_C += \
@@ -188,99 +198,17 @@ SRC_C += \
 SRC_QSTR += shared/readline/readline.c shared/runtime/pyexec.c
 
 # ---- Object files ----
-# Convert source paths to build directory object paths
-# For FSP sources, derive the object name from the filename
-FSP_OBJ = $(addprefix $(BUILD)/, $(notdir $(SRC_C:.c=.o)))
-# Remove duplicates (e.g., if two dirs had same-named files)
-FSP_OBJ := $(sort $(FSP_OBJ))
-
-# MicroPython core objects
+# Preserve the source path below BUILD.  Flattening with notdir makes
+# same-named sources share an object and lets an unrelated implicit rule pick
+# the input file (notably the two repl_thread_entry.c files).
+PORT_OBJ = $(addprefix $(BUILD)/, $(SRC_C:.c=.o))
 OBJ = $(PY_CORE_O)
-OBJ += $(FSP_OBJ)
+OBJ += $(PORT_OBJ)
 
-# ---- Pattern rules for compiling sources from various directories ----
-
-# Local sources (repl_thread_entry.c, mphalport.c)
-$(BUILD)/%.o: %.c
-	$(ECHO) "CC $<"
-	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
-
-# e2 studio ra_gen/ sources
-$(BUILD)/%.o: $(E2STUDIO)/ra_gen/%.c
-	$(ECHO) "CC $<"
-	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
-
-# FSP BSP sources (startup, system, mcu)
-$(BUILD)/%.o: $(FSP_DIR)/src/bsp/cmsis/Device/RENESAS/Source/%.c
-	$(ECHO) "CC $<"
-	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
-
-$(BUILD)/%.o: $(FSP_DIR)/src/bsp/mcu/all/%.c
-	$(ECHO) "CC $<"
-	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
-
-$(BUILD)/%.o: $(FSP_DIR)/src/bsp/mcu/ra8p1/%.c
-	$(ECHO) "CC $<"
-	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
-
-# FSP peripheral drivers
-$(BUILD)/%.o: $(FSP_DIR)/src/r_ioport/%.c
-	$(ECHO) "CC $<"
-	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
-
-$(BUILD)/%.o: $(FSP_DIR)/src/r_sci_b_uart/%.c
-	$(ECHO) "CC $<"
-	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
-
-# FreeRTOS kernel sources
-$(BUILD)/%.o: $(FREERTOS_DIR)/Source/%.c
-	$(ECHO) "CC $<"
-	$(Q)$(CC) $(CFLAGS) -c -w -o $@ $<
-
-# FreeRTOS port
-$(BUILD)/%.o: $(FSP_DIR)/src/rm_freertos_port/%.c
-	$(ECHO) "CC $<"
-	$(Q)$(CC) $(CFLAGS) -c -w -o $@ $<
-
-# FreeRTOS memory manager
-$(BUILD)/%.o: $(FREERTOS_DIR)/Source/portable/MemMang/%.c
-	$(ECHO) "CC $<"
-	$(Q)$(CC) $(CFLAGS) -c -w -o $@ $<
-
-# e2 studio user sources (console, warmstart, etc.)
-$(BUILD)/%.o: $(E2STUDIO)/src/%.c
-	$(ECHO) "CC $<"
-	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
-
-$(BUILD)/%.o: $(E2STUDIO)/src/SEGGER_RTT/%.c
-	$(ECHO) "CC $<"
-	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
-
-$(BUILD)/%.o: $(E2STUDIO)/src/utils/%.c
-	$(ECHO) "CC $<"
-	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
-
-# Board-specific sources
-$(BUILD)/%.o: $(BOARD_DIR)/%.c
-	$(ECHO) "CC $<"
-	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
-
-# MicroPython shared sources
-$(BUILD)/%.o: $(TOP)/shared/libc/%.c
-	$(ECHO) "CC $<"
-	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
-
-$(BUILD)/%.o: $(TOP)/shared/readline/%.c
-	$(ECHO) "CC $<"
-	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
-
-$(BUILD)/%.o: $(TOP)/shared/runtime/%.c
-	$(ECHO) "CC $<"
-	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
-
-$(BUILD)/%.o: $(BUILD)/%.c
-	$(ECHO) "CC $<"
-	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
+# Keep third-party FreeRTOS sources on their existing relaxed warning policy.
+FREERTOS_SRC_C = $(filter $(FREERTOS_DIR)/% $(FSP_DIR)/src/rm_freertos_port/%,$(SRC_C))
+FREERTOS_OBJ = $(addprefix $(BUILD)/,$(FREERTOS_SRC_C:.c=.o))
+$(FREERTOS_OBJ): CFLAGS += -w
 
 # ---- Targets ----
 
@@ -292,9 +220,13 @@ $(BUILD)/_frozen_mpy.c: $(TOP)/tests/assets/frozentest.mpy $(BUILD)/genhdr/qstrd
 	$(Q)$(TOP)/tools/mpy-tool.py -f -q $(BUILD)/genhdr/qstrdefs.preprocessed.h -mlongint-impl=none $< > $@
 
 # Link — use GCC instead of LD so that libgcc/libc paths are resolved
-$(BUILD)/firmware.elf: $(OBJ)
+LINKER_DEPS = $(LD_SCRIPT) \
+    $(FSP_LD_GENERATED_DIR)/memory_regions.ld \
+    $(FSP_LD_GENERATED_DIR)/fsp_gen.ld
+
+$(BUILD)/firmware.elf: $(OBJ) $(LINKER_DEPS)
 	$(ECHO) "LINK $@"
-	$(Q)$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
+	$(Q)$(CC) $(LDFLAGS) -o $@ $(OBJ) $(LIBS)
 	$(Q)$(SIZE) $@
 
 # Binary and hex outputs
@@ -334,8 +266,11 @@ info:
 	@echo "Paths:"
 	@echo "  TOP          = $(TOP)"
 	@echo "  BUILD        = $(BUILD)"
-	@echo "  E2STUDIO_DIR = $(E2STUDIO_DIR)"
-	@echo "  FSP_DIR      = $(FSP_DIR)"
+	@echo "  FSP_PROJECT_DIR = $(FSP_PROJECT_DIR)"
+	@echo "  RA_CFG_DIR      = $(RA_CFG_DIR)"
+	@echo "  RA_GEN_DIR      = $(RA_GEN_DIR)"
+	@echo "  BOARD_SRC_DIR   = $(BOARD_SRC_DIR)"
+	@echo "  FSP_DIR         = $(FSP_DIR)"
 	@echo ""
 	@echo "Multi-arch:"
 	@echo "  MULTI_DIR    = $(MULTI_DIR)"
