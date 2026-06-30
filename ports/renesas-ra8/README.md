@@ -20,6 +20,8 @@ make BOARD=CPKCOR_RA8P1 genhdr
 make BOARD=CPKCOR_RA8P1 genhdr PYTHON=python
 ```
 
+> 已修改 makefile,现在不用加 `PYTHON=python` 
+
 # RA8P1 MicroPython 最小化移植方案
 
 ## 核心思路
