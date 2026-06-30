@@ -105,7 +105,7 @@ INC += -I$(FREERTOS_DIR)/Source/include
 INC += -I$(CMSIS_DIR)/Core/Include
 INC += -I$(FSP_BOARD_DIR)
 # FSP's bsp_linker.c includes the linker-generator output bsp_linker_info.h.
-INC += -I$(BSP_LINKER_INFO_DIR)
+INC += -I$(LD_SCRIPT_DIR)
 
 CFLAGS += $(INC)
 
@@ -224,7 +224,7 @@ LINKER_DEPS = $(LD_SCRIPT) \
     $(FSP_LD_GENERATED_DIR)/memory_regions.ld \
     $(FSP_LD_GENERATED_DIR)/fsp_gen.ld
 
-$(BUILD)/firmware.elf: $(OBJ) $(LINKER_DEPS)
+$(BUILD)/firmware.elf: $(OBJ)
 	$(ECHO) "LINK $@"
 	$(Q)$(CC) $(LDFLAGS) -o $@ $(OBJ) $(LIBS)
 	$(Q)$(SIZE) $@

@@ -17,8 +17,8 @@ FSP_BOARD_DIR = $(FSP_PROJECT_DIR)/ra/board/ra8p1_cpkcor
 # Keep linker-generator inputs in the board directory.  The e2 studio script
 # and Debug directories are ignored build products and are not standalone
 # Makefile inputs.
-LD_SCRIPT_DIR = boards/CPKCOR_RA8P1/$(FSP_PROJECT_DIR)/Debug
-LD_SCRIPT = $(LD_SCRIPT_DIR)/fsp.ld
+LD_SCRIPT_DIR = $(FSP_PROJECT_DIR)/Debug
+LD_SCRIPT = $(FSP_PROJECT_DIR)/script/fsp.ld
 FSP_LD_GENERATED_DIR = $(LD_SCRIPT_DIR)
 BSP_LINKER_INFO_DIR = $(FSP_LD_GENERATED_DIR)
 
