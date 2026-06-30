@@ -35,3 +35,4 @@ user.props
 
 # VSCode workspace
 micropython.code-workspace
+.vscode

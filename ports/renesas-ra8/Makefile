@@ -39,7 +39,7 @@ BUILD = build-$(BOARD)
 include boards/$(BOARD)/mpconfigboard.mk
 
 # qstr definitions
-QSTR_DEFS = qstrdefsport.h
+QSTR_DEFS = boards/$(BOARD)/qstrdefsport.h
 
 # MicroPython feature config
 MICROPY_ROM_TEXT_COMPRESSION ?= 1
@@ -237,6 +237,14 @@ $(BUILD)/firmware.hex: $(BUILD)/firmware.elf
 	$(Q)$(OBJCOPY) -O ihex $^ $@
 
 hex: $(BUILD)/firmware.hex
+
+# ---- Generate compile_commands.json ----
+# Require python package: compiledb
+.PHONY: gencdb
+gencdb:
+	compiledb -n make BOARD=$(BOARD)
+	mkdir -p $(BUILD)
+	mv compile_commands.json $(BUILD)
 
 # ---- Pre-build target for e2 studio integration ----
 # Generates all auto-generated headers without compiling/linking.
