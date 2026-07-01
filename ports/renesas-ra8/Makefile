@@ -72,6 +72,7 @@ CFLAGS += -fsigned-char -fno-strict-aliasing
 CFLAGS += -fdata-sections -ffunction-sections
 CFLAGS += -flax-vector-conversions --param=min-pagesize=0
 CFLAGS += -D_RENESAS_RA_ -D_RA_CORE=CPU0 -D_RA_ORDINAL=1
+CFLAGS += -D__arm__
 
 # Warning flags: stricter for MicroPython code, relaxed for FSP
 CFLAGS += -Wall -Werror -Wdouble-promotion -Wfloat-conversion
@@ -132,6 +133,7 @@ SRC_C = \
     shared/libc/string0.c \
     shared/readline/readline.c \
     shared/runtime/pyexec.c \
+	shared/runtime/gchelper_generic.c
 
 # -- Generated e2 studio sources (ra_gen/) --
 SRC_C += \
@@ -194,6 +196,10 @@ SRC_C += \
 SRC_C += \
     $(FREERTOS_DIR)/Source/portable/MemMang/heap_4.c \
 
+# Assembly sources (GC helper for Thumb-2)
+SRC_O = \
+    shared/runtime/gchelper_thumb2.o
+
 # QSTR sources (for string interning)
 SRC_QSTR += shared/readline/readline.c shared/runtime/pyexec.c
 
@@ -204,11 +210,19 @@ SRC_QSTR += shared/readline/readline.c shared/runtime/pyexec.c
 PORT_OBJ = $(addprefix $(BUILD)/, $(SRC_C:.c=.o))
 OBJ = $(PY_CORE_O)
 OBJ += $(PORT_OBJ)
+OBJ += $(addprefix $(BUILD)/, $(SRC_O))
 
 # Keep third-party FreeRTOS sources on their existing relaxed warning policy.
 FREERTOS_SRC_C = $(filter $(FREERTOS_DIR)/% $(FSP_DIR)/src/rm_freertos_port/%,$(SRC_C))
 FREERTOS_OBJ = $(addprefix $(BUILD)/,$(FREERTOS_SRC_C:.c=.o))
 $(FREERTOS_OBJ): CFLAGS += -w
+
+# ---- Assembly rules ----
+# Use $(CC) (gcc) instead of $(AS) because $(AS) (arm-none-eabi-as) doesn't
+# understand the +nopacbti feature modifier in -mcpu=cortex-m85+nopacbti.
+$(BUILD)/shared/runtime/gchelper_thumb2.o: $(TOP)/shared/runtime/gchelper_thumb2.s
+	$(ECHO) "AS $<"
+	$(Q)$(CC) $(CFLAGS_CORTEX_M85) -c -o $@ $<
 
 # ---- Targets ----
 
@@ -267,6 +281,7 @@ info:
 	@echo ""
 	@echo "Toolchain:"
 	@echo "  CC           = $(CC)"
+	@echo "  AS           = $(AS)"
 	@echo "  LD           = $(LD)"
 	@echo "  CROSS_COMPILE= $(CROSS_COMPILE)"
 	@echo "  GCC version  = $(shell $(CC) --version | head -1)"
