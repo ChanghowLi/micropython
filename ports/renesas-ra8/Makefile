@@ -50,7 +50,7 @@ __COMMA := ,
 __EMPTY :=
 __SPACE := $(__EMPTY) $(__EMPTY)
 __FSP_SRC_DIRS := $(subst $(__SPACE),$(__COMMA),$(FSP_SRC_DIRS))
-FSP_SRC_C := $(shell powershell -NoProfile -Command "Get-ChildItem -Path $(SRCDIRS_PS) -Recurse -Filter *.c -ErrorAction SilentlyContinue | ForEach-Object { $$_.FullName.Replace('\','/') }")
+FSP_SRC_C := $(shell powershell -NoProfile -Command "Get-ChildItem -Path $(__FSP_SRC_DIRS) -Recurse -Filter *.c -ErrorAction SilentlyContinue | Resolve-Path -Relative | ForEach-Object { \$$_ -replace '^\\.\\\\' -replace '\\\\','/' }")
 else
 FSP_SRC_C := $(shell find $(FSP_SRC_DIRS) -type f -name '*.c' 2>/dev/null)
 endif
