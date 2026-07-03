@@ -8,6 +8,7 @@
 #define MICROPY_HW_MCU_NAME         "RA8P1"
 #define MICROPY_HW_MCU_SYSCLK       1000000000
 #define MICROPY_HW_MCU_PCLK         125000000
+#define MICROPY_LONGINT_IMPL (MICROPY_LONGINT_IMPL_MPZ)
 
 // UART REPL configuration
 // SCI9: TX=P208, RX=P209 (connected to onboard USB-UART)

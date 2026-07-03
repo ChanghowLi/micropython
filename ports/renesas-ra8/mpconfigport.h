@@ -2,8 +2,12 @@
 #include <stdint.h>
 
 // Use the minimal starting configuration (disables all optional features)
-#define MICROPY_CONFIG_ROM_LEVEL (MICROPY_CONFIG_ROM_LEVEL_MINIMUM)
+//#define MICROPY_CONFIG_ROM_LEVEL (MICROPY_CONFIG_ROM_LEVEL_MINIMUM)
+//#define MICROPY_CONFIG_ROM_LEVEL (MICROPY_CONFIG_ROM_LEVEL_CORE_FEATURES)
+#define MICROPY_CONFIG_ROM_LEVEL (MICROPY_CONFIG_ROM_LEVEL_FULL_FEATURES)
 
+#include <stdint.h>
+#include "mpconfigboard.h"
 // Enable the built-in MicroPython compiler for REPL
 #define MICROPY_ENABLE_COMPILER     (1)
 
@@ -35,6 +39,9 @@
 #ifndef MICROPY_HW_MCU_NAME
 #define MICROPY_HW_MCU_NAME "RA8P1"
 #endif
+
+
+#define MP_SSIZE_MAX (0x7fffffff)
 
 typedef long mp_off_t;
 

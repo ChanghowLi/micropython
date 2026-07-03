@@ -11,45 +11,52 @@
 #include "py/mperrno.h"
 #include "shared/runtime/gchelper.h"
 #include "shared/runtime/pyexec.h"
+#include "py/cstack.h"
 
 #define MICROPY_HEAP_SIZE (256 * 1024) /* MicroPython GC s_head size */
 
 static char s_head[MICROPY_HEAP_SIZE];
-static char *s_stack_top;
 
 void repl_thread_entry(void *pvParameters)
 {
     FSP_PARAMETER_NOT_USED(pvParameters);
 
-    int stack_dummy;
-    s_stack_top = (char *)&stack_dummy;
-
 #if CONSOLE_CFG_USE_RTT == 0
     SEGGER_RTT_Init();
 #endif
+
     CONSOLE_Init();
 
     LOG_I("MicroPython", "Starting MicroPython on CPKCOR-RA8P1...");
 
-    /* Init MicroPython */
+soft_reset:
+    mp_cstack_init_with_sp_here(0x3000);
+
 #if MICROPY_ENABLE_GC
     gc_init(s_head, s_head + sizeof(s_head));
 #endif
+
     mp_init();
+
 #if MICROPY_ENABLE_COMPILER
-    pyexec_friendly_repl();
+    for (;;) {
+        if (pyexec_mode_kind == PYEXEC_MODE_RAW_REPL) {
+            if (pyexec_raw_repl() != 0) {
+                break;
+            }
+        } else {
+            if (pyexec_friendly_repl() != 0) {
+                break;
+            }
+        }
+    }
 #else
     pyexec_frozen_module("frozentest.py", false);
 #endif
-    mp_deinit();
 
-    LOG_E("MicroPython", "REPL exited unexpectedly");
-    while (1) {
-        R_IOPORT_PinWrite(g_ioport.p_ctrl, USER_LED, BSP_IO_LEVEL_HIGH);
-        vTaskDelay(100);
-        R_IOPORT_PinWrite(g_ioport.p_ctrl, USER_LED, BSP_IO_LEVEL_LOW);
-        vTaskDelay(100);
-    }
+    mp_printf(&mp_plat_print, "MPY: soft reboot\n");
+    mp_deinit();
+    goto soft_reset;
 }
 
 #if LOG_CFG_EN_TIMESTAMP
@@ -93,6 +100,13 @@ void __attribute__((noreturn)) __fatal_error(const char *msg)
 
     while (1) {}
 }
+
+mp_obj_t mp_builtin_open(size_t n_args, const mp_obj_t *args, mp_map_t *kwargs) 
+{
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_KW(mp_builtin_open_obj, 1, mp_builtin_open);
+
 
 #if MICROPY_ENABLE_GC
 void gc_collect(void) 

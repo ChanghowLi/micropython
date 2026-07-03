@@ -34,7 +34,7 @@
 #endif
 
 /* Receive cache size, only use in UART/USB/RPMSG */
-#define CONSOLE_CFG_RX_BUF_SIZE		128
+#define CONSOLE_CFG_RX_BUF_SIZE		512
 
 /* ==================================== RTT Specific Config  ==================================== */
 #if CONSOLE_CFG_USE_RTT

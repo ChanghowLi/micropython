@@ -7,6 +7,7 @@
 
 #include "py/mpconfig.h"
 #include "py/mphal.h"
+#include "py/stream.h"
 
 // FSP / FreeRTOS includes
 #include "bsp_api.h"
@@ -29,6 +30,21 @@ int mp_hal_stdin_rx_chr(void) {
     return c;
 }
 
+uintptr_t mp_hal_stdio_poll(uintptr_t poll_flags)
+{
+    uintptr_t ret = 0;
+
+    if ((poll_flags & MP_STREAM_POLL_RD) && CONSOLE_HasData()) {
+        ret |= MP_STREAM_POLL_RD;
+    }
+
+    // 当前 TX 是轮询发送，可以认为始终可写。
+    if (poll_flags & MP_STREAM_POLL_WR) {
+        ret |= MP_STREAM_POLL_WR;
+    }
+
+    return ret;
+}
 // --- UART TX: send string via direct register write ---
 
 mp_uint_t mp_hal_stdout_tx_strn(const char *str, mp_uint_t len) {
@@ -45,7 +61,8 @@ mp_uint_t mp_hal_stdout_tx_strn(const char *str, mp_uint_t len) {
 // --- UART TX: send NUL-terminated string (cooked: \n → \r\n) ---
 
 void mp_hal_stdout_tx_str(const char *str) {
-    mp_hal_stdout_tx_strn_cooked(str, strlen(str));
+    //mp_hal_stdout_tx_strn_cooked(str, strlen(str));
+    mp_hal_stdout_tx_strn(str, strlen(str));
 }
 
 // --- UART TX: send "cooked" string (\n → \r\n) ---
