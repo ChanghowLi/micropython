@@ -1,38 +1,52 @@
-// MicroPython HAL port implementation for RA8P1 (FreeRTOS + FSP)
-//
-// Uses:
-//   - console.c's UART ring buffer for RX (interrupt-driven)
-//   - Direct SCI UART register write for TX (polling)
-//   - FreeRTOS xTaskGetTickCount() for mp_hal_ticks_ms()
-
 #include "py/mpconfig.h"
 #include "py/mphal.h"
 #include "py/stream.h"
 
-// FSP / FreeRTOS includes
 #include "bsp_api.h"
-#include "hal_data.h"
 #include "console.h"
+#include "hal_data.h"
 #include "FreeRTOS.h"
 #include "task.h"
 
-// --- UART RX: read one character from the console ring buffer ---
+#define TAG __FUNCTION__
 
-int mp_hal_stdin_rx_chr(void) {
+#ifndef __MPHALPORT_DEBUG
+#define __MPHALPORT_DEBUG   1
+#endif
+
+#if __MPHALPORT_DEBUG
+#include "utils/log.h"
+#endif
+
+int g_mp_interrupt_char = -1;
+
+/**
+ * @brief   实现 MicroPython 底层的 stdin 流, 会被如 stdio_read() 等函数调用
+ * @retval  读取到的字符，来自 UART 的环形缓冲区
+ */
+int mp_hal_stdin_rx_chr(void)
+{
     unsigned char c;
-    // Wait for data in the RX ring buffer (filled by UART RX interrupt)
+
     while (CONSOLE_HasData() == 0) {
-        // Yield to other tasks while waiting; the UART interrupt will fill
-        // the buffer regardless
         taskYIELD();
     }
     CONSOLE_Read(&c, 1);
+
     return c;
 }
 
+/**
+ * @brief   MicroPython 要调用 stdio 时，会使用 stdio_ioctl() 查询要使用的流是否可用，该函数即被 stdio_ioctl() 调用，根据 port 实现
+ * @param   poll_flags 会传入的值参考 py\stream.h 53~57 行
+ */
 uintptr_t mp_hal_stdio_poll(uintptr_t poll_flags)
 {
     uintptr_t ret = 0;
+
+#if __MPHALPORT_DEBUG
+    LOG_D(TAG, "poll_flags: 0x%04X", poll_flags);
+#endif
 
     if ((poll_flags & MP_STREAM_POLL_RD) && CONSOLE_HasData()) {
         ret |= MP_STREAM_POLL_RD;
@@ -45,29 +59,46 @@ uintptr_t mp_hal_stdio_poll(uintptr_t poll_flags)
 
     return ret;
 }
-// --- UART TX: send string via direct register write ---
 
-mp_uint_t mp_hal_stdout_tx_strn(const char *str, mp_uint_t len) {
-    // Direct UART TX register access — same approach as console.c's fputc
-    sci_b_uart_instance_ctrl_t *ctrl =
-        (sci_b_uart_instance_ctrl_t *)CONSOLE_CFG_UART_INSTANCE.p_ctrl;
+/**
+ * @brief   部分 MicroPython 的源代码使用这个函数来输出
+ * @param   str 要发送的字符串
+ * @param   len 要发送的字符串的大小
+ * @retval  实际发送的字符数
+ */
+mp_uint_t mp_hal_stdout_tx_strn(const char *str, mp_uint_t len)
+{
+    sci_b_uart_instance_ctrl_t *ctrl = (sci_b_uart_instance_ctrl_t *)CONSOLE_CFG_UART_INSTANCE.p_ctrl;
+
     for (mp_uint_t i = 0; i < len; i++) {
         ctrl->p_reg->TDR_BY = (uint8_t)str[i];
         while ((ctrl->p_reg->CSR & R_SCI_B0_CSR_TDRE_Msk) == 0) {}
     }
+
     return len;
 }
 
-// --- UART TX: send NUL-terminated string (cooked: \n → \r\n) ---
+/**
+ * @brief   部分 MicroPython 的源代码使用这个函数来输出
+ * @param   str 要发送的字符串
+ */
+void mp_hal_stdout_tx_str(const char *str) 
+{
+    sci_b_uart_instance_ctrl_t *ctrl = (sci_b_uart_instance_ctrl_t *)CONSOLE_CFG_UART_INSTANCE.p_ctrl;
 
-void mp_hal_stdout_tx_str(const char *str) {
-    //mp_hal_stdout_tx_strn_cooked(str, strlen(str));
-    mp_hal_stdout_tx_strn(str, strlen(str));
+    for (uint32_t i = 0; str[i]; i++) {
+        ctrl->p_reg->TDR_BY = (uint8_t)str[i];
+        while ((ctrl->p_reg->CSR & R_SCI_B0_CSR_TDRE_Msk) == 0) {}
+    }
 }
 
-// --- UART TX: send "cooked" string (\n → \r\n) ---
-
-void mp_hal_stdout_tx_strn_cooked(const char *str, size_t len) {
+/**
+ * @brief   实现 MicroPython 底层的 stdout 流, 用于输出字符串，会被 stdio_write() 调用
+ * @param   str 要发送的字符串
+ * @param   len 要发送的字符串的大小
+ */
+void mp_hal_stdout_tx_strn_cooked(const char *str, size_t len)
+{
     for (size_t i = 0; i < len; i++) {
         if (str[i] == '\n') {
             mp_hal_stdout_tx_strn("\r", 1);
@@ -76,37 +107,37 @@ void mp_hal_stdout_tx_strn_cooked(const char *str, size_t len) {
     }
 }
 
-// --- Millisecond counter from FreeRTOS tick ---
+/**
+ * @brief   MicroPython 获取时间，使用 FreeRTOS 时，可以直接返回 Tick 数
+ * @retval  FreeRTOS Tick number
+ */
+mp_uint_t mp_hal_ticks_ms(void)
+{
+    mp_uint_t t;
 
-mp_uint_t mp_hal_ticks_ms(void) {
-    // configTICK_RATE_HZ = 1000, so each tick is 1ms
-    return (mp_uint_t)xTaskGetTickCount();
+    if (__get_IPSR() == 0) {
+        t = xTaskGetTickCount();
+    }
+    else {
+        t = xTaskGetTickCountFromISR();
+    }
+
+    return t;
 }
 
-// --- Interrupt character (Ctrl-C handling) ---
-//
-// For basic REPL, Ctrl-C (0x03) is handled by the readline code checking
-// the received character. The event-driven REPL (MICROPY_REPL_EVENT_DRIVEN)
-// uses the interrupt_char mechanism for async KeyboardInterrupt.
-// For now, we rely on the polling-based REPL where Ctrl-C is handled inline.
-
-static int mp_interrupt_char = -1;
-
-void mp_hal_set_interrupt_char(char c) {
-    mp_interrupt_char = c;
+void mp_hal_set_interrupt_char(char c)
+{
+#if __MPHALPORT_DEBUG
+    LOG_D(TAG, "c = %d", c);
+#endif
+    g_mp_interrupt_char = c;
 }
 
-// Check if the interrupt character has been received.
-// Called by MicroPython VM periodically (e.g., in mp_handle_pending).
-// We peek into the UART RX buffer to see if Ctrl-C was pressed.
-int mp_hal_is_interrupt_char_received(void) {
-    if (mp_interrupt_char < 0) {
+int mp_hal_is_interrupt_char_received(void)
+{
+    if (g_mp_interrupt_char < 0) {
         return 0;
     }
-    // We can't easily peek the ring buffer without consuming the char,
-    // so for now we rely on the polling readline to detect Ctrl-C.
-    // For full event-driven REPL support, the UART RX ISR callback
-    // (UART9_Callback in console.c) should be extended to set a flag
-    // when the interrupt char is received.
+
     return 0;
 }

@@ -99,6 +99,7 @@
 									<listOptionValue builtIn="false" value="../../../../build-CPKCOR_RA8P1"/>
 									<listOptionValue builtIn="false" value="../../../../../.."/>
 									<listOptionValue builtIn="false" value="../../../.."/>
+									<listOptionValue builtIn="false" value="../.."/>
 									<listOptionValue builtIn="false" value="&quot;.&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ra_cfg/fsp_cfg/bsp}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ra_cfg/fsp_cfg}&quot;"/>
@@ -275,10 +276,11 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
+						<entry excluding="modtime.c|modselect.c|modre.c|modrandom.c|modplatform.c|modos.c|modjson.c|modheapq.c|modhashlib.c|modframebuf.c|moddeflate.c|modbinascii.c|modasyncio.c|nimble" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="extmod"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="py"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="ra"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="ra_gen"/>
-						<entry excluding="runtime/sys_stdio_mphal.c|runtime/stdout_helpers.c|runtime/softtimer.c|runtime/semihosting_rv32.c|runtime/semihosting_arm.c|runtime/mpirq.c|runtime/interrupt_char.c|runtime/gchelper_thumb1.s|runtime/gchelper_rv64i.s|runtime/gchelper_rv32i.s|runtime/gchelper_native.c|tinyusb|timeutils|netutils|memzip|libc" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="shared"/>
+						<entry excluding="runtime/stdout_helpers.c|runtime/softtimer.c|runtime/semihosting_rv32.c|runtime/semihosting_arm.c|runtime/mpirq.c|runtime/interrupt_char.c|runtime/gchelper_thumb1.s|runtime/gchelper_rv64i.s|runtime/gchelper_rv32i.s|runtime/gchelper_native.c|tinyusb|timeutils|netutils|memzip|libc" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="shared"/>
 						<entry excluding="repl_thread_entry_01.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
 					</sourceEntries>
 				</configuration>
@@ -552,6 +554,8 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="extmod/asyncio"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="extmod/axtls-include"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="ra"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="ra_gen"/>
 						<entry excluding="repl_thread_entry_01.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>

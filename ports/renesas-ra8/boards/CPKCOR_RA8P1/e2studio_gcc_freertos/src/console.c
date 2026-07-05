@@ -3,6 +3,8 @@
 
 #include "console.h"
 #include "hal_data.h"
+#include "mphalport.h"
+#include "py/runtime.h"
 
 /* If using __CONSOLE_DEBUG, you must implement output stream by yourself.
  * You can't use C standard output */
@@ -499,8 +501,8 @@ void CONSOLE_Init(void)
 #elif CONSOLE_CFG_USE_UART
 
 static uint8_t s_rx_buf[CONSOLE_CFG_RX_BUF_SIZE];
-static uint32_t s_head_index;
-static uint32_t s_tail_index;
+static volatile uint32_t s_head_index;
+static volatile uint32_t s_tail_index;
 /**
  * @brief   Checks if at least one character for reading is available at rx buf
  * @return  0: no data, 1: data avaliable
@@ -541,13 +543,14 @@ unsigned CONSOLE_Read(void* buffer, unsigned size)
     unsigned read_num;
     uint32_t rx_length, remain;
 
+	uint32_t copied = 0;
     uint8_t *p8 = (uint8_t *)buffer;
 
     if (s_head_index < s_tail_index) {
         rx_length = s_tail_index - s_head_index;
         read_num = rx_length > size ? size : rx_length;
         memcpy(p8, &s_rx_buf[s_head_index], read_num);
-        s_tail_index -= read_num;
+        s_head_index += read_num;
     }
     else if (s_head_index == s_tail_index) {
         read_num = 0;
@@ -556,37 +559,48 @@ unsigned CONSOLE_Read(void* buffer, unsigned size)
         rx_length = CONSOLE_CFG_RX_BUF_SIZE - (s_head_index - s_tail_index);
         read_num = rx_length > size ? size : rx_length;
 
-        memcpy(p8, &s_rx_buf[s_head_index], CONSOLE_CFG_RX_BUF_SIZE - s_head_index);
-        if (read_num < (CONSOLE_CFG_RX_BUF_SIZE - s_head_index)) {
-            s_head_index += read_num;
-            if (s_head_index == CONSOLE_CFG_RX_BUF_SIZE) {
-                s_head_index = 0;
-            }
-        }
-        else {
-            remain = read_num - (CONSOLE_CFG_RX_BUF_SIZE - s_head_index);
-            memcpy(&p8[CONSOLE_CFG_RX_BUF_SIZE - s_head_index], s_rx_buf, remain);
-            s_head_index += remain;
-        }
+		if (read_num <= (CONSOLE_CFG_RX_BUF_SIZE - s_head_index)) {
+			memcpy(p8, &s_rx_buf[s_head_index], read_num);
+			s_head_index += read_num;
+			if (s_head_index == CONSOLE_CFG_RX_BUF_SIZE) {
+				s_head_index = 0;
+			}
+		}
+		else {
+			memcpy(p8, &s_rx_buf[s_head_index], CONSOLE_CFG_RX_BUF_SIZE - s_head_index);
+			remain = read_num - (CONSOLE_CFG_RX_BUF_SIZE - s_head_index);
+			copied = CONSOLE_CFG_RX_BUF_SIZE - s_head_index;
+
+			s_head_index = 0;
+			rx_length = s_tail_index;
+			read_num = rx_length > remain ? remain : rx_length;
+			memcpy(&p8[copied], s_rx_buf, read_num);
+			s_head_index += read_num;
+		}
     }
 
-    return read_num;
+    return read_num + copied;
 }
 
 void CONSOLE_CFG_UART_CALLBACK(uart_callback_args_t *p_args)
 {
     if (p_args->event == UART_EVENT_RX_CHAR) {
-        s_rx_buf[s_tail_index] = (uint8_t)p_args->data;
-        s_tail_index++;
-        if (s_tail_index == CONSOLE_CFG_RX_BUF_SIZE) {
-            s_tail_index = 0;
-        }
-        if (s_tail_index == s_head_index) {
-            s_head_index++;
-            if (s_head_index == CONSOLE_CFG_RX_BUF_SIZE) {
-                s_head_index = 0;
-            }
-        }
+		if ((g_mp_interrupt_char > 0) && (p_args->data == (uint32_t)g_mp_interrupt_char)) {
+			mp_sched_keyboard_interrupt();
+		}
+		else {
+			s_rx_buf[s_tail_index] = (uint8_t)p_args->data;
+			s_tail_index++;
+			if (s_tail_index == CONSOLE_CFG_RX_BUF_SIZE) {
+				s_tail_index = 0;
+			}
+			if (s_tail_index == s_head_index) {
+				s_head_index++;
+				if (s_head_index == CONSOLE_CFG_RX_BUF_SIZE) {
+					s_head_index = 0;
+				}
+			}
+		}
 	#if CONSOLE_CFG_USE_RPMSG
         bool notice = false;
         struct InputPackage *ip = &s_icache[s_itail];

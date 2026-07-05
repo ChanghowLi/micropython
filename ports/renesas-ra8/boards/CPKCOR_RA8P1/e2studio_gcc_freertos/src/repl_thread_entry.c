@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "console.h"
 #include "repl_thread.h"
 #include "SEGGER_RTT/SEGGER_RTT.h"
@@ -13,41 +15,65 @@
 #include "shared/runtime/pyexec.h"
 #include "py/cstack.h"
 
-#define MICROPY_HEAP_SIZE (256 * 1024) /* MicroPython GC s_head size */
+#define TAG __FUNCTION__
 
 static char s_head[MICROPY_HEAP_SIZE];
 
 void repl_thread_entry(void *pvParameters)
 {
+    int ret;
+
     FSP_PARAMETER_NOT_USED(pvParameters);
 
 #if CONSOLE_CFG_USE_RTT == 0
     SEGGER_RTT_Init();
 #endif
-
     CONSOLE_Init();
 
     LOG_I("MicroPython", "Starting MicroPython on CPKCOR-RA8P1...");
 
 soft_reset:
+    /* 必须小于 FreeRTOS 分配的栈大小，当前：0x4000 */
     mp_cstack_init_with_sp_here(0x3000);
 
 #if MICROPY_ENABLE_GC
     gc_init(s_head, s_head + sizeof(s_head));
 #endif
-
     mp_init();
 
 #if MICROPY_ENABLE_COMPILER
-    for (;;) {
+    while (1) {
         if (pyexec_mode_kind == PYEXEC_MODE_RAW_REPL) {
-            if (pyexec_raw_repl() != 0) {
+            ret = pyexec_raw_repl();
+            switch (ret) {
+            case 0:
+                LOG_I(TAG, "Raw REPL normal exit, change to Friendly REPL");
+                break;
+            case PYEXEC_FORCED_EXIT:
+                LOG_W(TAG, "Raw REPL forced exit");
+                break;
+            default:
+                LOG_W(TAG, "Raw REPL unexpect exit, code: 0x%X", ret);
                 break;
             }
-        } else {
-            if (pyexec_friendly_repl() != 0) {
+        }
+        else {
+            ret = pyexec_friendly_repl();
+            switch (ret) {
+            case 0:
+                LOG_I(TAG, "Friendly REPL normal exit, change to Raw REPL");
+                break;
+            case PYEXEC_FORCED_EXIT:
+                LOG_W(TAG, "Friendly REPL forced exit");
+                break;
+            default:
+                LOG_W(TAG, "Friendly REPL unexpect exit, code: 0x%X", ret);
                 break;
             }
+        }
+        
+        if (ret != 0) {
+            break;
         }
     }
 #else
@@ -56,6 +82,7 @@ soft_reset:
 
     mp_printf(&mp_plat_print, "MPY: soft reboot\n");
     mp_deinit();
+    LOG_W(TAG, "Soft reset");
     goto soft_reset;
 }
 
@@ -89,14 +116,26 @@ mp_import_stat_t mp_import_stat(const char *path)
 
 void nlr_jump_fail(void *val)
 {
-    LOG_E(__FUNCTION__, "*val: 0x%p", val);
+    LOG_E(TAG, "NLR jump failed, val: 0x%p", val);
+
+#if MICROPY_STACK_CHECK
+    volatile int sp_dummy;
+    LOG_E(TAG, "C stack: top=0x%p SP=0x%p usage=%u limit=%u", MP_STATE_THREAD(stack_top), &sp_dummy, mp_cstack_usage(), MP_STATE_THREAD(stack_limit));
+#endif
+
+    if (val != NULL) {
+        mp_obj_print_exception(&mp_plat_print, MP_OBJ_FROM_PTR(val));
+    }
+
+    TaskHandle_t task = xTaskGetCurrentTaskHandle();
+    LOG_E(TAG, "Task: %s, stack free: %lu words", pcTaskGetName(task), uxTaskGetStackHighWaterMark(task));
 
     while (1) {}
 }
 
 void __attribute__((noreturn)) __fatal_error(const char *msg)
 {
-    LOG_E(__FUNCTION__, msg);
+    LOG_E(TAG, msg);
 
     while (1) {}
 }

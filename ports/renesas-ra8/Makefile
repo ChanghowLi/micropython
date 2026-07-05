@@ -58,13 +58,12 @@ endif
 SRC_C := $(FSP_SRC_C)
 
 # MicroPython integration sources
+SRC_C += extmod/moductypes.c
 SRC_C += shared/libc/printf.c
 SRC_C += shared/libc/string0.c
 SRC_C += shared/readline/readline.c
-SRC_C += shared/runtime/pyexec.c
 SRC_C += shared/runtime/gchelper_generic.c
-# MicroPython modules enabled for current bring-up
-SRC_C += extmod/moductypes.c
+SRC_C += shared/runtime/pyexec.c
 SRC_C += shared/runtime/sys_stdio_mphal.c
 
 # Assembly sources (GC helper for Thumb-2)
@@ -75,7 +74,6 @@ INC += -I.
 INC += -I$(TOP)
 INC += -I$(BUILD)
 INC += -Iboards/$(BOARD)
-# INC += -IboardSRC_QSTR += shared/readline/readline.c shared/runtime/pyexec.cs/$(BOARD)
 
 # e2 studio includes (in order from the e2 studio build)
 INC += -I$(FSP_PROJECT_DIR)/ra_gen
@@ -110,8 +108,14 @@ CFLAGS += -fsigned-char
 CFLAGS += --param=min-pagesize=0
 
 # Warning flags: stricter for MicroPython code, relaxed for FSP
-CFLAGS += -Wall -Wdouble-promotion -Wfloat-conversion
-CFLAGS += -Wno-stringop-overflow -Wno-format-truncation
+CFLAGS += -Wall
+CFLAGS += -Wdouble-promotion
+CFLAGS += -Wfloat-conversion
+# Suppress these warnings
+CFLAGS += -Wno-format-truncation
+CFLAGS += -Wno-stringop-overflow
+# These warnings upgrad to errors.
+CFLAGS += -Werror=implicit-function-declaration
 
 # Macro
 CFLAGS += -D_RA_CORE=CPU0
@@ -139,10 +143,9 @@ LDFLAGS += --specs=nano.specs
 LIBS = -Wl,--start-group -lgcc -lm -lc -Wl,--end-group
 
 # QSTR sources (for string interning)
-# SRC_QSTR += shared/readline/readline.c shared/runtime/pyexec.c
+SRC_QSTR += extmod/moductypes.c
 SRC_QSTR += shared/readline/readline.c
 SRC_QSTR += shared/runtime/pyexec.c
-SRC_QSTR += extmod/moductypes.c
 SRC_QSTR += shared/runtime/sys_stdio_mphal.c
 
 # ---- Object files ----
