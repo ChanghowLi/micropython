@@ -122,6 +122,7 @@ CFLAGS += -D_RA_CORE=CPU0
 CFLAGS += -D_RA_ORDINAL=1
 CFLAGS += -D_RENESAS_RA_
 CFLAGS += -D__arm__
+CFLAGS += -DCONSOLE_RX_BUF_SECTION=\".dtcm_noinit\"
 
 # Optimization
 CFLAGS += -O2 -DNDEBUG

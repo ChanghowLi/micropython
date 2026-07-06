@@ -91,6 +91,7 @@
 									<listOptionValue builtIn="false" value="_RA_ORDINAL=1"/>
 									<listOptionValue builtIn="false" value="__arm__"/>
 									<listOptionValue builtIn="false" value="STRINGIFY(x)=#x"/>
+									<listOptionValue builtIn="false" value="CONSOLE_RX_BUF_SECTION=STRINGIFY(.dtcm_noinit)"/>
 									<listOptionValue builtIn="false" value="MICROPY_ROM_TEXT_COMPRESSION=1"/>
 									<listOptionValue builtIn="false" value="MICROPY_BOARD_BUILD_NAME=STRINGIFY(CPKCOR_RA8P1)"/>
 								</option>

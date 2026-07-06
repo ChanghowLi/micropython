@@ -6,6 +6,10 @@
 #include "mphalport.h"
 #include "py/runtime.h"
 
+#ifndef CONSOLE_RX_BUF_SECTION
+#define CONSOLE_RX_BUF_SECTION	".ram_noinit_nocache"
+#endif
+
 /* If using __CONSOLE_DEBUG, you must implement output stream by yourself.
  * You can't use C standard output */
 #ifndef __CONSOLE_DEBUG
@@ -500,7 +504,7 @@ void CONSOLE_Init(void)
 
 #elif CONSOLE_CFG_USE_UART
 
-static uint8_t s_rx_buf[CONSOLE_CFG_RX_BUF_SIZE];
+static uint8_t s_rx_buf[CONSOLE_CFG_RX_BUF_SIZE] __attribute__((section(CONSOLE_RX_BUF_SECTION)));
 static volatile uint32_t s_head_index;
 static volatile uint32_t s_tail_index;
 /**
