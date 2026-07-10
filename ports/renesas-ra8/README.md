@@ -1,316 +1,191 @@
-# Note
+# MicroPython Renesas RA8P1 移植
 
-在 `ports/renesas-ra8` 目录下创建 `local.mk`，里面写 E2S_GCC 的路径
+**最后更新：** 2026-07-10
+
+---
+
+## 概述
+
+本 port 将 MicroPython 集成到 Renesas e2 studio 的 FSP 工程中，目标板为
+CPKCOR-RA8P1（Cortex-M85）。REPL 作为一个 FreeRTOS 任务运行。硬件初始化、时钟
+树、引脚复用、外设驱动全部由 e2 studio 生成的 FSP 代码负责，MicroPython 侧无需
+手写引脚映射或链接脚本。
+
+## 快速开始
+
+### 前置条件
+
+- ARM GCC 13.2 工具链（e2 studio 自带）
+- Anaconda Python（或任意 Python 3.8+）—— Windows 用户可能需要 `PYTHON=python`
+- 一个 e2 studio 工程，路径见板级配置
+
+### 构建
+
+创建 `ports/renesas-ra8/local.mk`，写入工具链路径：
 
 ```makefile
-# 根据安装路径填写
-E2S_GCC ?= D:/Programs/Dev/e2s_2025_12_BSP_6.4.0/toolchains/gcc_arm/13.2.rel1
+E2S_GCC ?= D:/Programs/Dev/e2s_2025_12/toolchains/gcc_arm/13.2.rel1
 ```
 
-先用 e2studio 生成工程，然后在 `ports/renesas-ra8` 目录执行
+先生成头文件，再编译：
 
 ```bash
 make BOARD=CPKCOR_RA8P1 genhdr
-```
-
-对于 windows，如果没有使用 Microsoft Store 里的 Python，则需要指定 python
-
-```bash
-# 如果 shell 中有 python
-make BOARD=CPKCOR_RA8P1 genhdr PYTHON=python
-```
-
-> 已修改 makefile,现在不用加 `PYTHON=python` 
-
-# RA8P1 MicroPython 最小化移植方案
-
-## 核心思路
-
-**完全绕过 `ports/renesas-ra` 的复杂适配层**，参照 `ports/minimal` 的模式，用 e2 studio 生成的 FSP 代码处理所有硬件初始化，MicroPython 只负责 REPL。
-
-### 为什么这样做？
-
-| 对比项                | 适配 renesas-ra       | 本方案                  |
-| ------------------ | ------------------- | -------------------- |
-| 需要修改/创建的文件         | 20+ 个               | **6 个**              |
-| 需要 ra/ 适配层？        | 是（14+ 个 .c 文件）      | **否**                |
-| 需要 AF 引脚映射表？       | 是（CSV 表格）           | **否**（e2 studio 已配置） |
-| 需要 machine_*.c 模块？ | 全部编译                | **否**（后续按需添加）        |
-| 需要手写链接脚本？          | 是                   | **否**（e2 studio 生成）  |
-| 外设初始化              | 手动在 FSP 配置 + ra/*.c | **e2 studio 全自动**    |
-| 时钟配置               | 手动填 mpconfigboard.h | **e2 studio 时钟树**    |
-| REPL 串口            | 通过 ra_sci.c 多层适配    | **直接用 FSP API**      |
-
-### 关键洞察
-
-`ports/minimal` 的结构极其简单：**MicroPython 核心只需要 4 个硬件函数**：
-
-| 函数                            | 用途             |
-| ----------------------------- | -------------- |
-| `mp_hal_stdin_rx_chr()`       | 从串口读一个字符       |
-| `mp_hal_stdout_tx_strn()`     | 向串口写一串字符       |
-| `mp_hal_ticks_ms()`           | 获取毫秒计数器        |
-| `mp_hal_set_interrupt_char()` | 设置中断字符（Ctrl-C） |
-
-而 e2 studio 已经生成了：
-
-- ✅ 启动代码（Reset_Handler、中断向量表、data/bss 初始化）
-- ✅ 完整的时钟树配置（CPU 1GHz、SCICLK 120MHz、PCLK 125MHz）
-- ✅ 引脚复用配置（IOPORT）
-- ✅ UART 驱动（r_sci_b_uart）+ 带中断的环形缓冲区（console.c）
-- ✅ 链接脚本（fsp_gen.ld + memory_regions.ld）
-- ✅ CMSIS 6 头文件（core_cm85.h）
-- ✅ 所有 BSP 基础设施
-
-**两者之间的桥梁只需要 ~200 行代码。**
-
----
-
-## 文件结构
-
-```
-ports/renesas-ra8/
-├── README.md                      # 本文档
-├── Makefile                       # 构建脚本（~80 行）
-├── main.c                         # 入口：FSP 初始化 → MicroPython REPL（~80 行）
-├── mpconfigport.h                 # MicroPython 功能配置（~30 行）
-├── mphalport.h                    # HAL 函数声明
-├── mphalport.c                    # HAL 实现：UART I/O + SysTick（~50 行）
-├── qstrdefsport.h                 # 空的 qstr 定义
-└── boards/
-    ├── CPKCOR_RA8P1/
-    │   ├── mpconfigboard.h        # 板级配置（时钟频率、UART 引脚等）
-    │   └── mpconfigboard.mk       # 板级构建设置（FSP 路径等）
-    └── EK_RA8P1/
-        ├── mpconfigboard.h
-        └── mpconfigboard.mk
-```
-
-**注意**：此 port 不包含任何 FSP 源文件。FSP 文件来自 e2 studio 项目，由 `mpconfigboard.mk` 中的路径指向。
-
----
-
-## 步骤总览
-
-```
-[1] 用户：用 e2 studio 创建 Bare Metal 工程
-        │
-[2] Claude：创建 ports/renesas-ra8 全部源文件
-        │
-[3] Claude：首次编译 → 修复编译错误
-        │
-[4] 用户：烧录验证 → 看到 REPL 提示符 >>>
-```
-
----
-
-## 步骤 [1] — 用户操作：创建 e2 studio Bare Metal 工程
-
-> **注意**：当前 `boards/CPKCOR_RA8P1/e2studio_gcc_freertos/` 是 FreeRTOS 工程，其生成的 `bsp_cfg.h` 中 `BSP_CFG_RTOS=2`，会导致 FSP 代码走 RTOS 路径。必须重新创建 Bare Metal 工程。
-
-### 操作步骤
-
-1. 打开 e2 studio
-2. **File → New → Renesas RA C/C++ Project**
-3. 选择 **"Bare Metal - Minimal"** 模板
-4. Device 选择 **R7KA8P1KF**（与现有工程相同）
-5. FSP 版本使用与现有工程相同的版本（或更新版本）
-6. 在 FSP Configurator 中添加以下 Stacks：
-
-| Stack           | 用途        | 配置                                                |
-| --------------- | --------- | ------------------------------------------------- |
-| **IOPORT**      | GPIO 引脚控制 | 默认即可                                              |
-| **SCI UART** ×1 | REPL 串口   | Channel 9, TX=P208, RX=P209, 波特率 115200 或 2000000 |
-
-7. 不需要的 Stacks（确保不添加）：
-   
-   - ❌ FreeRTOS
-   - ❌ ADC / DAC
-   - ❌ SPI / I2C
-   - ❌ GPT / AGT 定时器
-   - ❌ SDHI / QSPI / SDRAM
-   - ❌ USB / CAN / Ethernet
-
-8. 生成代码（点击 "Generate Project Content"）
-
-9. **验证工程能编译并运行**：在 e2 studio 中编译，烧录到板子上，确认 LED 闪烁或串口能输出 "hello"。
-
-10. 将生成的工程目录复制到：
-    
-    ```
-    ports/renesas-ra/boards/CPKCOR_RA8P1/e2studio_baremetal/
-    ```
-    
-    （或直接在此路径创建工程）
-
-### 为什么这一步必须由用户完成？
-
-- e2 studio 是 Windows GUI 工具，无法在命令行中自动化
-- FSP 时钟树、引脚复用配置需要通过 FSP Configurator 图形界面完成
-- 代码生成依赖 Renesas 的 FSP 许可和版本管理
-
----
-
-## 步骤 [2] — 创建源文件
-
-我将创建以下文件：
-
-### 2.1 `Makefile`
-
-**职责**：
-
-1. 设置 `CROSS_COMPILE = arm-none-eabi-`
-2. 包含 MicroPython 核心构建系统（`py/mkenv.mk` + `py/py.mk`）
-3. 从 `mpconfigboard.mk` 获取 FSP 源文件路径
-4. 编译 MicroPython 集成代码 + FSP 源文件 + MicroPython 核心
-5. 链接出 `firmware.elf`
-
-**关键设计决策**：
-
-- FSP 源文件分散在多个目录（`ra_gen/`、`ra/fsp/src/`、`src/` 等），需要用 `VPATH` 或显式规则处理
-- 使用 e2 studio 的链接脚本 `fsp_gen.ld`
-- CFLAGS: `-mthumb -mtune=cortex-m85 -mcpu=cortex-m85 -mfpu=fpv5-d16 -mfloat-abi=hard`
-
-### 2.2 `main.c`
-
-**启动流程**：
-
-```
-Reset_Handler (FSP startup.c)
-  → SystemInit() (FSP system.c: 使能 cache、FPU、TCM)
-    → R_BSP_WarmStart() (配置引脚、初始化 SDRAM 等)
-      → main() (我们的函数)
-        → 配置 SysTick (1ms 间隔)
-        → 打开 UART (R_SCI_B_UART_Open)
-        → gc_init()
-        → mp_init()
-        → pyexec_friendly_repl()  ← REPL 交互
-```
-
-**与 FreeRTOS 版 main.c 的区别**：
-
-- FreeRTOS 版：`main()` → 创建信号量 → 创建线程 → `vTaskStartScheduler()`（永不返回）
-- Bare Metal 版：`main()` → 初始化外设 → 调用 `hal_entry()`（用户代码）
-- 我们的版本：直接在我们的 `main.c` 中提供 `main()` 函数，完成 MicroPython 初始化后进入 REPL
-
-### 2.3 `mphalport.c`
-
-**4 个硬件抽象函数的实现**：
-
-```c
-// 1. 串口接收：利用 console.c 的环形缓冲区（UART RX 中断填充）
-int mp_hal_stdin_rx_chr(void) {
-    while (!CONSOLE_HasData()) { __WFI(); }
-    CONSOLE_Read(&c, 1);
-    return c;
-}
-
-// 2. 串口发送：直接写 UART 数据寄存器（轮询）
-mp_uint_t mp_hal_stdout_tx_strn(const char *str, mp_uint_t len) {
-    for (i = 0; i < len; i++) {
-        SCI9->TDR_BY = str[i];
-        while (!(SCI9->CSR & TDRE)) {}
-    }
-}
-
-// 3. 毫秒计数器：SysTick 中断 +1
-volatile uint32_t systick_ms;
-void SysTick_Handler(void) { systick_ms++; }
-mp_uint_t mp_hal_ticks_ms(void) { return systick_ms; }
-
-// 4. 中断字符：基础 REPL 不需要，空函数即可
-void mp_hal_set_interrupt_char(char c) { (void)c; }
-```
-
-### 2.4 `mpconfigport.h`
-
-参考 `ports/minimal/mpconfigport.h`，调整：
-
-- `MICROPY_HW_BOARD_NAME` / `MICROPY_HW_MCU_NAME` 由 `mpconfigboard.h` 定义
-- **不定义** `MICROPY_MIN_USE_CORTEX_CPU`（因为启动代码由 FSP 提供）
-- `MICROPY_HEAP_SIZE` 设置为 128KB（RA8P1 有 1.8MB SRAM）
-- 启用 GC、编译器、REPL
-
-### 2.5 板级配置
-
-**`boards/CPKCOR_RA8P1/mpconfigboard.mk`**：
-
-- `CMSIS_MCU = RA8P1`
-- `MCU_SERIES = m85`
-- `E2STUDIO_DIR` — 指向 e2 studio 工程根目录
-- `LD_FILES` — 指向 e2 studio 生成的链接脚本
-
-**`boards/CPKCOR_RA8P1/mpconfigboard.h`**：
-
-- `MICROPY_HW_MCU_SYSCLK` — 1,000,000,000（1GHz，从 bsp_clock_cfg.h 可知）
-- `MICROPY_HW_MCU_PCLK` — 125,000,000（PCLKA = 1GHz/8）
-- UART REPL 引脚配置
-- LED 引脚配置
-
----
-
-## 步骤 [3] — 首次编译及错误修复
-
-```bash
-cd ports/renesas-ra8
 make BOARD=CPKCOR_RA8P1 -j$(nproc)
 ```
 
-### 预期可能遇到的错误
-
-| 预期错误                                          | 原因                | 解决方案                             |
-| --------------------------------------------- | ----------------- | -------------------------------- |
-| `R7KA8P1KF_core0.h: No such file`             | FSP Include 路径不对  | 检查 `E2STUDIO_DIR` 和 INC 路径       |
-| `core_cm85.h: No such file`                   | CMSIS 路径不对        | 检查 CMSIS Include 路径              |
-| `bsp_feature.h: No such file`                 | RA8P1 特定 BSP 路径缺失 | 添加 `ra/fsp/src/bsp/mcu/ra8p1`    |
-| `undefined reference to g_uart9`              | `hal_data.c` 未编译  | 确认 FSP 源文件列表完整                   |
-| `error: BSP_CFG_RTOS` 相关冲突                    | 使用了 FreeRTOS 配置   | 确认步骤 [1] 的 Bare Metal 工程         |
-| `undefined reference to _write/_read`         | libc 系统调用未实现      | 用 console.c 中的 `_write/_read` 实现 |
-| Section 溢出                                    | Flash/RAM 区域不对    | 确认链接脚本中的内存布局                     |
-| `error: target CPU does not support ARM mode` | 缺少 `-mthumb`      | 确认 CFLAGS_CORTEX_M85             |
-
----
-
-## 步骤 [4] — 烧录验证
+Windows 如果报 `Python was not found`（Microsoft Store 存根问题）：
 
 ```bash
-# 生成 hex 文件
-make BOARD=CPKCOR_RA8P1
-
-# 通过 J-Link 烧录
-JLinkExe -device R7KA8P1KF -if SWD -speed 4000 -autoconnect 1 \
-    -CommanderScript flash.jlink
+make BOARD=CPKCOR_RA8P1 genhdr PYTHON=python
 ```
 
-**验证清单**：
+产物：`build-CPKCOR_RA8P1/firmware.elf`、`.bin`、`.hex`。
 
-- [ ] 串口有输出（`screen /dev/ttyUSB0 115200`）
-- [ ] 看到 MicroPython 启动信息和 `>>>` 提示符
-- [ ] 可以执行 `print("hello")`、`1 + 1` 等基本 Python 语句
-- [ ] Ctrl-C 能中断正在运行的程序
+### 生成 compile_commands.json（VSCode IntelliSense）
+
+```bash
+pip install compiledb
+compiledb -n make BOARD=CPKCOR_RA8P1 all
+```
+
+`.vscode/c_cpp_properties.json` 中引用
+`${workspaceFolder}/ports/renesas-ra8/build-CPKCOR_RA8P1/compile_commands.json`。
+
+### 运行测试
+
+测试通过串口 REPL 发送脚本执行。**必须从 `tests/` 目录内运行**：
+
+```bash
+cd tests
+python run-tests.py -t COM10 -b 2000000 --test-dirs basics
+```
+
+- `-t` 串口号，`-b` 波特率
+- 用 `--test-dirs` 指定目录，不要用位置参数传目录（会被当成文件路径）
 
 ---
 
-## 与现有 reneses-ra 的关系
+## 功能状态
 
-本 port **完全不依赖** `ports/renesas-ra` 的任何文件。它只依赖：
+### ROM 级别
 
-1. MicroPython 核心（`py/`、`shared/`、`extmod/`）
-2. e2 studio 生成的 FSP 文件
-3. ARM GCC 工具链
+`MICROPY_CONFIG_ROM_LEVEL = MICROPY_CONFIG_ROM_LEVEL_EVERYTHING`（最高级别），
+所有标准 Python 语言特性和内置模块均已包含。
 
-后续如果需要添加 `machine.Pin`、`machine.UART` 等模块，可以：
+### 核心运行时
 
-- 逐步从 `ports/renesas-ra` 移植 `machine_*.c` 文件
-- 或者直接用 FSP API 重新实现更简洁的版本
+| 功能 | 状态 | 说明 |
+|---|---|---|
+| 编译器 (`MICROPY_ENABLE_COMPILER`) | ✅ | 完整 Python 语法 |
+| 垃圾回收 (`MICROPY_ENABLE_GC`) | ✅ | 256 KB 堆，Thumb-2 GC 辅助 |
+| C 栈检查 (`MICROPY_STACK_CHECK`) | ✅ | `mp_cstack_init_with_sp_here` 设置 12 KB 上限 |
+| 持久化代码加载 | ✅ | 支持 `.mpy` 文件 |
+| 软复位 | ✅ | REPL 任务内 `goto` 跳转 |
+| Ctrl-C 中断 | ✅ | UART ISR 调用 `mp_sched_keyboard_interrupt()` |
+| Thumb 内联汇编 | ✅ | `@micropython.asm_thumb` 装饰器 |
+| Thumb 原生代码发射 | ❌ | 关闭——尚未适配 ARMv8.1-M |
+| 浮点数 | ⚠️ | `MICROPY_FLOAT_IMPL` 未设置；硬件 FPU 可用，加一行 `MICROPY_FLOAT_IMPL_FLOAT` 即可 |
+| 紧急异常缓冲区 | ❌ | `MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF` 未开启；调试时建议打开 |
+
+### 内置模块（ROM 级别自动启用）
+
+| 模块 | 状态 | 说明 |
+|---|---|---|
+| `math`、`cmath` | ✅（未开浮点则仅整数） | |
+| `array`、`struct` | ✅ | |
+| `collections` | ✅ | |
+| `io` | ✅ | 通过 `sys_stdio_mphal.c` 提供流 I/O |
+| `json`、`re` | ✅ | |
+| `binascii`、`hashlib` | ✅ | |
+| `random` | ⚠️ | 无硬件熵源，序列可预测 |
+| `gc` | ✅ | |
+| `sys` | ⚠️ 部分 | `argv`、`exit`、`modules`、`path` 已关闭 |
+| `micropython` | ✅ | 含 `kbd_intr` |
+| `time` | ✅ | 编译了 `modtime.c` |
+| `uctypes` | ✅ | 编译了 `moductypes.c` |
+| `errno` | ✅ | |
+
+### HAL 函数（`mphalport.c`）
+
+| 函数 | 状态 |
+|---|---|
+| `mp_hal_stdin_rx_chr` | ✅ 阻塞读取 UART 环形缓冲区 |
+| `mp_hal_stdio_poll` | ✅ RX / TX 查询 |
+| `mp_hal_stdout_tx_strn` | ✅ 直接写 UART 数据寄存器 |
+| `mp_hal_stdout_tx_strn_cooked` | ✅ `\n` → `\r\n` 转换 |
+| `mp_hal_ticks_ms` | ✅ FreeRTOS 系统滴答 |
+| `mp_hal_ticks_us` | ✅ `get_system_us()` |
+| `mp_hal_ticks_cpu` | ✅ `get_system_ticks()` |
+| `mp_hal_delay_ms` | ✅ 区分 ISR / 任务上下文 |
+| `mp_hal_delay_us` | ✅ |
+| `mp_hal_set_interrupt_char` | ✅ |
+| `mp_hal_is_interrupt_char_received` | ⚠️ 空壳（永远返回 0）；核心代码未调用，可删除 |
+
+### REPL 任务（`repl_thread_entry.c`）
+
+| 功能 | 状态 |
+|---|---|
+| Friendly REPL | ✅ |
+| Raw REPL | ✅ |
+| 模式切换（Ctrl-A / Ctrl-B） | ✅ 切换时不触发软复位 |
+| `nlr_jump_fail` 诊断 | ✅ 打印异常、C 栈用量、FreeRTOS 任务栈水位 |
+| `mp_builtin_open` | ❌ 空壳——返回 `mp_const_none` |
+| `mp_lexer_new_from_file` | ❌ 空壳——抛出 `OSError(ENOENT)` |
+| `mp_import_stat` | ❌ 空壳——返回 `MP_IMPORT_STAT_NO_EXIST` |
+
+### 缺失的系统（依赖硬件驱动）
+
+| 系统 | 说明 |
+|---|---|
+| `machine` 模块 | 无 Pin、UART、I2C、SPI、Timer、ADC、PWM 等类 |
+| 文件系统（VFS） | 无块设备驱动；`open()` 为空壳 |
+| 网络 | 无 lwIP、socket、WiFi 协议栈 |
+| `_thread` 模块 | FreeRTOS 已就绪，但 Python 级多线程未暴露 |
+| `mp_hal_pin_*()` | GPIO HAL 未实现——`machine.Pin` 的前置依赖 |
+| 硬件随机数 | RA8P1 TRNG 未接入 `mp_hal_get_random()` |
 
 ---
 
-## 需要用户完成的任务（待办）
+## 文件布局
 
-- [ ] **步骤 [1]**：用 e2 studio 创建 CPKCOR-RA8P1 Bare Metal 工程
-- [ ] **步骤 [1]**：创建 EK-RA8P1 Bare Metal 工程（如果需要支持第二块板）
-- [ ] **步骤 [1]**：验证 Bare Metal 工程能独立编译和运行
-- [ ] **步骤 [4]**：烧录验证 MicroPython REPL 正常工作
+```
+ports/renesas-ra8/
+├── Makefile                     # 构建：工具链、编译选项、FSP 源文件发现
+├── mpconfigport.h               # 功能配置：ROM 级别、模块开关
+├── mphalport.h / mphalport.c    # HAL 实现：UART I/O、滴答、延时
+├── qstrdefsport.h               # 板级 qstr 定义
+├── local.mk                     # 用户工具链路径（git 忽略）
+├── boards/
+│   └── CPKCOR_RA8P1/
+│       ├── mpconfigboard.h      # 板级标识、大整数实现
+│       ├── mpconfigboard.mk     # FSP 路径、VFS 关闭
+│       └── e2studio_gcc_freertos/
+│           ├── src/             # 胶水代码（mphalport.c、repl_thread_entry.c）
+│           ├── ra_gen/          # 自动生成：main.c、hal_data.c、线程…
+│           ├── ra_cfg/          # 自动生成：BSP 配置、FreeRTOS 配置
+│           ├── ra/              # FSP、FreeRTOS 内核、CMSIS
+│           └── Debug/           # 链接脚本、内存区域定义
+└── build-CPKCOR_RA8P1/          # 构建输出（git 忽略）
+```
 
-其余所有代码文件的创建和编译调试由 Claude 完成。
+---
+
+## 已知问题
+
+1. **Raw-paste 模式不可用**——FreeRTOS 任务调度的延迟导致流控窗口协议超时。
+   测试框架和 `mpremote` 会自动回退到普通 raw REPL，不影响正常使用。
+
+2. **`MICROPY_EMIT_THUMB = 0`**——MicroPython 的 Thumb 原生发射器面向 ARMv7-M
+   设计，Cortex-M85（ARMv8.1-M）指令差异导致运行时崩溃。需完成适配后才能开启。
+
+3. **`console.c` 环形缓冲区 bug**——e2 studio 生成的 `CONSOLE_Read()` 在读取时
+   错误地将 `s_tail_index` 递减而非递增 `s_head_index`，导致连续字节丢失。
+   已本地修复。
+
+4. **测试只能在 `tests/` 目录内运行**——从外部调用 `run-tests.py` 时，CPython
+   子进程的工作目录解析在 Windows 上出错。解决：`cd tests && python run-tests.py ...`
+
+---
+
+*2026-07-10，由 Claude (claude.ai/code) 审查、整理并记录。*
