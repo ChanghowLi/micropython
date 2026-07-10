@@ -58,6 +58,7 @@ endif
 SRC_C := $(FSP_SRC_C)
 
 # MicroPython integration sources
+SRC_C += extmod/modtime.c
 SRC_C += extmod/moductypes.c
 SRC_C += shared/libc/printf.c
 SRC_C += shared/libc/string0.c
@@ -144,6 +145,7 @@ LDFLAGS += --specs=nano.specs
 LIBS = -Wl,--start-group -lgcc -lm -lc -Wl,--end-group
 
 # QSTR sources (for string interning)
+SRC_QSTR += extmod/modtime.c
 SRC_QSTR += extmod/moductypes.c
 SRC_QSTR += shared/readline/readline.c
 SRC_QSTR += shared/runtime/pyexec.c

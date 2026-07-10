@@ -68,6 +68,10 @@
 #define MICROPY_PY_SYS_MODULES          0
 #endif
 
+#ifndef MICROPY_PY_TIME
+#define MICROPY_PY_TIME                 1
+#endif
+
 #ifndef MICROPY_PY_SYS_PATH
 #define MICROPY_PY_SYS_PATH             0
 #endif
