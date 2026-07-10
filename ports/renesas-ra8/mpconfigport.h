@@ -21,11 +21,11 @@
 #endif
 
 #ifndef MICROPY_EMIT_INLINE_THUMB
-#define MICROPY_EMIT_INLINE_THUMB       1
+#define MICROPY_EMIT_INLINE_THUMB       1 /* py/test says its arch=armv7emdp, perhaps will have a problem */
 #endif
 
 #ifndef MICROPY_EMIT_THUMB
-#define MICROPY_EMIT_THUMB              1
+#define MICROPY_EMIT_THUMB              0 /* py/test will lost of failed when it set to 1, perhaps MP has not yet supported ARMv8.1 */
 #endif
 
 #ifndef MICROPY_ENABLE_COMPILER

@@ -90,6 +90,8 @@
 									<listOptionValue builtIn="false" value="_RA_CORE=CPU0"/>
 									<listOptionValue builtIn="false" value="_RA_ORDINAL=1"/>
 									<listOptionValue builtIn="false" value="__arm__"/>
+									<listOptionValue builtIn="false" value="__PERFC_USE_PMU_PORTING__=1"/>
+									<listOptionValue builtIn="false" value="__PERFC_CFG_DISABLE_DEFAULT_SYSTICK_PORTING__=1"/>
 									<listOptionValue builtIn="false" value="STRINGIFY(x)=#x"/>
 									<listOptionValue builtIn="false" value="CONSOLE_RX_BUF_SECTION=STRINGIFY(.dtcm_noinit)"/>
 									<listOptionValue builtIn="false" value="MICROPY_ROM_TEXT_COMPRESSION=1"/>
@@ -277,7 +279,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="modtime.c|modselect.c|modre.c|modrandom.c|modplatform.c|modos.c|modjson.c|modheapq.c|modhashlib.c|modframebuf.c|moddeflate.c|modbinascii.c|modasyncio.c|nimble" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="extmod"/>
+						<entry excluding="modmarshal.c|modselect.c|modre.c|modrandom.c|modplatform.c|modos.c|modjson.c|modheapq.c|modhashlib.c|modframebuf.c|moddeflate.c|modbinascii.c|modasyncio.c|nimble" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="extmod"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="py"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="ra"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="ra_gen"/>

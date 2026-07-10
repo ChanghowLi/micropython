@@ -2,6 +2,7 @@
 
 #include "console.h"
 #include "repl_thread.h"
+#include "perf_counter/perf_counter.h"
 #include "SEGGER_RTT/SEGGER_RTT.h"
 #include "utils/log.h"
 
@@ -25,6 +26,7 @@ void repl_thread_entry(void *pvParameters)
 
     FSP_PARAMETER_NOT_USED(pvParameters);
 
+    perfc_init(false);
 #if CONSOLE_CFG_USE_RTT == 0
     SEGGER_RTT_Init();
 #endif
