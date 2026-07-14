@@ -61,15 +61,19 @@
 #endif
 
 #ifndef MICROPY_PY_SYS_EXIT
-#define MICROPY_PY_SYS_EXIT             0
+#define MICROPY_PY_SYS_EXIT             1
 #endif
 
 #ifndef MICROPY_PY_SYS_MODULES
-#define MICROPY_PY_SYS_MODULES          0
+#define MICROPY_PY_SYS_MODULES          1
 #endif
 
 #ifndef MICROPY_PY_TIME
 #define MICROPY_PY_TIME                 1
+#endif
+
+#ifndef MICROPY_PY_BINASCII_CRC32
+#define MICROPY_PY_BINASCII_CRC32       0
 #endif
 
 #ifndef MICROPY_PY_SYS_PATH
