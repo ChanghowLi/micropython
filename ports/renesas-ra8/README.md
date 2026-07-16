@@ -1,6 +1,6 @@
 # MicroPython Renesas RA8P1 移植
 
-**最后更新：** 2026-07-10
+**最后更新：** 2026-07-16
 
 ---
 
@@ -85,8 +85,8 @@ python run-tests.py -t COM10 -b 2000000 --test-dirs basics
 | Ctrl-C 中断 | ✅ | UART ISR 调用 `mp_sched_keyboard_interrupt()` |
 | Thumb 内联汇编 | ✅ | `@micropython.asm_thumb` 装饰器 |
 | Thumb 原生代码发射 | ❌ | 关闭——尚未适配 ARMv8.1-M |
-| 浮点数 | ⚠️ | `MICROPY_FLOAT_IMPL` 未设置；硬件 FPU 可用，加一行 `MICROPY_FLOAT_IMPL_FLOAT` 即可 |
-| 紧急异常缓冲区 | ❌ | `MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF` 未开启；调试时建议打开 |
+| 浮点数 | ✅ | 已启用单精度 `MICROPY_FLOAT_IMPL_FLOAT`，编译使用硬浮点 ABI |
+| 紧急异常缓冲区 | ✅ | 已启用，固定大小 256 字节，由 `mp_init()` 自动初始化 |
 
 ### 内置模块（ROM 级别自动启用）
 
@@ -100,7 +100,7 @@ python run-tests.py -t COM10 -b 2000000 --test-dirs basics
 | `binascii`、`hashlib` | ✅ | |
 | `random` | ⚠️ | 无硬件熵源，序列可预测 |
 | `gc` | ✅ | |
-| `sys` | ⚠️ 部分 | `argv`、`exit`、`modules`、`path` 已关闭 |
+| `sys` | ✅ | `argv`、`exit`、`modules`、`path` 均已开启；REPL 下已验证 `argv == []`、`path == ['']` |
 | `micropython` | ✅ | 含 `kbd_intr` |
 | `time` | ✅ | 编译了 `modtime.c` |
 | `uctypes` | ✅ | 编译了 `moductypes.c` |
@@ -120,7 +120,7 @@ python run-tests.py -t COM10 -b 2000000 --test-dirs basics
 | `mp_hal_delay_ms` | ✅ 区分 ISR / 任务上下文 |
 | `mp_hal_delay_us` | ✅ |
 | `mp_hal_set_interrupt_char` | ✅ |
-| `mp_hal_is_interrupt_char_received` | ⚠️ 空壳（永远返回 0）；核心代码未调用，可删除 |
+| `mp_hal_is_interrupt_char_received` | — 已删除；核心代码未使用，Ctrl-C 由 UART 回调直接调度 `KeyboardInterrupt` |
 
 ### REPL 任务（`repl_thread_entry.c`）
 

@@ -40,6 +40,14 @@
 #define MICROPY_ENABLE_GC               1
 #endif
 
+#ifndef MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF
+#define MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF (1)
+#endif
+
+#ifndef MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE
+#define MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE (256)
+#endif
+
 #ifndef MICROPY_HEAP_SIZE
 #define MICROPY_HEAP_SIZE               (256 * 1024)
 #endif
@@ -57,7 +65,7 @@
 #endif
 
 #ifndef MICROPY_PY_SYS_ARGV
-#define MICROPY_PY_SYS_ARGV             0
+#define MICROPY_PY_SYS_ARGV             1
 #endif
 
 #ifndef MICROPY_PY_SYS_EXIT
@@ -77,7 +85,7 @@
 #endif
 
 #ifndef MICROPY_PY_SYS_PATH
-#define MICROPY_PY_SYS_PATH             0
+#define MICROPY_PY_SYS_PATH             1
 #endif
 
 #ifndef MP_SSIZE_MAX
