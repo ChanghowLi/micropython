@@ -222,3 +222,48 @@ ports/renesas-ra8/
 ---
 
 *2026-07-10，由 Claude (claude.ai/code) 审查、整理并记录。*
+
+## 完整官方测试汇总
+
+以下汇总根据 `basics.txt`、`extmod.txt`、`feature_check.txt`、`float.txt`、
+`import.txt`、`inlineasm.txt`、`micropython.txt` 和 `unicode.txt` 整理。测试环境
+报告为 `platform=minimal`、`arch=armv7emdp`、`inlineasm=thumb`、
+`float=32-bit`、`unicode`。完整结束的测试组共执行 725 项；若加上未正常输出
+结束汇总的 `extmod` 日志，全部日志共记录 707 项通过、38 项失败和 164 项跳过。
+由于 `extmod` 日志不完整，以上总数不作为正式通过率。
+
+| 测试组 | 通过 | 失败 | 跳过 | 结果说明 |
+|---|---:|---:|---:|---|
+| `basics` | 556 | 2 | 15 | 共执行 558 项、17,452 个测试用例；`string_tstring_basic.py` 和 `weakref_callback_exception.py` 失败 |
+| `extmod` | 20 | 0 | 73 | 日志在 `machine_soft_timer.py` 后结束，没有生成官方 `tests performed` 汇总，结果不完整 |
+| `feature_check` | 7 | 14 | 1 | 共执行 21 项；Thumb、Thumb-2、64 位整数、大整数、f-string、反向运算和 t-string 检查通过，native 检查跳过 |
+| `float` | 60 | 1 | 7 | 共执行 61 项、3,303 个测试用例；`math_domain_special.py` 失败，7 项双精度或字节序相关测试跳过 |
+| `import` | 7 | 21 | 2 | 共执行 28 项；大量依赖文件、包和动态导入的测试因当前文件系统及导入支持不完整而失败 |
+| `inlineasm` | 0 | 0 | 0 | 日志显示 0 项测试被执行，不能据此判断 Thumb 内联汇编是否通过 |
+| `micropython` | 45 | 0 | 63 | 共执行 45 项、260 个测试用例且全部通过；native、viper、`.mpy`、meminfo 等未启用或条件不满足的项目跳过 |
+| `unicode` | 12 | 0 | 3 | 共执行 12 项、223 个测试用例且全部通过；3 项依赖文件系统的测试跳过 |
+
+### 结果分析
+
+- **基础语言能力总体稳定**：`basics` 558 项中通过 556 项，编译器、容器、异常、
+  生成器、大整数、GC、内存视图、字符串和基本 `struct` 功能大部分通过。
+- **基础测试失败项**：`string_tstring_basic.py` 和
+  `weakref_callback_exception.py` 需要继续分析实际输出与期望输出的差异。
+- **扩展模块日志不完整**：当前记录中 `binascii` 的 Base64/十六进制接口、
+  SHA-256、`heapq` 和 `json` 等测试通过；CRC32、MD5、SHA1、asyncio、btree、
+  cryptolib、deflate、framebuf 和 `machine` 等因功能未启用或平台条件不满足而
+  跳过。需要重新执行 `extmod` 获取正式汇总。
+- **特性检查需按架构解释**：RV32、RV32 Zba、Xtensa 内联汇编检查不适用于
+  Cortex-M85；REPL 编辑功能和部分配置探测失败也不等同于 Python 核心功能故障。
+  `inlineasm_thumb.py` 与 `inlineasm_thumb2.py` 的特性检查通过。
+- **浮点功能总体可用**：60 项通过；当前为 32 位单精度浮点配置，因此双精度
+  相关测试跳过。`math_domain_special.py` 的特殊值行为仍与官方预期存在差异。
+- **导入系统尚未完成**：`import` 组的 21 项失败主要集中在文件、包、循环导入、
+  动态导入和模块覆盖等场景，与当前 VFS、`open()`、`mp_import_stat()` 和
+  `mp_lexer_new_from_file()` 尚未完整实现相符。
+- **MicroPython 专有功能表现稳定**：已执行的 45 项全部通过，包括常量、
+  紧急异常缓冲、堆锁、内存分配失败处理、键盘中断、调度和栈使用等功能。
+  native/viper 因 `MICROPY_EMIT_THUMB = 0` 跳过，`.mpy` 导入仍需在文件系统完成
+  后验证。
+- **Unicode 核心功能通过**：字符、索引、迭代、切片、格式化及正则相关测试均
+  通过；仅依赖文件读取的 3 项测试跳过。
