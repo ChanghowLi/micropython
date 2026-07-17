@@ -186,6 +186,39 @@ ports/renesas-ra8/
 4. **测试只能在 `tests/` 目录内运行**——从外部调用 `run-tests.py` 时，CPython
    子进程的工作目录解析在 Windows 上出错。解决：`cd tests && python run-tests.py ...`
 
+## 官方自动化测试结果
+
+以下结果来自 `tests/` 下的 MicroPython 官方测试。未列出的已执行测试均通过；
+“跳过”表示当前固件配置或平台条件不满足，不等同于测试失败。
+
+### 内置模块
+
+| 模块 | 测试结果 |
+|---|---|
+| `math`、`cmath` | `math_domain_special.py` 中 1 个特殊定义域测试脚本失败 |
+| `array`、`struct` | `array_construct_endian.py` 字节序相关测试因平台条件限制跳过 |
+| `io` | `BytesIO`、`StringIO` 内存流操作、缓冲写入及扩展写接口功能全部通过 |
+| `json`、`re` | `json` 全部通过；`re_stack_overflow2.py` 深度栈溢出相关测试因平台条件不满足而跳过 |
+| `binascii`、`hashlib` | `binascii_crc32.py` 因当前固件未启用对应功能而跳过；MD5 和 SHA1 因当前固件未启用对应算法而跳过 |
+| `random` | `random_seed_default.py` 跳过；RA8P1 端口可能尚未提供硬件随机源或系统熵源 |
+| `sys` | `sys_path.py` 因当前未建立完整文件系统和导入路径支持而跳过 |
+| `time` | `time` 模块未提供 `mktime` 接口 |
+
+### 核心功能
+
+- **垃圾回收**：`basics/gc1.py` 通过；`thread_gc1.py` 运行时出现 MicroPython
+  官方标记的已知 GC race condition 偶发失败。该问题属于多线程 GC 竞态场景，
+  不影响单线程垃圾回收功能。
+- **持久化代码加载**：`import_mpy_native` 类测试因当前未启用 Thumb native
+  emitter 而跳过；普通 bytecode `.mpy` 加载能力需通过生成普通 `.mpy` 文件
+  进一步验证。
+- **Thumb 内联汇编**：`inlineasm/thumb` 测试执行异常，部分 Thumb 指令运行后
+  出现 timeout/CRASH。初步判断为 RA8P1 ARMv8.1-M 架构与 MicroPython Thumb
+  内联汇编的兼容性问题。
+- **浮点数**：0 个通过，7 个双精度相关测试因当前启用单精度浮点配置而跳过。
+  `math_domain_special.py` 存在特殊浮点值行为差异，`gamma(-inf)` 返回结果与
+  官方预期不一致，初步判断为底层数学库对特殊值处理差异导致。
+
 ---
 
 *2026-07-10，由 Claude (claude.ai/code) 审查、整理并记录。*
