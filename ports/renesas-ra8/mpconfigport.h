@@ -8,12 +8,22 @@
 
 #include "mpconfigboard.h"
 
+
+/*虚拟文件系统，在RAM里面*/
+#ifndef MICROPY_VFS
+#define MICROPY_VFS                      (1)
+#endif          
+
+#ifndef MICROPY_READER_VFS
+#define MICROPY_READER_VFS               (1)
+#endif         
+
 #ifndef MICROPY_ALLOC_PATH_MAX
-#define MICROPY_ALLOC_PATH_MAX          256
+#define MICROPY_ALLOC_PATH_MAX           256
 #endif
 
 #ifndef MICROPY_ALLOC_PARSE_CHUNK_INIT
-#define MICROPY_ALLOC_PARSE_CHUNK_INIT  16
+#define MICROPY_ALLOC_PARSE_CHUNK_INIT   16
 #endif
 
 #ifndef MICROPY_CONFIG_ROM_LEVEL
@@ -46,6 +56,10 @@
 
 #ifndef MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE
 #define MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE (256)
+#endif
+
+#ifndef MICROPY_PY_MATH_GAMMA_FIX_NEGINF
+#define MICROPY_PY_MATH_GAMMA_FIX_NEGINF (1)
 #endif
 
 #ifndef MICROPY_HEAP_SIZE

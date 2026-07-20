@@ -74,6 +74,17 @@ SRC_C += shared/readline/readline.c
 SRC_C += shared/runtime/gchelper_generic.c
 SRC_C += shared/runtime/pyexec.c
 SRC_C += shared/runtime/sys_stdio_mphal.c
+SRC_C += extmod/modos.c
+SRC_C += extmod/modvfs.c
+SRC_C += extmod/vfs.c
+SRC_C += extmod/vfs_reader.c
+SRC_C += extmod/vfs_blockdev.c
+SRC_C += extmod/vfs_fat.c
+SRC_C += extmod/vfs_fat_diskio.c
+SRC_C += extmod/vfs_fat_file.c
+SRC_C += lib/oofatfs/ff.c
+SRC_C += lib/oofatfs/ffunicode.c
+SRC_C += shared/timeutils/timeutils.c
 
 # Assembly sources (GC helper for Thumb-2)
 SRC_O = shared/runtime/gchelper_thumb2.o
@@ -134,6 +145,10 @@ CFLAGS += -D__arm__
 CFLAGS += -D__PERFC_USE_PMU_PORTING__=1
 CFLAGS += -D__PERFC_CFG_DISABLE_DEFAULT_SYSTICK_PORTING__=1
 CFLAGS += -DCONSOLE_RX_BUF_SECTION=\".dtcm_noinit\"
+CFLAGS += -DFFCONF_H=\"lib/oofatfs/ffconf.h\"
+CFLAGS += -DMICROPY_VFS_FAT=$(MICROPY_VFS_FAT)
+CFLAGS += -DMICROPY_FATFS_NORTC=1
+CFLAGS += -DMICROPY_FATFS_RPATH=2
 
 # Optimization
 CFLAGS += -O2 -DNDEBUG
@@ -168,6 +183,14 @@ SRC_QSTR += extmod/modmarshal.c
 SRC_QSTR += shared/readline/readline.c
 SRC_QSTR += shared/runtime/pyexec.c
 SRC_QSTR += shared/runtime/sys_stdio_mphal.c
+SRC_QSTR += extmod/modos.c
+SRC_QSTR += extmod/modvfs.c
+SRC_QSTR += extmod/vfs.c
+SRC_QSTR += extmod/vfs_reader.c
+SRC_QSTR += extmod/vfs_blockdev.c
+SRC_QSTR += extmod/vfs_fat.c
+SRC_QSTR += extmod/vfs_fat_diskio.c
+SRC_QSTR += extmod/vfs_fat_file.c
 
 # ---- Object files ----
 # Preserve the source path below BUILD.  Flattening with notdir makes

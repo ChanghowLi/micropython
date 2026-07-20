@@ -216,7 +216,7 @@ ports/renesas-ra8/
 |---|---:|---:|---:|---|
 | `basics` | 555 | 3 | 15 | 共执行 558 项、17,452 个测试用例；3 项记录分别为文件能力缺失、traceback 文件名差异和一次保守 GC 假根现象，详见下表 |
 | `extmod` | 67 | 0 | 134 | 共执行 67 项、814 个测试用例且全部通过；另排除 3 个需要 target wiring 的测试 |
-| `float` | 60 | 1 | 7 | 共执行 61 项、3,303 个测试用例；`math_domain_special.py` 失败，7 项双精度或字节序相关测试跳过 |
+| `float` | 61 | 0 | 7 | 共执行 61 项、3,303 个测试用例且全部通过；7 项双精度或字节序相关测试跳过 |
 | `import` | 7 | 21 | 2 | 共执行 28 项；大量依赖文件、包和动态导入的测试因当前文件系统及导入支持不完整而失败 |
 | `inlineasm` | — | 0 | — | 已设置 `MICROPY_EMIT_INLINE_THUMB = 0`，测试框架不再报告 `inlineasm=thumb`，相关用例应按未支持功能跳过 |
 | `micropython` | 45 | 0 | 63 | 共执行 45 项、260 个测试用例且全部通过；native、viper、`.mpy`、meminfo 等未启用或条件不满足的项目跳过 |
@@ -238,8 +238,10 @@ ports/renesas-ra8/
 - **扩展模块已完整复测**：排除 `machine_spi_rate.py`、
   `machine_uart_irq_txidle.py` 和 `machine_uart_tx.py` 三个需要外部连线的测试后，
   67 项、814 个用例全部通过，134 项因功能未启用或条件不满足而跳过。
-- **浮点功能总体可用**：60 项通过；当前为 32 位单精度浮点配置，因此双精度
-  相关测试跳过。`math_domain_special.py` 的特殊值行为仍与官方预期存在差异。
+- **浮点功能全部通过**：已设置
+  `MICROPY_PY_MATH_GAMMA_FIX_NEGINF = 1`，使 `math.gamma(-inf)` 按官方预期
+  抛出 `ValueError`；整组复测 61 项、3,303 个用例全部通过。当前为 32 位单精度
+  浮点配置，7 项双精度或字节序条件测试正常跳过。
 - **导入系统尚未完成**：`import` 组的 21 项失败主要集中在文件、包、循环导入、
   动态导入和模块覆盖等场景，与当前 VFS、`open()`、`mp_import_stat()` 和
   `mp_lexer_new_from_file()` 尚未完整实现相符。
@@ -268,14 +270,6 @@ ports/renesas-ra8/
 | `string_tstring_basic.py` | 单独复测稳定失败；t-string 的前半部分输出均正确，执行到后续用例的 `import os` 时抛出 `ImportError: no module named 'os'` | 测试后半段需要 `os` 和文件系统相关能力；当前端口没有可用的 `os` 模块/VFS，且文件导入接口仍为空壳。不是 t-string 解析、构造或格式化本身失败 | **需要，但不是修改 t-string**：若要完成该测试及文件导入测试，需要实现 `os`/VFS、`open()` 和文件导入链路 |
 | `weakref_callback_exception.py` | 单独复测稳定复现；实际异常内容、回调顺序和 GC 后输出均与预期一致，差异仅为回溯位置显示 `File "<stdin>"`，而期望用正则匹配测试文件名 | 串口测试通过 raw REPL 把脚本作为标准输入执行，导致 traceback 源文件名显示为 `<stdin>`。这是测试传输方式造成的文本差异，不是 weakref 或回调异常处理功能失败 | **不需要修改 weakref/GC 代码**；若要求测试结果显示 `pass`，应调整测试运行方式或测试框架的 traceback 文件名匹配 |
 | `weakref_finalize_collect.py` | 早期整组及单项复测曾失败：第一次 `gc.collect()` 后 `f.alive` 仍为 `True`；**关闭 Thumb 后的最新整组复测已通过** | 测试已执行 `a = None`、覆盖 Python 栈并主动 GC；普通 `weakref_ref_collect.py` 的 21 个用例也全部通过。最可能是 FreeRTOS/C 栈残留地址偶发形成保守 GC 假根，使对象延迟一个或多个 GC 周期回收 | **当前不改代码，继续观察**；只有后续多次稳定复现时，才检查 `mp_cstack_init_with_sp_here()`、任务栈边界、GC 扫描范围和寄存器保存区 |
-
-### `float`（1 项）
-
-| 失败测试 | 直接表现 | 失败原因 | 是否需要改代码 |
-|---|---|---|---|
-| `math_domain_special.py` | 单项及整组复测均稳定失败；56 个特殊值检查中仅 `gamma(-inf)` 不同：实际返回 `inf`，期望抛出 `ValueError` | 当前 32 位单精度配置所链接的 ARM/FSP C 数学库对负无穷 `gammaf()` 的定义域处理与 MicroPython 测试预期不同，端口尚未在 `math.gamma` 封装层将该返回值规范化为 `ValueError` | **需要**：在端口或 `math.gamma` 封装层对负无穷执行官方兼容的定义域异常处理 |
-
-> `MICROPY_PY_MATH_GAMMA_FIX_NEGINF=1` 试试，另外试一试双精度浮点
 
 ### `import`（21 项）
 
@@ -321,9 +315,8 @@ ports/renesas-ra8/
 1. 实现 VFS、`os`、`open()`、文件查找和文件模块导入链路；它同时阻断
    `string_tstring_basic.py` 后半段、21 项 `import`、Unicode 文件测试和
    `.mpy`/`execfile` 等测试。
-2. 修正 `math.gamma(-inf)`，使其按官方预期抛出 `ValueError`。
-3. 实现 RA 端口的 `time.mktime()`。
-4. 持续观察 `weakref_finalize_collect.py`；当前最新整组测试已通过，不把一次
+2. 实现 RA 端口的 `time.mktime()`。
+3. 持续观察 `weakref_finalize_collect.py`；当前最新整组测试已通过，不把一次
    保守 GC 假根现象列为立即修改项。只有稳定复现后才检查 FreeRTOS 任务栈边界。
 
 不需要修改对应固件功能的项目包括：`weakref_callback_exception.py` 的

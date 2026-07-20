@@ -13,5 +13,5 @@ FSP_PROJECT_DIR = boards/CPKCOR_RA8P1/e2studio_gcc_freertos
 LD_SCRIPT = $(FSP_PROJECT_DIR)/script/fsp.ld
 
 # MicroPython features
-MICROPY_VFS_FAT = 0
+MICROPY_VFS_FAT = 1
 MICROPY_ROM_TEXT_COMPRESSION = 1
