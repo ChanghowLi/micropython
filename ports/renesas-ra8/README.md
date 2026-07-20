@@ -267,7 +267,7 @@ ports/renesas-ra8/
 |---|---|---|---|
 | `string_tstring_basic.py` | 单独复测稳定失败；t-string 的前半部分输出均正确，执行到后续用例的 `import os` 时抛出 `ImportError: no module named 'os'` | 测试后半段需要 `os` 和文件系统相关能力；当前端口没有可用的 `os` 模块/VFS，且文件导入接口仍为空壳。不是 t-string 解析、构造或格式化本身失败 | **需要，但不是修改 t-string**：若要完成该测试及文件导入测试，需要实现 `os`/VFS、`open()` 和文件导入链路 |
 | `weakref_callback_exception.py` | 单独复测稳定复现；实际异常内容、回调顺序和 GC 后输出均与预期一致，差异仅为回溯位置显示 `File "<stdin>"`，而期望用正则匹配测试文件名 | 串口测试通过 raw REPL 把脚本作为标准输入执行，导致 traceback 源文件名显示为 `<stdin>`。这是测试传输方式造成的文本差异，不是 weakref 或回调异常处理功能失败 | **不需要修改 weakref/GC 代码**；若要求测试结果显示 `pass`，应调整测试运行方式或测试框架的 traceback 文件名匹配 |
-| `weakref_finalize_collect.py` | 早期整组及单项复测曾失败：第一次 `gc.collect()` 后 `f.alive` 仍为 `True`；关闭 Thumb 后的最新整组复测已通过 | 测试已执行 `a = None`、覆盖 Python 栈并主动 GC；普通 `weakref_ref_collect.py` 的 21 个用例也全部通过。最可能是 FreeRTOS/C 栈残留地址偶发形成保守 GC 假根，使对象延迟一个或多个 GC 周期回收 | **当前不改代码，继续观察**；只有后续多次稳定复现时，才检查 `mp_cstack_init_with_sp_here()`、任务栈边界、GC 扫描范围和寄存器保存区 |
+| `weakref_finalize_collect.py` | 早期整组及单项复测曾失败：第一次 `gc.collect()` 后 `f.alive` 仍为 `True`；**关闭 Thumb 后的最新整组复测已通过** | 测试已执行 `a = None`、覆盖 Python 栈并主动 GC；普通 `weakref_ref_collect.py` 的 21 个用例也全部通过。最可能是 FreeRTOS/C 栈残留地址偶发形成保守 GC 假根，使对象延迟一个或多个 GC 周期回收 | **当前不改代码，继续观察**；只有后续多次稳定复现时，才检查 `mp_cstack_init_with_sp_here()`、任务栈边界、GC 扫描范围和寄存器保存区 |
 
 ### `float`（1 项）
 
@@ -275,11 +275,11 @@ ports/renesas-ra8/
 |---|---|---|---|
 | `math_domain_special.py` | 单项及整组复测均稳定失败；56 个特殊值检查中仅 `gamma(-inf)` 不同：实际返回 `inf`，期望抛出 `ValueError` | 当前 32 位单精度配置所链接的 ARM/FSP C 数学库对负无穷 `gammaf()` 的定义域处理与 MicroPython 测试预期不同，端口尚未在 `math.gamma` 封装层将该返回值规范化为 `ValueError` | **需要**：在端口或 `math.gamma` 封装层对负无穷执行官方兼容的定义域异常处理 |
 
+> `MICROPY_PY_MATH_GAMMA_FIX_NEGINF=1` 试试，另外试一试双精度浮点
+
 ### `import`（21 项）
 
-这 21 项具有同一个端口级根因：当前 `mp_import_stat()` 固定返回
-`MP_IMPORT_STAT_NO_EXIST`，`mp_lexer_new_from_file()` 固定抛出
-`OSError(ENOENT)`，`mp_builtin_open()` 也是空壳，同时没有 VFS。因此内存中的
+这 21 项具有同一个端口级根因：当前 `mp_import_stat()` 固定返回 `MP_IMPORT_STAT_NO_EXIST`，`mp_lexer_new_from_file()` 固定抛出 `OSError(ENOENT)`，`mp_builtin_open()` 也是空壳，同时没有 VFS。因此内存中的
 内置模块仍可导入，但测试目录里的 `.py` 文件和包均无法被发现或加载。
 
 | 失败测试 | 首个无法导入的对象 | 该测试因此无法验证的场景 | 是否需要改代码 |
@@ -305,6 +305,8 @@ ports/renesas-ra8/
 | `import3a.py` | `import1b` | `from module import *` | **需要**：实现共同导入链路 |
 | `module_dict.py` | `import1b` | 用户文件模块的可读写 `__dict__` | **需要**：实现共同导入链路 |
 | `try_module.py` | `import1b` | 跨模块异常后的命名空间恢复 | **需要**：实现共同导入链路 |
+
+> pycharm 直接执行，如果不行，把文件系统补上
 
 ### Thumb 内联汇编（已通过禁用处理）
 
