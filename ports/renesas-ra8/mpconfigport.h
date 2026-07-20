@@ -21,7 +21,7 @@
 #endif
 
 #ifndef MICROPY_EMIT_INLINE_THUMB
-#define MICROPY_EMIT_INLINE_THUMB       1 /* py/test says its arch=armv7emdp, perhaps will have a problem */
+#define MICROPY_EMIT_INLINE_THUMB       0 /* py/test says its arch=armv7emdp, perhaps will have a problem */
 #endif
 
 #ifndef MICROPY_EMIT_THUMB
