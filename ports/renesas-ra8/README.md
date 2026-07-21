@@ -173,50 +173,28 @@ ports/renesas-ra8/
 
 ## 已知问题
 
-1. **Raw-paste 模式不可用**——FreeRTOS 任务调度的延迟导致流控窗口协议超时。
-   测试框架和 `mpremote` 会自动回退到普通 raw REPL，不影响正常使用。
-
-2. **`MICROPY_EMIT_THUMB = 0`**——MicroPython 的 Thumb 原生发射器面向 ARMv7-M
-   设计，Cortex-M85（ARMv8.1-M）指令差异导致运行时崩溃。需完成适配后才能开启。
-
-3. **`console.c` 环形缓冲区 bug**——e2 studio 生成的 `CONSOLE_Read()` 在读取时
-   错误地将 `s_tail_index` 递减而非递增 `s_head_index`，导致连续字节丢失。
-   已本地修复。
-
-4. **测试只能在 `tests/` 目录内运行**——从外部调用 `run-tests.py` 时，CPython
-   子进程的工作目录解析在 Windows 上出错。解决：`cd tests && python run-tests.py ...`
-
-5. **Thumb 内联汇编已安全关闭**——此前 `@micropython.asm_thumb` 可以编译，
-   但调用仅含一条 `nop()` 的最小函数也会使 Cortex-M85/REPL 卡死。现已设置
-   `MICROPY_EMIT_INLINE_THUMB = 0`；重新构建和烧录后，测试平台信息从
-   `platform=minimal arch=armv7emdp inlineasm=thumb float=32-bit unicode`
-   变为 `platform=minimal float=32-bit unicode`，普通 `0prelim.py` 测试通过。
-   关闭的只是 Python/REPL 中的动态 Thumb 汇编，不影响 GCC 生成的 Thumb 固件、
-   `.S` 汇编文件或 C 语言 `__asm`。
-
-6. **串口批量测试存在偶发 first-EOF 超时**——`frozenset_binop.py` 和
-   `int_big_mul.py` 曾在整组测试中以 `timeout waiting for first EOF reception`
-   失败，但单独复测分别通过全部 896 和 908 个用例，后续整组复测也通过。
-   这两项不是容器或大整数功能缺陷。
-
-7. **测试框架的 target-wiring 属性未初始化**——整组运行 `extmod` 到
-   `machine_spi_rate.py` 时，主机端因 `Pyboard` 没有
-   `target_wiring_script` 属性而异常退出。排除 3 个需要外部连线的测试后，
-   `extmod` 可完整结束；这是主机测试框架问题，不是固件崩溃。
+1. **Raw-paste 模式不可用**——FreeRTOS 任务调度的延迟导致流控窗口协议超时。测试框架和 `mpremote` 会自动回退到普通 raw REPL，不影响正常使用。
+   
+2. **`MICROPY_EMIT_THUMB = 0`**——MicroPython 的 Thumb 原生发射器面向 ARMv7-M 设计，Cortex-M85（ARMv8.1-M）指令差异导致运行时崩溃。需完成适配后才能开启。
+   
+3. **`console.c` 环形缓冲区 bug**——e2 studio 生成的 `CONSOLE_Read()` 在读取时错误地将 `s_tail_index` 递减而非递增 `s_head_index`，导致连续字节丢失。已本地修复。
+   
+4. **测试只能在 `tests/` 目录内运行**——从外部调用 `run-tests.py` 时，CPython 子进程的工作目录解析在 Windows 上出错。解决：`cd tests && python run-tests.py ...`
+   
+5. **Thumb 内联汇编已安全关闭**——此前 `@micropython.asm_thumb` 可以编译，但调用仅含一条 `nop()` 的最小函数也会使 Cortex-M85/REPL 卡死。现已设置
+   `MICROPY_EMIT_INLINE_THUMB = 0`；重新构建和烧录后，测试平台信息从 `platform=minimal arch=armv7emdp inlineasm=thumb float=32-bit unicode` 变为 `platform=minimal float=32-bit unicode`，普通 `0prelim.py` 测试通过。关闭的只是 Python/REPL 中的动态 Thumb 汇编，不影响 GCC 生成的 Thumb 固件、`.S` 汇编文件或 C 语言 `__asm`。
+   
+6. **串口批量测试存在偶发 first-EOF 超时**——`frozenset_binop.py` 和 `int_big_mul.py` 曾在整组测试中以 `timeout waiting for first EOF reception` 失败，但单独复测分别通过全部 896 和 908 个用例，后续整组复测也通过。这两项不是容器或大整数功能缺陷。
+   
+7. **测试框架的 target-wiring 属性未初始化**——整组运行 `extmod` 到 `machine_spi_rate.py` 时，主机端因 `Pyboard` 没有 `target_wiring_script` 属性而异常退出。排除 3 个需要外部连线的测试后，`extmod` 可完整结束；这是主机测试框架问题，不是固件崩溃。
 
 *2026-07-10，由 Claude (claude.ai/code) 审查、整理并记录。*
 
 ## 完整官方测试汇总
 
-以下是 2026-07-20 使用 COM9、2,000,000 波特率复测后的结果。关闭 Thumb
-内联汇编并重新烧录后，测试环境报告为 `platform=minimal`、`float=32-bit`、
-`unicode`。能力探针不作为普通官方功能测试统计。
+以下是 2026-07-20 使用 COM9、2,000,000 波特率复测后的结果。关闭 Thumb 内联汇编并重新烧录后，测试环境报告为 `platform=minimal`、`float=32-bit`、`unicode`。能力探针不作为普通官方功能测试统计。
 
-> **历史基线说明：** 本节及后续失败/跳过数量对应 2026-07-20 的旧固件，不代表
-> 当前源码。VFS/FAT、`os` 和通用 VFS reader 已使用临时 RAM 块设备做过实际验证，
-> 但文件模块导入尚未完全通过；当前源码另已改为 `MICROPY_FLOAT_IMPL_DOUBLE`，这一项
-> 尚未重新编译、烧录并完成整组复测。2026-07-21 对 COM9 再次运行能力探针仍报告
-> `float=32-bit`，确认板上此时运行的固件尚未包含双精度配置。
+> **历史基线说明：** 本节及后续失败/跳过数量对应 2026-07-20 的旧固件，不代表当前源码。VFS/FAT、`os` 和通用 VFS reader 已使用临时 RAM 块设备做过实际验证，但文件模块导入尚未完全通过；当前源码另已改为 `MICROPY_FLOAT_IMPL_DOUBLE`，这一项尚未重新编译、烧录并完成整组复测。2026-07-21 对 COM9 再次运行能力探针仍报告 `float=32-bit`，确认板上此时运行的固件尚未包含双精度配置。
 
 | 测试组 | 通过 | 失败 | 跳过 | 结果说明 |
 |---|---:|---:|---:|---|
@@ -230,44 +208,22 @@ ports/renesas-ra8/
 
 ### 结果分析
 
-- **基础语言能力总体稳定**：`basics` 558 项中通过 555 项，编译器、容器、异常、
-  生成器、大整数、GC、内存视图、字符串和基本 `struct` 功能大部分通过。
-- **基础测试失败项**：`string_tstring_basic.py` 已确认在执行到
-  `import os` 时失败，前面的 t-string 功能输出正常；要完成后续用例，需要实现
-  `os`/VFS 和文件导入链路，但不需要修改 t-string 实现。
-  `weakref_callback_exception.py` 的 weakref 回调、异常输出和 GC 行为均正确，
-  失败仅因 raw REPL 将 traceback 文件名显示为 `<stdin>`，与期望的测试文件名
-  不同；不需要修改 weakref 或 GC 功能代码。
-  `weakref_finalize_collect.py` 曾表现为第一次 `gc.collect()` 后对象仍存活，但
-  最新整组复测已经通过；普通 `weakref_ref_collect.py` 的 21 个用例也全部通过。
-  该项按保守 GC 假根造成的偶发延迟回收继续观察，当前不直接修改 GC 或 weakref。
-- **扩展模块已完整复测**：排除 `machine_spi_rate.py`、
-  `machine_uart_irq_txidle.py` 和 `machine_uart_tx.py` 三个需要外部连线的测试后，
-  67 项、814 个用例全部通过，134 项因功能未启用或条件不满足而跳过。
-- **浮点功能全部通过**：已设置
-  `MICROPY_PY_MATH_GAMMA_FIX_NEGINF = 1`，使 `math.gamma(-inf)` 按官方预期
-  抛出 `ValueError`；整组复测 61 项、3,303 个用例全部通过。当前为 32 位单精度
-  浮点配置，7 项双精度或字节序条件测试正常跳过。
-- **导入系统尚未完成**：`import` 组的 21 项失败主要集中在文件、包、循环导入、
-  动态导入和模块覆盖等场景，与当前 VFS、`open()`、`mp_import_stat()` 和
-  `mp_lexer_new_from_file()` 尚未完整实现相符。
-- **MicroPython 专有功能表现稳定**：已执行的 45 项全部通过，包括常量、
-  紧急异常缓冲、堆锁、内存分配失败处理、键盘中断、调度和栈使用等功能。
-  native/viper 因 `MICROPY_EMIT_THUMB = 0` 跳过，`.mpy` 导入仍需在文件系统完成
-  后验证。
-- **Unicode 核心功能通过**：字符、索引、迭代、切片、格式化及正则相关测试均
-  通过；仅依赖文件读取的 3 项测试跳过。
-- **端口时间接口不完整**：`ports/renesas-ra/modtime.py` 在第一个年份用例就因
-  缺少 `time.mktime()` 终止；若要通过 RA 端口专用测试，需要实现该接口。
-- **没有执行多线程 GC 竞态测试**：`thread_gc1.py` 实际在 `import _thread` 时
-  失败。测试框架仅因该脚本带通用 known-flaky 标记而显示 “GC race condition”；
-  当前端口没有 `_thread`，不能据此声称观察到了 GC race。
+- **基础语言能力总体稳定**：`basics` 558 项中通过 555 项，编译器、容器、异常、生成器、大整数、GC、内存视图、字符串和基本 `struct` 功能大部分通过。
+- **基础测试失败项**：`string_tstring_basic.py` 已确认在执行到 `import os` 时失败，前面的 t-string 功能输出正常；要完成后续用例，需要实现 `os`/VFS 和文件导入链路，但不需要修改 t-string 实现。
+  `weakref_callback_exception.py` 的 weakref 回调、异常输出和 GC 行为均正确，失败仅因 raw REPL 将 traceback 文件名显示为 `<stdin>`，与期望的测试文件名不同；不需要修改 weakref 或 GC 功能代码。
+  `weakref_finalize_collect.py` 曾表现为第一次 `gc.collect()` 后对象仍存活，但最新整组复测已经通过；普通 `weakref_ref_collect.py` 的 21 个用例也全部通过。该项按保守 GC 假根造成的偶发延迟回收继续观察，当前不直接修改 GC 或 weakref。
+- **扩展模块已完整复测**：排除 `machine_spi_rate.py`、`machine_uart_irq_txidle.py` 和 `machine_uart_tx.py` 三个需要外部连线的测试后，67 项、814 个用例全部通过，134 项因功能未启用或条件不满足而跳过。
+- **浮点功能全部通过**：已设置 `MICROPY_PY_MATH_GAMMA_FIX_NEGINF = 1`，使 `math.gamma(-inf)` 按官方预期抛出 `ValueError`；整组复测 61 项、3,303 个用例全部通过。当前为 32 位单精度浮点配置，7 项双精度或字节序条件测试正常跳过。
+- **导入系统尚未完成**：`import` 组的 21 项失败主要集中在文件、包、循环导入、动态导入和模块覆盖等场景，与当前 VFS、`open()`、`mp_import_stat()` 和
+   `mp_lexer_new_from_file()` 尚未完整实现相符。
+- **MicroPython 专有功能表现稳定**：已执行的 45 项全部通过，包括常量、紧急异常缓冲、堆锁、内存分配失败处理、键盘中断、调度和栈使用等功能。native/viper 因 `MICROPY_EMIT_THUMB = 0` 跳过，`.mpy` 导入仍需在文件系统完成后验证。
+- **Unicode 核心功能通过**：字符、索引、迭代、切片、格式化及正则相关测试均通过；仅依赖文件读取的 3 项测试跳过。
+- **端口时间接口不完整**：`ports/renesas-ra/modtime.py` 在第一个年份用例就因缺少 `time.mktime()` 终止；若要通过 RA 端口专用测试，需要实现该接口。
+- **没有执行多线程 GC 竞态测试**：`thread_gc1.py` 实际在 `import _thread` 时失败。测试框架仅因该脚本带通用 known-flaky 标记而显示 “GC race condition”；当前端口没有 `_thread`，不能据此声称观察到了 GC race。
 
 ## 官方测试失败项逐项原因
 
-下面覆盖正式功能测试中的失败，以及本轮复测新增或单独核实的问题。判断依据是
-`tests/results` 中保存的 `.out` 与 `.exp` 差异、各测试源码及 COM9 上的单项
-复测。
+下面覆盖正式功能测试中的失败，以及本轮复测新增或单独核实的问题。判断依据是 `tests/results` 中保存的 `.out` 与 `.exp` 差异、各测试源码及 COM9 上的单项复测。
 
 ### `basics`（3 项）
 
@@ -279,8 +235,7 @@ ports/renesas-ra8/
 
 ### `import`（21 项）
 
-这 21 项具有同一个端口级根因：当前 `mp_import_stat()` 固定返回 `MP_IMPORT_STAT_NO_EXIST`，`mp_lexer_new_from_file()` 固定抛出 `OSError(ENOENT)`，`mp_builtin_open()` 也是空壳，同时没有 VFS。因此内存中的
-内置模块仍可导入，但测试目录里的 `.py` 文件和包均无法被发现或加载。
+这 21 项具有同一个端口级根因：当前 `mp_import_stat()` 固定返回 `MP_IMPORT_STAT_NO_EXIST`，`mp_lexer_new_from_file()` 固定抛出 `OSError(ENOENT)`，`mp_builtin_open()` 也是空壳，同时没有 VFS。因此内存中的内置模块仍可导入，但测试目录里的 `.py` 文件和包均无法被发现或加载。
 
 | 失败测试 | 首个无法导入的对象 | 该测试因此无法验证的场景 | 是否需要改代码 |
 |---|---|---|---|
@@ -318,25 +273,15 @@ ports/renesas-ra8/
 
 根据本轮复测，需要修改或持续观察的问题归并为：
 
-1. 实现 VFS、`os`、`open()`、文件查找和文件模块导入链路；它同时阻断
-   `string_tstring_basic.py` 后半段、21 项 `import`、Unicode 文件测试和
-   `.mpy`/`execfile` 等测试。
+1. 实现 VFS、`os`、`open()`、文件查找和文件模块导入链路；它同时阻断 `string_tstring_basic.py` 后半段、21 项 `import`、Unicode 文件测试和 `.mpy`/`execfile` 等测试。
 2. 实现 RA 端口的 `time.mktime()`。
-3. 持续观察 `weakref_finalize_collect.py`；当前最新整组测试已通过，不把一次
-   保守 GC 假根现象列为立即修改项。只有稳定复现后才检查 FreeRTOS 任务栈边界。
+3. 持续观察 `weakref_finalize_collect.py`；当前最新整组测试已通过，不把一次保守 GC 假根现象列为立即修改项。只有稳定复现后才检查 FreeRTOS 任务栈边界。
 
-不需要修改对应固件功能的项目包括：`weakref_callback_exception.py` 的
-`<stdin>` 文件名差异、没有 `_thread` 时的 `thread_gc1.py`、三个未配置
-target wiring 的硬件测试，以及单项复测已通过的 `frozenset_binop.py`、
-`int_big_mul.py`。Thumb 内联汇编已通过关闭可选功能安全处理，不再计为待修失败。
+不需要修改对应固件功能的项目包括：`weakref_callback_exception.py` 的 `<stdin>` 文件名差异、没有 `_thread` 时的 `thread_gc1.py`、三个未配置 target wiring 的硬件测试，以及单项复测已通过的 `frozenset_binop.py`、`int_big_mul.py`。Thumb 内联汇编已通过关闭可选功能安全处理，不再计为待修失败。
 
 ## 2026-07-20 旧固件的官方测试跳过项原因汇总
 
-本节集中说明上方“完整官方测试汇总”中所有跳过项的原因，仅适用于 2026-07-20
-测试的旧固件。这里的“跳过”是
-`run-tests.py` 根据目标平台能力探针、模块可用性或测试自身条件作出的正常判定，
-不等同于测试失败。2026-07-20 的运行结果只保存了失败项的 `.out`/`.exp`，没有
-保存逐个 skipped 文件名，因此以下按触发跳过的能力类别记录，不凭空补写文件名。
+本节集中说明上方“完整官方测试汇总”中所有跳过项的原因，仅适用于 2026-07-20 测试的旧固件。这里的“跳过”是 `run-tests.py` 根据目标平台能力探针、模块可用性或测试自身条件作出的正常判定，不等同于测试失败。2026-07-20 的运行结果只保存了失败项的 `.out`/`.exp`，没有保存逐个 skipped 文件名，因此以下按触发跳过的能力类别记录，不凭空补写文件名。
 
 | 测试组 | 跳过数 | 跳过原因 |
 |---|---:|---|
@@ -350,16 +295,8 @@ target wiring 的硬件测试，以及单项复测已通过的 `frozenset_binop.
 
 另外，下列项目不计入上表的“跳过数”，但同样没有作为普通通过测试执行：
 
-- `machine_spi_rate.py`、`machine_uart_irq_txidle.py` 和 `machine_uart_tx.py`：
-  需要外部 target wiring；由于主机端 `Pyboard.target_wiring_script` 属性未初始化，
-  本轮从 `extmod` 命令行中主动排除。
-- `thread_gc1.py`：当前固件没有 `_thread`，脚本在 `import _thread` 时终止；框架显示的
-  “GC race condition” 来自该测试的通用 known-flaky 标记，不能解释为本端口观察到
-  GC 竞态，也不能算作已通过的线程测试。
-- `ports/renesas-ra/modtime.py`：因缺少 `time.mktime()` 在首个年份用例终止，属于端口
-  专用测试失败，不属于跳过。
+- `machine_spi_rate.py`、`machine_uart_irq_txidle.py` 和 `machine_uart_tx.py`：需要外部 target wiring；由于主机端 `Pyboard.target_wiring_script` 属性未初始化，本轮从 `extmod` 命令行中主动排除。
+- `thread_gc1.py`：当前固件没有 `_thread`，脚本在 `import _thread` 时终止；框架显示的“GC race condition” 来自该测试的通用 known-flaky 标记，不能解释为本端口观察到 GC 竞态，也不能算作已通过的线程测试。
+- `ports/renesas-ra/modtime.py`：因缺少 `time.mktime()` 在首个年份用例终止，属于端口专用测试失败，不属于跳过。
 
-因此，旧固件跳过项的根因可以归并为四类：固件按最小配置裁剪了可选模块或
-emitter、当时使用 32 位单精度浮点、当时文件系统及文件导入链路尚未完成、硬件
-连线或目标能力前置条件不满足。当前源码已经改变浮点和 VFS 配置，旧跳过数量不能
-直接作为新固件结论；重新烧录后必须重跑对应测试，再更新本节统计。
+因此，旧固件跳过项的根因可以归并为四类：固件按最小配置裁剪了可选模块或 emitter、当时使用 32 位单精度浮点、当时文件系统及文件导入链路尚未完成、硬件连线或目标能力前置条件不满足。当前源码已经改变浮点和 VFS 配置，旧跳过数量不能直接作为新固件结论；重新烧录后必须重跑对应测试，再更新本节统计。
