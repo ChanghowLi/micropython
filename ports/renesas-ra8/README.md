@@ -1,6 +1,6 @@
 # MicroPython Renesas RA8P1 移植
 
-**最后更新：** 2026-07-20
+**最后更新：** 2026-07-21
 
 ---
 
@@ -85,7 +85,7 @@ python run-tests.py -t COM10 -b 2000000 --test-dirs basics
 | Ctrl-C 中断 | ✅ | UART ISR 调用 `mp_sched_keyboard_interrupt()` |
 | Thumb 内联汇编 | ⏭️ 已关闭 | `MICROPY_EMIT_INLINE_THUMB = 0`；避免 Cortex-M85 执行动态生成代码时卡死，相关测试由框架跳过 |
 | Thumb 原生代码发射 | ❌ | 关闭——尚未适配 ARMv8.1-M |
-| 浮点数 | ✅ | 已启用单精度 `MICROPY_FLOAT_IMPL_FLOAT`，编译使用硬浮点 ABI |
+| 浮点数 | 🧪 待烧录验证 | 当前源码已配置双精度 `MICROPY_FLOAT_IMPL_DOUBLE`，编译使用硬浮点 ABI；COM9 上仍运行旧的 32 位浮点固件 |
 | 紧急异常缓冲区 | ✅ | 已启用，固定大小 256 字节，由 `mp_init()` 自动初始化 |
 
 ### 内置模块（ROM 级别自动启用）
@@ -130,16 +130,16 @@ python run-tests.py -t COM10 -b 2000000 --test-dirs basics
 | Raw REPL | ✅ |
 | 模式切换（Ctrl-A / Ctrl-B） | ✅ 切换时不触发软复位 |
 | `nlr_jump_fail` 诊断 | ✅ 打印异常、C 栈用量、FreeRTOS 任务栈水位 |
-| `mp_builtin_open` | ❌ 空壳——返回 `mp_const_none` |
-| `mp_lexer_new_from_file` | ❌ 空壳——抛出 `OSError(ENOENT)` |
-| `mp_import_stat` | ❌ 空壳——返回 `MP_IMPORT_STAT_NO_EXIST` |
+| `mp_builtin_open` | ✅ 已切换到通用 VFS 实现，并通过临时 RAM FAT 文件系统验证文件读写 |
+| `mp_lexer_new_from_file` | ⚠️ 已切换到 `MICROPY_READER_VFS`；RAM FAT 测试最后的文件模块导入仍以 `OSError(EINVAL)` 终止 |
+| `mp_import_stat` | ⚠️ 已切换到通用 VFS 文件查询；普通目录和文件操作已验证，文件模块导入链路尚未完全通过 |
 
 ### 缺失的系统（依赖硬件驱动）
 
 | 系统 | 说明 |
 |---|---|
 | `machine` 模块 | 无 Pin、UART、I2C、SPI、Timer、ADC、PWM 等类 |
-| 文件系统（VFS） | 无块设备驱动；`open()` 为空壳 |
+| 文件系统（VFS） | VFS/FAT 和 `os` 已通过测试脚本创建的临时 RAM 块设备验证：格式化、挂载、文件/目录操作及卸载均可运行；文件模块导入在测试末尾仍报 `OSError(EINVAL)`，且启动时尚无自动挂载的持久化块设备 |
 | 网络 | 无 lwIP、socket、WiFi 协议栈 |
 | `_thread` 模块 | FreeRTOS 已就绪，但 Python 级多线程未暴露 |
 | `mp_hal_pin_*()` | GPIO HAL 未实现——`machine.Pin` 的前置依赖 |
@@ -159,7 +159,7 @@ ports/renesas-ra8/
 ├── boards/
 │   └── CPKCOR_RA8P1/
 │       ├── mpconfigboard.h      # 板级标识、大整数实现
-│       ├── mpconfigboard.mk     # FSP 路径、VFS 关闭
+│       ├── mpconfigboard.mk     # FSP 路径、启用 FAT VFS
 │       └── e2studio_gcc_freertos/
 │           ├── src/             # 胶水代码（mphalport.c、repl_thread_entry.c）
 │           ├── ra_gen/          # 自动生成：main.c、hal_data.c、线程…
@@ -211,6 +211,12 @@ ports/renesas-ra8/
 以下是 2026-07-20 使用 COM9、2,000,000 波特率复测后的结果。关闭 Thumb
 内联汇编并重新烧录后，测试环境报告为 `platform=minimal`、`float=32-bit`、
 `unicode`。能力探针不作为普通官方功能测试统计。
+
+> **历史基线说明：** 本节及后续失败/跳过数量对应 2026-07-20 的旧固件，不代表
+> 当前源码。VFS/FAT、`os` 和通用 VFS reader 已使用临时 RAM 块设备做过实际验证，
+> 但文件模块导入尚未完全通过；当前源码另已改为 `MICROPY_FLOAT_IMPL_DOUBLE`，这一项
+> 尚未重新编译、烧录并完成整组复测。2026-07-21 对 COM9 再次运行能力探针仍报告
+> `float=32-bit`，确认板上此时运行的固件尚未包含双精度配置。
 
 | 测试组 | 通过 | 失败 | 跳过 | 结果说明 |
 |---|---:|---:|---:|---|
@@ -324,9 +330,10 @@ ports/renesas-ra8/
 target wiring 的硬件测试，以及单项复测已通过的 `frozenset_binop.py`、
 `int_big_mul.py`。Thumb 内联汇编已通过关闭可选功能安全处理，不再计为待修失败。
 
-## 官方测试跳过项原因汇总
+## 2026-07-20 旧固件的官方测试跳过项原因汇总
 
-本节集中说明上方“完整官方测试汇总”中所有跳过项的原因。这里的“跳过”是
+本节集中说明上方“完整官方测试汇总”中所有跳过项的原因，仅适用于 2026-07-20
+测试的旧固件。这里的“跳过”是
 `run-tests.py` 根据目标平台能力探针、模块可用性或测试自身条件作出的正常判定，
 不等同于测试失败。2026-07-20 的运行结果只保存了失败项的 `.out`/`.exp`，没有
 保存逐个 skipped 文件名，因此以下按触发跳过的能力类别记录，不凭空补写文件名。
@@ -352,6 +359,7 @@ target wiring 的硬件测试，以及单项复测已通过的 `frozenset_binop.
 - `ports/renesas-ra/modtime.py`：因缺少 `time.mktime()` 在首个年份用例终止，属于端口
   专用测试失败，不属于跳过。
 
-因此，本轮跳过项的根因可以归并为四类：固件按最小配置裁剪了可选模块或 emitter、
-当前为 32 位单精度浮点、文件系统及文件导入链路尚未完成、硬件连线或目标能力前置
-条件不满足。跳过项只有在相应功能被实现或启用后，才应重新纳入执行并判断通过与否。
+因此，旧固件跳过项的根因可以归并为四类：固件按最小配置裁剪了可选模块或
+emitter、当时使用 32 位单精度浮点、当时文件系统及文件导入链路尚未完成、硬件
+连线或目标能力前置条件不满足。当前源码已经改变浮点和 VFS 配置，旧跳过数量不能
+直接作为新固件结论；重新烧录后必须重跑对应测试，再更新本节统计。
