@@ -323,3 +323,35 @@ ports/renesas-ra8/
 `<stdin>` 文件名差异、没有 `_thread` 时的 `thread_gc1.py`、三个未配置
 target wiring 的硬件测试，以及单项复测已通过的 `frozenset_binop.py`、
 `int_big_mul.py`。Thumb 内联汇编已通过关闭可选功能安全处理，不再计为待修失败。
+
+## 官方测试跳过项原因汇总
+
+本节集中说明上方“完整官方测试汇总”中所有跳过项的原因。这里的“跳过”是
+`run-tests.py` 根据目标平台能力探针、模块可用性或测试自身条件作出的正常判定，
+不等同于测试失败。2026-07-20 的运行结果只保存了失败项的 `.out`/`.exp`，没有
+保存逐个 skipped 文件名，因此以下按触发跳过的能力类别记录，不凭空补写文件名。
+
+| 测试组 | 跳过数 | 跳过原因 |
+|---|---:|---|
+| `basics` | 15 | 测试要求当前固件未提供或未报告的可选语言/运行时能力；测试框架在执行前依据能力探针和测试条件跳过。文件系统相关能力缺失也会使依赖外部文件的用例无法作为普通可执行项运行 |
+| `extmod` | 134 | 对应扩展模块、网络、TLS、压缩、哈希、VFS、文件 I/O 或 `machine` 外设能力未编入当前最小固件，或者测试要求目标板具备当前未配置的硬件条件。未启用模块属于端口裁剪结果，不表示已启用模块测试失败 |
+| `float` | 7 | 当前固件使用 32 位单精度浮点；要求双精度浮点、特定浮点表示或特定字节序条件的测试不适用，因而跳过 |
+| `import` | 2 | 测试前置条件与当前导入配置不匹配，测试框架按条件跳过。其余 21 项不是跳过，而是因为 VFS、`open()`、`mp_import_stat()` 和文件 lexer 尚未实现而实际失败 |
+| `inlineasm` | 全部相关项 | `MICROPY_EMIT_INLINE_THUMB = 0`，平台能力信息不再报告 `inlineasm=thumb`；所有 `inlineasm/thumb` 用例按“不支持该可选功能”跳过。关闭原因是 Cortex-M85 上调用最小动态 Thumb 汇编函数也会使 REPL 卡死 |
+| `micropython` | 63 | native emitter、viper emitter、动态 Thumb 汇编、`.mpy` 文件导入、meminfo/内存布局检查及其他仅在相应编译选项或运行条件满足时才执行的 MicroPython 专有测试未启用或条件不满足 |
+| `unicode` | 3 | 测试需要从文件系统读取 Unicode 源文件或数据文件；当前端口没有完整 VFS、`open()` 和文件导入链路，因此按前置条件跳过。已执行的 Unicode 核心测试全部通过 |
+
+另外，下列项目不计入上表的“跳过数”，但同样没有作为普通通过测试执行：
+
+- `machine_spi_rate.py`、`machine_uart_irq_txidle.py` 和 `machine_uart_tx.py`：
+  需要外部 target wiring；由于主机端 `Pyboard.target_wiring_script` 属性未初始化，
+  本轮从 `extmod` 命令行中主动排除。
+- `thread_gc1.py`：当前固件没有 `_thread`，脚本在 `import _thread` 时终止；框架显示的
+  “GC race condition” 来自该测试的通用 known-flaky 标记，不能解释为本端口观察到
+  GC 竞态，也不能算作已通过的线程测试。
+- `ports/renesas-ra/modtime.py`：因缺少 `time.mktime()` 在首个年份用例终止，属于端口
+  专用测试失败，不属于跳过。
+
+因此，本轮跳过项的根因可以归并为四类：固件按最小配置裁剪了可选模块或 emitter、
+当前为 32 位单精度浮点、文件系统及文件导入链路尚未完成、硬件连线或目标能力前置
+条件不满足。跳过项只有在相应功能被实现或启用后，才应重新纳入执行并判断通过与否。
