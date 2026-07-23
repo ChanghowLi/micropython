@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <raConfiguration version="12">
   <generalSettings>
-    <option key="#Board#" value="board.ra8p1_cpkcor"/>
+    <option key="#Board#" value="board.custom"/>
     <option key="CPU" value="RA8P1"/>
     <option key="Core" value="CPU0"/>
     <option key="#TargetName#" value="R7KA8P1KFLCAC"/>
@@ -12,7 +12,7 @@
     <option key="#FSPVersion#" value="6.4.0"/>
     <option key="#ConfigurationFragments#" value="Renessa##BSP##Board##ra8p1_cpkcor##"/>
     <option key="#SELECTED_TOOLCHAIN#" value="gcc-arm-embedded"/>
-    <option key="#ToolchainVersion#" value=""/>
+    <option key="#ToolchainVersion#" value="13.2.1.arm-13-7"/>
   </generalSettings>
   <raBspConfiguration>
     <config id="config.bsp.ra8p1.R7KA8P1KFLCAC">
@@ -430,10 +430,6 @@
       <description>FreeRTOS Port</description>
       <originalPack>Renesas.RA.6.4.0.pack</originalPack>
     </component>
-    <component apiversion="" class="BSP" condition="" group="Board" subgroup="ra8p1_cpkcor" variant="" vendor="Renessa" version="6.4.0">
-      <description/>
-      <originalPack>Renesas.RA_board_ra8p1_cpkcor.6.4.0.pack</originalPack>
-    </component>
     <component apiversion="" class="BSP" condition="" group="ra8p1" subgroup="device" variant="R7KA8P1KFLCAC" vendor="Renesas" version="6.4.0">
       <description>Board support package for R7KA8P1KFLCAC</description>
       <originalPack>Renesas.RA_mcu_ra8p1.6.4.0.pack</originalPack>
@@ -461,6 +457,10 @@
     <component apiversion="" class="Heaps" condition="" group="FreeRTOS" subgroup="heap_4" variant="" vendor="AWS" version="11.1.0+fsp.6.4.0">
       <description>FreeRTOS - Memory Management - Heap 4</description>
       <originalPack>Amazon.FreeRTOS-Kernel.11.1.0+fsp.6.4.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="BSP" condition="" group="Board" subgroup="custom" variant="" vendor="Renesas" version="6.4.0">
+      <description>Custom Board Support Files</description>
+      <originalPack>Renesas.RA_board_custom.6.4.0.pack</originalPack>
     </component>
   </raComponentSelection>
   <raElcConfiguration/>
