@@ -7,31 +7,39 @@
 - arm-none-eabi-gcc 13.2.1.arm-13-7
 - python 3.13
 
+- 对于 windows 平台，建议使用 w64devkit 提供的 make 命令：[w64devkit: Portable C and C++ Development Kit for x64 (and x86) Windows](https://github.com/skeeto/w64devkit) 
+
 ## 步骤
 
-- 打开 e2studio，如果未安装 BSP 包，先安装 BSP 包，BSP 包位于 `ports\renesas-ra8\boards\<board_name>` 目录下。例如，对于 CPKCOR-RA8P1 板，BSP 包文件位于 `ports\renesas-ra8\boards\CPKCOR_RA8P1\Renesas.RA_board_ra8p1_cpkcor.6.4.0.pack` 
+- 预编译 Python 文件为字节码：在项目根目录执行 `make -C mpy-cross` 
+- 更新 git 子模块：`git submodule update --init --recursive` 
 - 导入板子下的 e2studio 工程，工程同样位于 `ports\renesas-ra8\boards\<board_name>` 目录下。例如，对于 CPKCOR-RA8P1 板，e2studio 工程位于 `ports\renesas-ra8\boards\CPKCOR_RA8P1\e2studio_gcc_freertos`。导入后，打开 `configuration.xml`，点击 `Generate Project Content`。
 
 ### 使用 e2studio 构建
 
-若使用 e2studio 构建，在生成工程后，直接在 e2studio 内构建工程即可。生成的 hex 文件位于 e2studio 的 Debug 目录下
+- 指定编译器路径。在 `ports/renesas-ra8` 目录下创建 `local.mk`，里面写 E2S_GCC 的路径
+
+```makefile
+E2S_GCC ?= D:/Programs/Dev/e2s_2025_12/toolchains/gcc_arm/13.2.rel1
+```
+
+- 生成 MicroPython QSTR 相关头文件
+
+```bash
+make BOARD=CPKCOR_RA8P1 genhdr
+```
+
+> 如果使用了 make 进行构建，那么在不删除 make 的输出目录的情况下，可以不执行此命令。make 的构建同样会生成 QSTR 相关头文件。
+
+- 现在可以回到 e2studio 中进行构建。生成的 hex 文件位于 e2studio 的 Debug 目录下
 
 ### 使用 make 构建
 
 - 指定编译器路径。在 `ports/renesas-ra8` 目录下创建 `local.mk`，里面写 E2S_GCC 的路径
 
 ```makefile
-# 根据安装路径填写
-E2S_GCC ?= D:/Programs/Dev/e2s_2025_12_BSP_6.4.0/toolchains/gcc_arm/13.2.rel1
+E2S_GCC ?= D:/Programs/Dev/e2s_2025_12/toolchains/gcc_arm/13.2.rel1
 ```
-
-- 在 `ports/renesas-ra8` 目录执行，其中的 `CPKCOR_RA8P1` 可以换成其它支持的板
-
-```bash
-make BOARD=CPKCOR_RA8P1 genhdr
-```
-
-> 注意：执行命令的 shell 中需要有 python 环境
 
 - 在 `ports/renesas-ra8` 目录执行
 
