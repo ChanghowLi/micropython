@@ -14,23 +14,23 @@
 
 /*虚拟文件系统，在RAM里面*/
 #ifndef MICROPY_VFS
-#define MICROPY_VFS                     1
+#define MICROPY_VFS                              1
 #endif          
 
 #ifndef MICROPY_READER_VFS
-#define MICROPY_READER_VFS              1
+#define MICROPY_READER_VFS                       1
 #endif         
 
 #ifndef MICROPY_FATFS_ENABLE_LFN 
-#define MICROPY_FATFS_ENABLE_LFN       (2)
+#define MICROPY_FATFS_ENABLE_LFN                (2)
 #endif
 
 #ifndef MICROPY_FATFS_LFN_CODE_PAGE
-#define MICROPY_FATFS_LFN_CODE_PAGE    437
+#define MICROPY_FATFS_LFN_CODE_PAGE             437
 #endif
 
 #ifndef MICROPY_ALLOC_PATH_MAX
-#define MICROPY_ALLOC_PATH_MAX          256
+#define MICROPY_ALLOC_PATH_MAX                  256
 #endif
 
 #ifndef MICROPY_ALLOC_PATH_MAX
