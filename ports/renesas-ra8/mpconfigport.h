@@ -41,6 +41,31 @@
 #define MICROPY_CONFIG_ROM_LEVEL                MICROPY_CONFIG_ROM_LEVEL_EVERYTHING
 #endif
 
+/* machine module */
+#ifndef MICROPY_PY_MACHINE
+#define MICROPY_PY_MACHINE                      (1)
+#endif
+
+#ifndef MICROPY_PY_MACHINE_MEMX
+#define MICROPY_PY_MACHINE_MEMX                 (1)
+#endif
+
+#ifndef MICROPY_PY_BUILTINS_MEMORYVIEW
+#define MICROPY_PY_BUILTINS_MEMORYVIEW          (1)
+#endif
+
+#ifndef MICROPY_PY_MACHINE_RESET
+#define MICROPY_PY_MACHINE_RESET                (1)
+#endif
+
+#ifndef MICROPY_PY_MACHINE_SIGNAL
+#define MICROPY_PY_MACHINE_SIGNAL               (0)
+#endif
+
+#ifndef MICROPY_PY_MACHINE_INCLUDEFILE
+#define MICROPY_PY_MACHINE_INCLUDEFILE "ports/renesas-ra8/modmachine.c"
+#endif
+
 /* py/test says its arch=armv7emdp, it has problem in test */
 #ifndef MICROPY_EMIT_INLINE_THUMB
 #define MICROPY_EMIT_INLINE_THUMB               0

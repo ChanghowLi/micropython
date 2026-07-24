@@ -96,13 +96,13 @@ API 完成情况。函数说明写在上方每个函数的标题下
 
 | 函数                    | 状态 |
 | ----------------------- | ---- |
-| machine.mem8()          | ❌    |
-| machine.mem16()         | ❌    |
-| machine.mem32()         | ❌    |
-| machine.mem_backup()    | ❌    |
-| machine.reset()         | ❌    |
-| machine.soft_reset()    | ❌    |
-| machine.reset_cause()   | ❌    |
+| machine.mem8()          | ✅    |
+| machine.mem16()         | ✅    |
+| machine.mem32()         | ✅    |
+| machine.mem_backup()    | ✅    |
+| machine.reset()         | ✅    |
+| machine.soft_reset()    | ✅    |
+| machine.reset_cause()   | ✅    |
 | machine.bootloader()    | ❌    |
 | machine.disable_irq()   | ❌    |
 | machine.enable_irq()    | ❌    |
@@ -594,6 +594,5 @@ API 完成情况。函数说明写在上方每个函数的标题下
 | UART.IRQ_RX           | ❌    |
 | UART.IRQ_TXIDLE       | ❌    |
 | UART.IRQ_BREAK        | ❌    |
-
 
 

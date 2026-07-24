@@ -58,6 +58,8 @@ endif
 SRC_C := $(FSP_SRC_C)
 
 # MicroPython integration sources
+SRC_C += extmod/modmachine.c
+SRC_C += extmod/machine_mem.c
 SRC_C += extmod/modtime.c
 SRC_C += extmod/moductypes.c
 SRC_C += extmod/modjson.c
@@ -167,6 +169,8 @@ LDFLAGS += --specs=nano.specs
 LIBS = -Wl,--start-group -lgcc -lm -lc -Wl,--end-group
 
 # QSTR sources (for string interning)
+SRC_QSTR += extmod/modmachine.c
+SRC_QSTR += extmod/machine_mem.c
 SRC_QSTR += extmod/modtime.c
 SRC_QSTR += extmod/moductypes.c
 SRC_QSTR += extmod/modjson.c

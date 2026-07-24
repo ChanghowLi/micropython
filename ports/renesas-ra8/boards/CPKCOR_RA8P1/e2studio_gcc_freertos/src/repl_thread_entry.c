@@ -15,6 +15,7 @@
 #include "shared/runtime/gchelper.h"
 #include "shared/runtime/pyexec.h"
 #include "py/cstack.h"
+#include "ports/renesas-ra8/modmachine.h"
 
 #define TAG __FUNCTION__
 
@@ -42,6 +43,7 @@ soft_reset:
     gc_init(s_head, s_head + sizeof(s_head));
 #endif
     mp_init();
+    machine_init();
 
 #if MICROPY_ENABLE_COMPILER
     while (1) {
@@ -83,6 +85,7 @@ soft_reset:
 #endif
 
     mp_printf(&mp_plat_print, "MPY: soft reboot\n");
+    machine_deinit();
     mp_deinit();
     LOG_W(TAG, "Soft reset");
     goto soft_reset;

@@ -5,6 +5,7 @@
 */
 
 #include "hal_data.h"
+#include "ports/renesas-ra8/modmachine.h"
 
 FSP_CPP_HEADER
 void R_BSP_WarmStart(bsp_warm_start_event_t event);
@@ -21,6 +22,19 @@ void R_BSP_WarmStart (bsp_warm_start_event_t event)
 {
     if (BSP_WARM_START_RESET == event)
     {
+        machine_reset_flags.rstsr0 = R_SYSTEM->RSTSR0;
+        machine_reset_flags.rstsr1 = R_SYSTEM->RSTSR1;
+        machine_reset_flags.rstsr2 = R_SYSTEM->RSTSR2;
+        machine_reset_flags.rstsr3 = R_SYSTEM->RSTSR3;
+        
+        /* Clear reset-source flags after saving them. */
+         R_SYSTEM->RSTSR0 = 0U;
+         R_SYSTEM->RSTSR1 = 0U;
+         R_SYSTEM->RSTSR3 = 0U;
+
+        /* Mark subsequent resets as warm starts. */
+        R_SYSTEM->RSTSR2_b.CWSF = 1U;
+
 #if BSP_FEATURE_FLASH_LP_VERSION != 0
 
         /* Enable reading from data flash. */
