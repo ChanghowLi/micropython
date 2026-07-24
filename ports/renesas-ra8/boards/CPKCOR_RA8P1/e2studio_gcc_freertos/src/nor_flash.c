@@ -5,6 +5,8 @@
 
 #define OSPI_NAME	g_nor_flash
 
+#define NOR_FLASH_SECTOR_ERASE_TIMEOUT_MS	5000U
+
 #define JEDEC_MANUFACTURER_WINBOND	0xEF
 #define W35N01JW_DEVICE_ID_L		0x21
 #define W35N01JW_DEVICE_ID_H		0xDC
@@ -81,8 +83,36 @@ uint32_t NorFlash_EraseSector(uint32_t sector)
 	}
 	err = R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_WRITE);
 	REPORT_ERR(1, err, "DirectTransfer failed: 0x%lX", err);
-	err = NorFlash_WaitOperation(20);
-	REPORT_ERR(1, err, "SetWriteEnable failed: 0x%lX", err);
+	err = NorFlash_WaitOperation(NOR_FLASH_SECTOR_ERASE_TIMEOUT_MS);
+	REPORT_ERR(1, err, "WaitOperation failed: 0x%lX", err);
+
+	return 0;
+}
+
+uint32_t NorFlash_Program(uint32_t address, void const *data, uint32_t length)
+{
+	uint32_t i;
+	uint32_t err;
+
+	uint8_t *p_flash = (uint8_t *)address;
+	uint8_t const *p_data = (uint8_t *)data;
+	uint32_t repeat = length / 64;
+	uint32_t remain = length % 64;
+
+	for (i = 0; i < repeat; i++) {
+		err = R_OSPI_B_Write(g_nor_flash.p_ctrl, p_data, p_flash, 64);
+		REPORT_ERR(1, err, "Write failed: 0x%lX. Src: 0x%p, Target: 0x%p. i = %lu", err, p_data, p_flash, i);
+		err = NorFlash_WaitOperation(5000);
+		REPORT_ERR(1, err, "Wait failed: 0x%lX. Src: 0x%p, Target: 0x%p. i = %lu", err, p_data, p_flash, i);
+		p_data = &p_data[64];
+		p_flash = &p_flash[64];
+	}
+	if (remain) {
+		err = R_OSPI_B_Write(g_nor_flash.p_ctrl, p_data, p_flash, remain);
+		REPORT_ERR(1, err, "Write failed: 0x%lX. Src: 0x%p, Target: 0x%p", err, p_data, p_flash);
+		err = NorFlash_WaitOperation(5000);
+		REPORT_ERR(1, err, "Wait failed: 0x%lX. Src: 0x%p, Target: 0x%p", err, p_data, p_flash);
+	}
 
 	return 0;
 }
@@ -158,7 +188,8 @@ uint32_t NorFlash_Init(void)
 		s_flash.capacity = 1024 * 1024 * 128;
 		s_flash.cfg.erase_command_list_length = 0x01;
 		s_flash.cfg.p_erase_command_list = sc_erase_cmd_spi_w35n01jw;
-		goto CHECK_AUTO_CALI;
+		err = FSP_ERR_UNSUPPORTED;
+		goto EXIT;
 	}
 	expect = W35T51NW_EXTENSION;
 	expect = (expect << 0x08) | W35T51NW_MEMORY_CAPACITY;
@@ -172,7 +203,8 @@ uint32_t NorFlash_Init(void)
 	}
 
 	LOG_E(__FUNCTION__, "Unsupport NorFlash: 0x%lX", cmd.data);
-	return FSP_ERR_UNSUPPORTED;
+	err = FSP_ERR_UNSUPPORTED;
+	goto EXIT;
 
 CHECK_ADDR_MODE:
 	/* 检查地址模式 */
@@ -199,7 +231,6 @@ CHECK_ADDR_MODE:
 		}
 	}
 
-CHECK_AUTO_CALI:
 	LOG_D(__FUNCTION__, "Cali address: %p", p8);
 	memcpy(cali, p8, 16);
 	LOG_D(__FUNCTION__, "cali[0]: 0x%08lX", cali[0]);
@@ -357,6 +388,7 @@ CHECK_AUTO_CALI:
 	}
 #endif
 
+EXIT:
 #if BSP_CFG_DCACHE_ENABLED
 	__DSB();
 	__ISB();
@@ -501,28 +533,26 @@ uint32_t NorFlash_WaitOperation(uint32_t timeout)
 		cmd.data_length = 0x02;
 		cmd.dummy_cycles = 0x08;
 	}
-#if 0
-	while (timeout) {
+#if 1
+	uint32_t us = timeout * 1000;
+	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
+	while (cmd.data & 0x01) {
+		if (us == 0) {
+			return FSP_ERR_TIMEOUT;
+		}
+		R_BSP_SoftwareDelay(1, BSP_DELAY_UNITS_MICROSECONDS);
+		us--;
 		R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
-		if ((cmd.data & 0x01) == 0x00) {
-			return 0;
-		}
-		else {
-			R_BSP_SoftwareDelay(1, BSP_DELAY_UNITS_MILLISECONDS);
-			timeout--;
-		}
 	}
-
-	return FSP_ERR_TIMEOUT;
 #else
 	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
 	while (cmd.data & 0x01) {
 		__NOP();
 		R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
 	}
+#endif
 
 	return 0;
-#endif
 }
 
 uint32_t NorFlash_WriteSector(uint32_t sector, void *data, uint32_t length)
