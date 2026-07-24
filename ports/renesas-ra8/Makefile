@@ -132,8 +132,9 @@ CFLAGS += $(CFLAGS_CORTEX_M85)
 CFLAGS += -fdata-sections
 CFLAGS += -ffunction-sections
 CFLAGS += -flax-vector-conversions
-CFLAGS += -fno-strict-aliasing
+CFLAGS += -fmessage-length=0
 CFLAGS += -fsigned-char
+CFLAGS += -fno-strict-aliasing
 CFLAGS += --param=min-pagesize=0
 
 # Warning flags: stricter for MicroPython code, relaxed for FSP
@@ -154,6 +155,8 @@ CFLAGS += -D_RENESAS_RA_
 CFLAGS += -D__arm__
 CFLAGS += -D__PERFC_USE_PMU_PORTING__=1
 CFLAGS += -D__PERFC_CFG_DISABLE_DEFAULT_SYSTICK_PORTING__=1
+# This is RTT buffer size, default is 1024, too small
+CFLAGS += -DBUFFER_SIZE_UP=10240
 CFLAGS += -DCONSOLE_RX_BUF_SECTION=\".dtcm_noinit\"
 CFLAGS += -DFFCONF_H=\"lib/oofatfs/ffconf.h\"
 

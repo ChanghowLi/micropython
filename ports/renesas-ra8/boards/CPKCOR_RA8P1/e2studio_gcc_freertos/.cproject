@@ -92,6 +92,7 @@
 									<listOptionValue builtIn="false" value="__arm__"/>
 									<listOptionValue builtIn="false" value="__PERFC_USE_PMU_PORTING__=1"/>
 									<listOptionValue builtIn="false" value="__PERFC_CFG_DISABLE_DEFAULT_SYSTICK_PORTING__=1"/>
+									<listOptionValue builtIn="false" value="BUFFER_SIZE_UP=10240"/>
 									<listOptionValue builtIn="false" value="FFCONF_H=STRINGIFY(lib/oofatfs/ffconf.h)"/>
 									<listOptionValue builtIn="false" value="STRINGIFY(x)=#x"/>
 									<listOptionValue builtIn="false" value="CONSOLE_RX_BUF_SECTION=STRINGIFY(.dtcm_noinit)"/>
