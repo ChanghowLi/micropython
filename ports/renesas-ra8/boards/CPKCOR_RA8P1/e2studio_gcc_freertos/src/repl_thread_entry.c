@@ -1,13 +1,19 @@
+#include <stdbool.h>
 #include <stdio.h>
 
 #include "console.h"
+#include "nor_flash.h"
+#include "nor_flash_dev.h"
 #include "repl_thread.h"
+#include "rtc.h"
 #include "perf_counter/perf_counter.h"
 #include "SEGGER_RTT/SEGGER_RTT.h"
+#include "test/test.h"
 #include "utils/log.h"
 
 #include "py/builtin.h"
 #include "py/compile.h"
+#include "py/mphal.h"
 #include "py/runtime.h"
 #include "py/repl.h"
 #include "py/gc.h"
@@ -23,7 +29,9 @@ static char s_head[MICROPY_HEAP_SIZE];
 
 void repl_thread_entry(void *pvParameters)
 {
+    bool nor_flash_mounted;
     int ret;
+    uint32_t nor_flash_result;
 
     FSP_PARAMETER_NOT_USED(pvParameters);
 
@@ -32,8 +40,30 @@ void repl_thread_entry(void *pvParameters)
     SEGGER_RTT_Init();
 #endif
     CONSOLE_Init();
+    LOG_Reset();
+
+    /* Clean screen */
+    puts("\x1b[2J\x1b[H");
+    puts("\x1B[0m");
 
     LOG_I("MicroPython", "Starting MicroPython on CPKCOR-RA8P1...");
+#if LOG_CFG_EN_SEGGER_RTT
+    printf("_SEGGER_RTT address: 0x%p\r\n", &_SEGGER_RTT);
+#endif
+
+    RTC_Init();
+    nor_flash_result = NorFlash_Init();
+    if (nor_flash_result != 0) {
+        printf("MPY: NOR flash initialization failed (0x%08lX).\r\n", nor_flash_result);
+        printf("Maybe your board using W35N01JW, we not support it yet. /flash will not be mount.\r\n");
+    }
+
+    /* WARN: This test will erase whole chip. Don't enable it unless there's some problems */
+#if TEST_EN_NOR_FLASH
+    if (nor_flash_result == 0) {
+        TestNorFlash(NORFLASH_MAP_START_ADDR, NORFLASH_SIZE);
+    }
+#endif
 
 soft_reset:
     /* 必须小于 FreeRTOS 分配的栈大小，当前：0x4000 */
@@ -44,6 +74,18 @@ soft_reset:
 #endif
     mp_init();
     machine_init();
+
+    nor_flash_mounted = false;
+    if (nor_flash_result == 0) {
+        int mount_result = NorFlashDev_Mount();
+        if (mount_result == 0) {
+            nor_flash_mounted = true;
+            printf("MPY: NOR LittleFS mounted at /flash.\r\n");
+        }
+        else {
+            printf("MPY: failed to mount NOR LittleFS at /flash (error %d).\r\n", mount_result);
+        }
+    }
 
 #if MICROPY_ENABLE_COMPILER
     while (1) {
@@ -85,8 +127,14 @@ soft_reset:
 #endif
 
     mp_printf(&mp_plat_print, "MPY: soft reboot\n");
-    machine_deinit();
+    if (nor_flash_mounted) {
+        int unmount_result = NorFlashDev_Unmount();
+        if (unmount_result != 0) {
+            printf("MPY: failed to unmount NOR LittleFS at /flash (error %d).\r\n", unmount_result);
+        }
+    }
     mp_deinit();
+    machine_deinit();
     LOG_W(TAG, "Soft reset");
     goto soft_reset;
 }

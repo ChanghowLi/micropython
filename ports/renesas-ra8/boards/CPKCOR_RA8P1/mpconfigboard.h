@@ -9,4 +9,8 @@
 #define MICROPY_LONGINT_IMPL        (MICROPY_LONGINT_IMPL_MPZ)
 #define MICROPY_FLOAT_IMPL          (MICROPY_FLOAT_IMPL_DOUBLE)
 
-#define MICROPY_PY_THREAD           (0)
+#ifndef MICROPY_HW_ENABLE_RTC
+#define MICROPY_HW_ENABLE_RTC       1
+#endif
+
+#define MICROPY_PY_THREAD           0

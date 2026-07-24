@@ -12,27 +12,6 @@
 #define MICROPY_ALLOC_PARSE_CHUNK_INIT          16
 #endif
 
-/*虚拟文件系统，在RAM里面*/
-#ifndef MICROPY_VFS
-#define MICROPY_VFS                              1
-#endif          
-
-#ifndef MICROPY_READER_VFS
-#define MICROPY_READER_VFS                       1
-#endif         
-
-#ifndef MICROPY_FATFS_ENABLE_LFN 
-#define MICROPY_FATFS_ENABLE_LFN                (2)
-#endif
-
-#ifndef MICROPY_FATFS_LFN_CODE_PAGE
-#define MICROPY_FATFS_LFN_CODE_PAGE             437
-#endif
-
-#ifndef MICROPY_ALLOC_PATH_MAX
-#define MICROPY_ALLOC_PATH_MAX                  256
-#endif
-
 #ifndef MICROPY_ALLOC_PATH_MAX
 #define MICROPY_ALLOC_PATH_MAX                  256
 #endif
@@ -96,6 +75,14 @@
 #define MICROPY_ENABLE_GC                       1
 #endif
 
+#ifndef MICROPY_FATFS_ENABLE_LFN
+#define MICROPY_FATFS_ENABLE_LFN                2
+#endif
+
+#ifndef MICROPY_FATFS_LFN_CODE_PAGE
+#define MICROPY_FATFS_LFN_CODE_PAGE             437
+#endif
+
 #ifndef MICROPY_FATFS_NORTC
 #define MICROPY_FATFS_NORTC                     1
 #endif
@@ -118,6 +105,22 @@
 
 #ifndef MICROPY_PERSISTENT_CODE_LOAD
 #define MICROPY_PERSISTENT_CODE_LOAD            1
+#endif
+
+#ifndef MICROPY_READER_VFS
+#define MICROPY_READER_VFS                      1
+#endif
+
+#ifndef MICROPY_VFS
+#define MICROPY_VFS                             1
+#endif
+
+#ifndef MICROPY_VFS_LFS2
+#define MICROPY_VFS_LFS2                        1
+#endif
+
+#ifndef MICROPY_VFS_FAT
+#define MICROPY_VFS_FAT                         1
 #endif
 
 #ifndef MICROPY_PY_BINASCII_CRC32
@@ -146,18 +149,6 @@
 
 #ifndef MICROPY_PY_TIME
 #define MICROPY_PY_TIME                         1
-#endif
-
-#ifndef MICROPY_READER_VFS
-#define MICROPY_READER_VFS                      1
-#endif
-
-#ifndef MICROPY_VFS
-#define MICROPY_VFS                             1
-#endif
-
-#ifndef MICROPY_VFS_FAT
-#define MICROPY_VFS_FAT                         1
 #endif
 
 #ifndef MP_SSIZE_MAX
