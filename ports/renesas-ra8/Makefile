@@ -57,34 +57,40 @@ endif
 
 SRC_C := $(FSP_SRC_C)
 
+# Peripheral source file
+SRC_C += peripheral/rtc.c
+
 # MicroPython integration sources
+SRC_C += extmod/modbinascii.c
+SRC_C += extmod/modhashlib.c
+SRC_C += extmod/modheapq.c
+SRC_C += extmod/modjson.c
+SRC_C += extmod/modmarshal.c
+SRC_C += extmod/modos.c
+SRC_C += extmod/modplatform.c
+SRC_C += extmod/modrandom.c
+SRC_C += extmod/modre.c
 SRC_C += extmod/modtime.c
 SRC_C += extmod/moductypes.c
-SRC_C += extmod/modjson.c
-SRC_C += extmod/modre.c
-SRC_C += extmod/modbinascii.c
-SRC_C += extmod/modheapq.c
-SRC_C += extmod/modhashlib.c
-SRC_C += extmod/modrandom.c
-SRC_C += extmod/modplatform.c
-SRC_C += extmod/modmarshal.c
+SRC_C += extmod/modvfs.c
+SRC_C += extmod/vfs.c
+SRC_C += extmod/vfs_blockdev.c
+SRC_C += extmod/vfs_fat.c
+SRC_C += extmod/vfs_fat_diskio.c
+SRC_C += extmod/vfs_fat_file.c
+SRC_C += extmod/vfs_lfs.c
+SRC_C += extmod/vfs_reader.c
+SRC_C += lib/littlefs/lfs2_util.c
+SRC_C += lib/littlefs/lfs2.c
+SRC_C += lib/oofatfs/ff.c
+SRC_C += lib/oofatfs/ffunicode.c
+SRC_C += shared/timeutils/timeutils.c
 SRC_C += shared/libc/printf.c
 SRC_C += shared/libc/string0.c
 SRC_C += shared/readline/readline.c
 SRC_C += shared/runtime/gchelper_generic.c
 SRC_C += shared/runtime/pyexec.c
 SRC_C += shared/runtime/sys_stdio_mphal.c
-SRC_C += extmod/modos.c
-SRC_C += extmod/modvfs.c
-SRC_C += extmod/vfs.c
-SRC_C += extmod/vfs_reader.c
-SRC_C += extmod/vfs_blockdev.c
-SRC_C += extmod/vfs_fat.c
-SRC_C += extmod/vfs_fat_diskio.c
-SRC_C += extmod/vfs_fat_file.c
-SRC_C += lib/oofatfs/ff.c
-SRC_C += lib/oofatfs/ffunicode.c
-SRC_C += shared/timeutils/timeutils.c
 
 # Assembly sources (GC helper for Thumb-2)
 SRC_O = shared/runtime/gchelper_thumb2.o
@@ -94,6 +100,9 @@ INC += -I.
 INC += -I$(TOP)
 INC += -I$(BUILD)
 INC += -Iboards/$(BOARD)
+
+# Peripheal dir
+INC += -Iperipheral
 
 # e2 studio includes (in order from the e2 studio build)
 INC += -I$(FSP_PROJECT_DIR)/ra_gen
@@ -132,6 +141,7 @@ CFLAGS += -Wall
 CFLAGS += -Wdouble-promotion
 CFLAGS += -Wfloat-conversion
 # Suppress these warnings
+CFLAGS += -Wno-double-promotion
 CFLAGS += -Wno-format-truncation
 CFLAGS += -Wno-stringop-overflow
 # These warnings upgrad to errors.
@@ -167,20 +177,17 @@ LDFLAGS += --specs=nano.specs
 LIBS = -Wl,--start-group -lgcc -lm -lc -Wl,--end-group
 
 # QSTR sources (for string interning)
+SRC_QSTR += extmod/modbinascii.c
+SRC_QSTR += extmod/modhashlib.c
+SRC_QSTR += extmod/modheapq.c
+SRC_QSTR += extmod/modjson.c
+SRC_QSTR += extmod/modmarshal.c
+SRC_QSTR += extmod/modos.c
+SRC_QSTR += extmod/modplatform.c
+SRC_QSTR += extmod/modrandom.c
+SRC_QSTR += extmod/modre.c
 SRC_QSTR += extmod/modtime.c
 SRC_QSTR += extmod/moductypes.c
-SRC_QSTR += extmod/modjson.c
-SRC_QSTR += extmod/modre.c
-SRC_QSTR += extmod/modbinascii.c
-SRC_QSTR += extmod/modheapq.c
-SRC_QSTR += extmod/modhashlib.c
-SRC_QSTR += extmod/modrandom.c
-SRC_QSTR += extmod/modplatform.c
-SRC_QSTR += extmod/modmarshal.c
-SRC_QSTR += shared/readline/readline.c
-SRC_QSTR += shared/runtime/pyexec.c
-SRC_QSTR += shared/runtime/sys_stdio_mphal.c
-SRC_QSTR += extmod/modos.c
 SRC_QSTR += extmod/modvfs.c
 SRC_QSTR += extmod/vfs.c
 SRC_QSTR += extmod/vfs_reader.c
@@ -188,6 +195,10 @@ SRC_QSTR += extmod/vfs_blockdev.c
 SRC_QSTR += extmod/vfs_fat.c
 SRC_QSTR += extmod/vfs_fat_diskio.c
 SRC_QSTR += extmod/vfs_fat_file.c
+SRC_QSTR += extmod/vfs_lfs.c
+SRC_QSTR += shared/readline/readline.c
+SRC_QSTR += shared/runtime/pyexec.c
+SRC_QSTR += shared/runtime/sys_stdio_mphal.c
 
 # ---- Object files ----
 # Preserve the source path below BUILD.  Flattening with notdir makes

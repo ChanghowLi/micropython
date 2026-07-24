@@ -1,13 +1,18 @@
-#include "py/mpconfig.h"
-#include "py/mphal.h"
-#include "py/stream.h"
-
 #include "bsp_api.h"
 #include "console.h"
 #include "hal_data.h"
+#include "mpconfigport.h"
+#include "mphalport.h"
+#include "rtc.h"
+#include "perf_counter/perf_counter.h"
+
 #include "FreeRTOS.h"
 #include "task.h"
-#include "perf_counter/perf_counter.h"
+
+#include "py/mpconfig.h"
+#include "py/mphal.h"
+#include "py/stream.h"
+#include "shared/timeutils/timeutils.h"
 
 #define TAG __FUNCTION__
 
@@ -165,4 +170,18 @@ mp_uint_t mp_hal_ticks_ms(void)
 mp_uint_t mp_hal_ticks_us(void)
 {
     return (mp_uint_t)get_system_us();
+}
+
+uint64_t mp_hal_time_ns(void)
+{
+    uint64_t ns = 0;
+#if MICROPY_HW_ENABLE_RTC
+    rtc_time_t r;
+    RTC_GetCalendarTime(&r);
+    /* TODO Time may incorrect, wait validate */
+    ns = timeutils_seconds_since_epoch(r.tm_year + 2000, r.tm_mon + 1, r.tm_mday, r.tm_hour, r.tm_min, r.tm_sec);
+    ns *= 1000000000ULL;
+#else
+#endif
+    return ns;
 }

@@ -1,13 +1,17 @@
 #include <stdio.h>
 
 #include "console.h"
+#include "nor_flash.h"
 #include "repl_thread.h"
+#include "rtc.h"
 #include "perf_counter/perf_counter.h"
 #include "SEGGER_RTT/SEGGER_RTT.h"
+#include "test/test.h"
 #include "utils/log.h"
 
 #include "py/builtin.h"
 #include "py/compile.h"
+#include "py/mphal.h"
 #include "py/runtime.h"
 #include "py/repl.h"
 #include "py/gc.h"
@@ -31,8 +35,24 @@ void repl_thread_entry(void *pvParameters)
     SEGGER_RTT_Init();
 #endif
     CONSOLE_Init();
+    LOG_Reset();
+
+    /* Clean screen */
+    puts("\x1b[2J\x1b[H");
+    puts("\x1B[0m");
 
     LOG_I("MicroPython", "Starting MicroPython on CPKCOR-RA8P1...");
+#if LOG_CFG_EN_SEGGER_RTT
+    printf("_SEGGER_RTT address: 0x%p\r\n", &_SEGGER_RTT);
+#endif
+
+    RTC_Init();
+    NorFlash_Init();
+
+    /* WARN: This test will erase whole chip. Don't enable it unless there's some problems */
+#if TEST_EN_NOR_FLASH
+    TestNorFlash(NORFLASH_MAP_START_ADDR, NORFLASH_SIZE);
+#endif
 
 soft_reset:
     /* 必须小于 FreeRTOS 分配的栈大小，当前：0x4000 */
