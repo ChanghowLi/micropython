@@ -39,11 +39,13 @@ static const nor_flash_dev_obj_t nor_flash_dev_obj = {
     .base = {&nor_flash_dev_type},
 };
 
-static mp_obj_t nor_flash_dev_result(uint32_t result) {
+static mp_obj_t nor_flash_dev_result(uint32_t result)
+{
     return MP_OBJ_NEW_SMALL_INT(result == 0 ? 0 : -MP_EIO);
 }
 
-static int nor_flash_dev_exception_errno(nlr_buf_t *nlr) {
+static int nor_flash_dev_exception_errno(nlr_buf_t *nlr)
+{
     mp_obj_base_t *exc = nlr->ret_val;
     if (mp_obj_is_subclass_fast(MP_OBJ_FROM_PTR(exc->type), MP_OBJ_FROM_PTR(&mp_type_OSError))) {
         mp_int_t error;
@@ -56,8 +58,8 @@ static int nor_flash_dev_exception_errno(nlr_buf_t *nlr) {
     return -MP_EIO;
 }
 
-static bool nor_flash_dev_resolve_address(mp_obj_t block_in, mp_int_t offset, size_t length,
-    uint32_t *relative_address) {
+static bool nor_flash_dev_resolve_address(mp_obj_t block_in, mp_int_t offset, size_t length, uint32_t *relative_address)
+{
     mp_int_t block = mp_obj_get_int(block_in);
     if (block < 0 || offset < 0) {
         return false;
@@ -72,7 +74,8 @@ static bool nor_flash_dev_resolve_address(mp_obj_t block_in, mp_int_t offset, si
     return true;
 }
 
-static uint32_t nor_flash_dev_read(uint32_t relative_address, void *data, size_t length) {
+static uint32_t nor_flash_dev_read(uint32_t relative_address, void *data, size_t length)
+{
     uint8_t *destination = data;
     uint64_t aligned_buffer[8];
 
@@ -93,8 +96,8 @@ static uint32_t nor_flash_dev_read(uint32_t relative_address, void *data, size_t
     return 0;
 }
 
-static mp_obj_t nor_flash_dev_make_new(const mp_obj_type_t *type, size_t n_args,
-    size_t n_kw, const mp_obj_t *args) {
+static mp_obj_t nor_flash_dev_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args)
+{
     (void)type;
     (void)args;
 
@@ -102,7 +105,8 @@ static mp_obj_t nor_flash_dev_make_new(const mp_obj_type_t *type, size_t n_args,
     return MP_OBJ_FROM_PTR(&nor_flash_dev_obj);
 }
 
-static mp_obj_t nor_flash_dev_readblocks(size_t n_args, const mp_obj_t *args) {
+static mp_obj_t nor_flash_dev_readblocks(size_t n_args, const mp_obj_t *args)
+{
     mp_buffer_info_t buffer;
     mp_get_buffer_raise(args[2], &buffer, MP_BUFFER_WRITE);
 
@@ -114,15 +118,19 @@ static mp_obj_t nor_flash_dev_readblocks(size_t n_args, const mp_obj_t *args) {
 
     uint32_t result = nor_flash_dev_read(relative_address, buffer.buf, buffer.len);
     if (result != 0) {
+    #if __NOR_FLASH_DEV_DEBUG
         LOG_E(TAG, "Read failed: address=0x%08lX, length=%lu, FSP error=0x%08lX", NORFLASH_FS_START_ADDR + relative_address, (uint32_t)buffer.len, result);
+	#endif
     }
     return nor_flash_dev_result(result);
 }
-static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(nor_flash_dev_readblocks_obj, 3, 4,
-    nor_flash_dev_readblocks);
 
-static mp_obj_t nor_flash_dev_writeblocks(size_t n_args, const mp_obj_t *args) {
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(nor_flash_dev_readblocks_obj, 3, 4, nor_flash_dev_readblocks);
+
+static mp_obj_t nor_flash_dev_writeblocks(size_t n_args, const mp_obj_t *args)
+{
     mp_buffer_info_t buffer;
+
     mp_get_buffer_raise(args[2], &buffer, MP_BUFFER_READ);
 
     mp_int_t offset = n_args == 4 ? mp_obj_get_int(args[3]) : 0;
@@ -158,12 +166,14 @@ static mp_obj_t nor_flash_dev_writeblocks(size_t n_args, const mp_obj_t *args) {
         LOG_E(TAG, "Program failed: address=0x%08lX, length=%lu, FSP error=0x%08lX", NORFLASH_FS_START_ADDR + relative_address, (uint32_t)buffer.len, result);
     #endif
     }
+
     return nor_flash_dev_result(result);
 }
-static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(nor_flash_dev_writeblocks_obj, 3, 4,
-    nor_flash_dev_writeblocks);
 
-static mp_obj_t nor_flash_dev_ioctl(mp_obj_t self_in, mp_obj_t command_in, mp_obj_t argument_in) {
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(nor_flash_dev_writeblocks_obj, 3, 4, nor_flash_dev_writeblocks);
+
+static mp_obj_t nor_flash_dev_ioctl(mp_obj_t self_in, mp_obj_t command_in, mp_obj_t argument_in)
+{
     (void)self_in;
 
     mp_int_t command = mp_obj_get_int(command_in);
@@ -225,11 +235,13 @@ MP_DEFINE_CONST_OBJ_TYPE(
     locals_dict, &nor_flash_dev_locals_dict
     );
 
-mp_obj_t NorFlashDev_GetBlockDevice(void) {
+mp_obj_t NorFlashDev_GetBlockDevice(void)
+{
     return MP_OBJ_FROM_PTR(&nor_flash_dev_obj);
 }
 
-int NorFlashDev_Format(void) {
+int NorFlashDev_Format(void)
+{
     nlr_buf_t nlr;
     if (nlr_push(&nlr) == 0) {
         mp_obj_t method[3];
@@ -248,7 +260,9 @@ int NorFlashDev_Mount(void)
     mp_obj_t mount_point = MP_OBJ_NEW_QSTR(MP_QSTR__slash_flash);
 
     int result = mp_vfs_mount_and_chdir_protected(NorFlashDev_GetBlockDevice(), mount_point);
+#if __NOR_FLASH_DEV_DEBUG
     LOG_D(TAG, "Initial mount: result=%d", result);
+#endif
     if (result == 0) {
         return 0;
     }
@@ -258,13 +272,17 @@ int NorFlashDev_Mount(void)
     }
 
     result = NorFlashDev_Format();
+#if __NOR_FLASH_DEV_DEBUG
     LOG_D(TAG, "Format: result=%d", result);
+#endif
     if (result != 0) {
         return result;
     }
 
     result = mp_vfs_mount_and_chdir_protected(NorFlashDev_GetBlockDevice(), mount_point);
+#if __NOR_FLASH_DEV_DEBUG
     LOG_D(TAG, "Remount: result=%d", result);
+#endif
 
     return result;
 }

@@ -5,7 +5,7 @@
 */
 
 #include "hal_data.h"
-#include "ports/renesas-ra8/modmachine.h"
+#include "modmachine.h"
 
 FSP_CPP_HEADER
 void R_BSP_WarmStart(bsp_warm_start_event_t event);

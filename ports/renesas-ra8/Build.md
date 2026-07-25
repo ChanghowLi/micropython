@@ -10,7 +10,7 @@
 
 ## 步骤
 
-- 预编译 Python 文件为字节码：在项目根目录执行 `make -C mpy-cross`
+- 预编译 Python 文件为字节码：在项目根目录执行 `make -C mpy-cross`，对于 windows 平台，执行 `make -C mpy-cross PYTHON=python` 
 - 更新 git 子模块：`git submodule update --init --recursive`
 - 导入板子下的 e2studio 工程，工程同样位于 `ports\renesas-ra8\boards\<board_name>` 目录下。例如，对于 CPKCOR-RA8P1 板，e2studio 工程位于 `ports\renesas-ra8\boards\CPKCOR_RA8P1\e2studio_gcc_freertos`。导入后，打开 `configuration.xml`，点击 `Generate Project Content`。
 

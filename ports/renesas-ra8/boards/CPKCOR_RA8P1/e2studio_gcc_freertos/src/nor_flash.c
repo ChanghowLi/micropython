@@ -5,8 +5,6 @@
 
 #define OSPI_NAME	g_nor_flash
 
-#define NOR_FLASH_SECTOR_ERASE_TIMEOUT_MS	5000U
-
 #define JEDEC_MANUFACTURER_WINBOND	0xEF
 #define W35N01JW_DEVICE_ID_L		0x21
 #define W35N01JW_DEVICE_ID_H		0xDC
@@ -65,12 +63,38 @@ uint32_t NorFlash_EraseChip(void)
 uint32_t NorFlash_EraseSector(uint32_t sector)
 {
 	uint32_t err;
-	uint32_t address = NORFLASH_MAP_START_ADDR + sector * NORFLASH_SECTOR_SIZE;
+	spi_flash_direct_transfer_t cmd;
 
-	err = R_OSPI_B_Erase(g_nor_flash.p_ctrl, (uint8_t *)address, NORFLASH_SECTOR_SIZE);
-	REPORT_ERR(1, err, "Erase failed: 0x%lX", err);
-	err = NorFlash_WaitOperation(NOR_FLASH_SECTOR_ERASE_TIMEOUT_MS);
-	REPORT_ERR(1, err, "WaitOperation failed: 0x%lX", err);
+#if BSP_CFG_DCACHE_ENABLED
+	__DSB();
+	__ISB();
+    SCB_DisableDCache();
+#endif
+
+	err = NorFlash_SetWriteEnable();
+	REPORT_ERR(1, err, "SetWriteEnable failed: 0x%lX", err);
+
+	memset(&cmd, 0, sizeof(spi_flash_direct_transfer_t));
+	cmd.address = sector * NORFLASH_SECTOR_SIZE;
+	cmd.address_length = 0x04;
+	if (g_nor_flash_ctrl.spi_protocol == SPI_FLASH_PROTOCOL_EXTENDED_SPI) {
+		cmd.command = 0x21;
+		cmd.command_length = 0x01;
+	}
+	else {
+		cmd.command = 0x2121;
+		cmd.command_length = 0x02;
+	}
+	err = R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_WRITE);
+	REPORT_ERR(1, err, "DirectTransfer failed: 0x%lX", err);
+	err = NorFlash_WaitOperation(20);
+	REPORT_ERR(1, err, "SetWriteEnable failed: 0x%lX", err);
+
+#if BSP_CFG_DCACHE_ENABLED
+	__DSB();
+	__ISB();
+    SCB_EnableDCache();
+#endif
 
 	return 0;
 }
@@ -84,6 +108,12 @@ uint32_t NorFlash_Program(uint32_t address, void const *data, uint32_t length)
 	uint8_t const *p_data = (uint8_t *)data;
 	uint32_t repeat = length / 64;
 	uint32_t remain = length % 64;
+
+#if BSP_CFG_DCACHE_ENABLED
+	__DSB();
+	__ISB();
+    SCB_DisableDCache();
+#endif
 
 	for (i = 0; i < repeat; i++) {
 		err = R_OSPI_B_Write(g_nor_flash.p_ctrl, p_data, p_flash, 64);
@@ -99,6 +129,12 @@ uint32_t NorFlash_Program(uint32_t address, void const *data, uint32_t length)
 		err = NorFlash_WaitOperation(5000);
 		REPORT_ERR(1, err, "Wait failed: 0x%lX. Src: 0x%p, Target: 0x%p", err, p_data, p_flash);
 	}
+
+#if BSP_CFG_DCACHE_ENABLED
+	__DSB();
+	__ISB();
+    SCB_EnableDCache();
+#endif
 
 	return 0;
 }
@@ -434,6 +470,12 @@ uint32_t NorFlash_SetWriteEnable(void)
 	uint16_t w_cnt = 0;
 	uint32_t err = 0;
 
+#if BSP_CFG_DCACHE_ENABLED
+	__DSB();
+	__ISB();
+    SCB_DisableDCache();
+#endif
+
 	memset(&cmd_we, 0, sizeof(spi_flash_direct_transfer_t));
 	memset(&cmd_rs, 0, sizeof(spi_flash_direct_transfer_t));
 	if (g_nor_flash_ctrl.spi_protocol == SPI_FLASH_PROTOCOL_EXTENDED_SPI) {
@@ -485,28 +527,68 @@ uint32_t NorFlash_SetWriteEnable(void)
 		}
 	}
 
+#if BSP_CFG_DCACHE_ENABLED
+	__DSB();
+	__ISB();
+    SCB_EnableDCache();
+#endif
+
 	return err;
 }
 
 uint32_t NorFlash_WaitOperation(uint32_t timeout)
 {
-	spi_flash_status_t status;
-	uint32_t err;
+	spi_flash_direct_transfer_t cmd;
 
-	while (1) {
-		err = R_OSPI_B_StatusGet(g_nor_flash.p_ctrl, &status);
-		if (err) {
-			return err;
+	(void)timeout;
+
+#if 0
+	spi_flash_status_t status;
+	R_OSPI_B_StatusGet(g_nor_flash.p_ctrl, &status);
+	while (status.write_in_progress) {
+		if (timeout) {
+			R_BSP_SoftwareDelay(1, BSP_DELAY_UNITS_MILLISECONDS);
+			R_OSPI_B_StatusGet(g_nor_flash.p_ctrl, &status);
+			timeout--;
 		}
-		if (!status.write_in_progress) {
-			return 0;
-		}
-		if (timeout == 0) {
+		else {
 			return FSP_ERR_TIMEOUT;
 		}
-		R_BSP_SoftwareDelay(1, BSP_DELAY_UNITS_MILLISECONDS);
-		timeout--;
 	}
+#endif
+
+	memset(&cmd, 0, sizeof(spi_flash_direct_transfer_t));
+	if (g_nor_flash_ctrl.spi_protocol == SPI_FLASH_PROTOCOL_EXTENDED_SPI) {
+		cmd.command = 0x05;
+		cmd.command_length = 0x01;
+		cmd.data_length = 0x01;
+	}
+	else {
+		cmd.command = 0x0505;
+		cmd.command_length = 0x02;
+		cmd.data_length = 0x02;
+		cmd.dummy_cycles = 0x08;
+	}
+#if 1
+	uint32_t us = timeout * 1000;
+	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
+	while (cmd.data & 0x01) {
+		if (us == 0) {
+			return FSP_ERR_TIMEOUT;
+		}
+		R_BSP_SoftwareDelay(1, BSP_DELAY_UNITS_MICROSECONDS);
+		us--;
+		R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
+	}
+#else
+	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
+	while (cmd.data & 0x01) {
+		__NOP();
+		R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
+	}
+#endif
+
+	return 0;
 }
 
 uint32_t NorFlash_WriteSector(uint32_t sector, void *data, uint32_t length)

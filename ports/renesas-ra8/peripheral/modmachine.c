@@ -32,7 +32,7 @@
 #include "py/runtime.h"
 #include "py/objarray.h"
 #include "hal_data.h"
-#include "ports/renesas-ra8/modmachine.h"
+#include "modmachine.h"
 
 #define MACHINE_BACKUP_REGION0_WORDS (32)
 #define MACHINE_RESET_SOFT           (0)

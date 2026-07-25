@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "console.h"
+#include "modmachine.h"
 #include "nor_flash.h"
 #include "nor_flash_dev.h"
 #include "repl_thread.h"
@@ -21,7 +22,6 @@
 #include "shared/runtime/gchelper.h"
 #include "shared/runtime/pyexec.h"
 #include "py/cstack.h"
-#include "ports/renesas-ra8/modmachine.h"
 
 #define TAG __FUNCTION__
 
