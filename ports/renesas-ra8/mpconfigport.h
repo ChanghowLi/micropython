@@ -130,12 +130,28 @@
 #define MICROPY_PY_MATH_GAMMA_FIX_NEGINF        1
 #endif
 
+#ifndef MICROPY_PY_OS_URANDOM
+#if MICROPY_HW_ENABLE_RNG
+#define MICROPY_PY_OS_URANDOM					1
+#else
+#define MICROPY_PY_OS_URANDOM					0
+#endif
+#endif
+
+#ifndef MICROPY_PY_OS_UNAME
+#define MICROPY_PY_OS_UNAME                     1
+#endif
+
 #ifndef MICROPY_PY_SYS_ARGV
 #define MICROPY_PY_SYS_ARGV                     1
 #endif
 
 #ifndef MICROPY_PY_SYS_MODULES
 #define MICROPY_PY_SYS_MODULES                  1
+#endif
+
+#ifndef MICROPY_PY_SYS_PLATFORM
+#define MICROPY_PY_SYS_PLATFORM                 "renesas-ra8"
 #endif
 
 #ifndef MICROPY_PY_SYS_EXIT

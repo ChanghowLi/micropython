@@ -7,6 +7,7 @@ extern "C" {
 
 extern int g_mp_interrupt_char;
 
+void mp_hal_get_random(size_t n, uint8_t *buf);
 void mp_hal_set_interrupt_char(char c);
 
 #ifdef __cplusplus

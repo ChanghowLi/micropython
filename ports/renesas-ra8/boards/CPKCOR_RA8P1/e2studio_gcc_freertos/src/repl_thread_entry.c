@@ -52,6 +52,7 @@ void repl_thread_entry(void *pvParameters)
 #endif
 
     RTC_Init();
+    R_RSIP_Open(g_rsip.p_ctrl, g_rsip.p_cfg);
     nor_flash_result = NorFlash_Init();
     if (nor_flash_result != 0) {
         printf("MPY: NOR flash initialization failed (0x%08lX).\r\n", nor_flash_result);

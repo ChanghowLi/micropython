@@ -11,6 +11,7 @@
 
 #include "py/mpconfig.h"
 #include "py/mphal.h"
+#include "py/runtime.h"
 #include "py/stream.h"
 #include "shared/timeutils/timeutils.h"
 
@@ -39,6 +40,33 @@ void mp_hal_delay_ms(mp_uint_t ms)
 void mp_hal_delay_us(mp_uint_t us)
 {
     R_BSP_SoftwareDelay(us, BSP_DELAY_UNITS_MICROSECONDS);
+}
+
+void mp_hal_get_random(size_t n, uint8_t *buf)
+{
+	size_t i;
+	fsp_err_t err;
+
+	size_t repeat = n / 16;
+	size_t remain = n % 16;
+	uint32_t random[4] = {0};
+	uint8_t *p_buf = buf;
+
+	for (i = 0; i < repeat; i++) {
+		err = R_RSIP_RandomNumberGenerate(g_rsip.p_ctrl, (uint8_t *)&random);
+		if (err != FSP_SUCCESS) {
+			mp_raise_msg_varg(&mp_type_OSError, MP_ERROR_TEXT("RSIP failed: %lu"), err);
+		}
+		memcpy(p_buf, random, 16);
+		p_buf = &p_buf[16];
+	}
+	if (remain) {
+		err = R_RSIP_RandomNumberGenerate(g_rsip.p_ctrl, (uint8_t *)&random);
+		if (err != FSP_SUCCESS) {
+			mp_raise_msg_varg(&mp_type_OSError, MP_ERROR_TEXT("RSIP failed: %lu"), err);
+		}
+		memcpy(p_buf, random, remain);
+	}
 }
 
 void mp_hal_set_interrupt_char(char c)

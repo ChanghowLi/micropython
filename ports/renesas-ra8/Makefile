@@ -107,23 +107,32 @@ INC += -Iboards/$(BOARD)
 INC += -Iperipheral
 
 # e2 studio includes (in order from the e2 studio build)
-INC += -I$(FSP_PROJECT_DIR)/ra_gen
-INC += -I$(FSP_PROJECT_DIR)/ra_cfg/fsp_cfg/bsp
-INC += -I$(FSP_PROJECT_DIR)/ra_cfg/fsp_cfg
+INC += -I$(FSP_PROJECT_DIR)/Debug
+INC += -I$(FSP_PROJECT_DIR)/ra/arm/CMSIS_6/CMSIS/Core/Include
+INC += -I$(FSP_PROJECT_DIR)/ra/aws/FreeRTOS/FreeRTOS/Source/include
 INC += -I$(FSP_PROJECT_DIR)/ra_cfg/aws
-INC += -I$(FSP_PROJECT_DIR)/src
-INC += -I$(FSP_PROJECT_DIR)/src/utils
+INC += -I$(FSP_PROJECT_DIR)/ra_cfg/fsp_cfg
+INC += -I$(FSP_PROJECT_DIR)/ra_cfg/fsp_cfg/bsp
 INC += -I$(FSP_PROJECT_DIR)/ra/fsp/inc
 INC += -I$(FSP_PROJECT_DIR)/ra/fsp/inc/api
 INC += -I$(FSP_PROJECT_DIR)/ra/fsp/inc/instances
-INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/rm_freertos_port
 INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/bsp/cmsis/Device/RENESAS/Include
 INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/bsp/mcu/all
 INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/bsp/mcu/ra8p1
-INC += -I$(FSP_PROJECT_DIR)/ra/aws/FreeRTOS/FreeRTOS/Source/include
-INC += -I$(FSP_PROJECT_DIR)/ra/arm/CMSIS_6/CMSIS/Core/Include
-INC += -I$(FSP_PROJECT_DIR)/ra/board/ra8p1_cpkcor
-INC += -I$(FSP_PROJECT_DIR)/Debug
+INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_rsip_protected/crypto_procedures_protected/src/rsip/common/inc/api
+INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_rsip_protected/crypto_procedures_protected/src/rsip/common/primitive
+INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_rsip_protected/crypto_procedures_protected/src/rsip/common/private
+INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_rsip_protected/crypto_procedures_protected/src/rsip/common/public
+INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_rsip_protected/crypto_procedures_protected/src/rsip/ra/inc/instances
+INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_rsip_protected/crypto_procedures_protected/src/rsip/ra/primitive/ra_rsip_e50d
+INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_rsip_protected/crypto_procedures_protected/src/rsip/ra/private/ra_rsip_e5xx
+INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_rsip_protected/crypto_procedures_protected/src/rsip/ra/private/ra_rsip_e5xx/lib/common
+INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_rsip_protected/crypto_procedures_protected/src/rsip/ra/private/ra_rsip_e5xx/lib/rsip/ra_rsip_e50d/inc
+INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_rsip_protected/crypto_procedures_protected/src/rsip/ra/private/ra_rsip_e5xx/lib/sb_lib/inc
+INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/rm_freertos_port
+INC += -I$(FSP_PROJECT_DIR)/ra_gen
+INC += -I$(FSP_PROJECT_DIR)/src
+INC += -I$(FSP_PROJECT_DIR)/src/utils
 
 # ---- Compiler flags ----
 # Match e2 studio settings exactly: cortex-m85+nopacbti
