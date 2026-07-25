@@ -40,3 +40,26 @@ RTT View（仅关键错误信息）：
 ### 其它参考信息
 
 NorFlash 驱动来自 [gitee](https://gitee.com/dlans/ra8-p1_-generic/tree/cpkcor/) 中的 ep_nor_flash。示例工程仅使用了 NorFlash，且问题能复现，在示例工程中分析可以排除其它干扰。示例工程在写入时关闭了 DCache，若要复现问题，在示例工程中的写入部分开启 DCache 即可。
+
+## r_ospi_b 和 r_rsip_protected
+
+### 问题描述
+
+在使用 r_ospi_b 时，若再建立一个单独的 r_rsip_protected stack，则生成的 `hal_data.c` 会出问题
+
+分支：ra-dev
+
+FSP Version：6.4.0
+
+### 错误日志
+
+编译报错：
+
+```
+ra_gen/hal_data.c:84:51: error: 'RA_NOT_DEFINED' undeclared here (not in a function)
+   84 | rsip_instance_t const * const gp_rsip_instance = &RA_NOT_DEFINED;
+```
+
+### 问题修复
+
+不要创建单独的 r_rsip_protected stack，而将其作为 r_ospi_b 下的子 stack。原因应该是一旦启用 r_rsip_protected，即使 r_ospi_b 中的 DOTF 属性仍然配置为 Disable，生成的 `r_ospi_b_cfg.h` 仍会定义 `OSPI_B_CFG_DOTF_PROTECTED_MODE_SUPPORT_ENABLE`，但此时 r_rsip_protected 不是作为 r_ospi_b 的子 stack 存在，导致上面的错误。

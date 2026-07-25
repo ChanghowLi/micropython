@@ -253,7 +253,8 @@ LINKER_DEPS = $(LD_SCRIPT) \
 
 $(BUILD)/firmware.elf: $(OBJ)
 	$(ECHO) "LINK $@"
-	$(Q)$(CC) $(LDFLAGS) -o $@ $(OBJ) $(LIBS)
+	$(file >$@.in,$(LDFLAGS) -o $@ $(OBJ) $(LIBS))
+	$(Q)$(CC) @"$@.in"
 	$(Q)$(SIZE) $@
 
 # Binary and hex outputs
