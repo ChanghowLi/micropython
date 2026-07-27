@@ -111,6 +111,7 @@ INC += -I$(FSP_PROJECT_DIR)/Debug
 INC += -I$(FSP_PROJECT_DIR)/ra/arm/CMSIS_6/CMSIS/Core/Include
 INC += -I$(FSP_PROJECT_DIR)/ra/aws/FreeRTOS/FreeRTOS/Source/include
 INC += -I$(FSP_PROJECT_DIR)/ra_cfg/aws
+INC += -I$(FSP_PROJECT_DIR)/ra_cfg/driver
 INC += -I$(FSP_PROJECT_DIR)/ra_cfg/fsp_cfg
 INC += -I$(FSP_PROJECT_DIR)/ra_cfg/fsp_cfg/bsp
 INC += -I$(FSP_PROJECT_DIR)/ra/fsp/inc

@@ -27,6 +27,10 @@ extern "C" {
 #define TEST_EN_PDM			0
 #endif
 
+#ifndef TEST_EN_SD
+#define TEST_EN_SD			0
+#endif
+
 #ifndef TEST_EN_SDRAM
 #define TEST_EN_SDRAM		0
 #endif
@@ -45,6 +49,10 @@ uint32_t TestLCD(void *lcd_device);
 
 #if TEST_EN_NOR_FLASH
 uint32_t TestNorFlash(uint32_t start_addr, uint32_t size);
+#endif
+
+#if TEST_EN_SD
+uint32_t TestSD(void);
 #endif
 
 #if TEST_EN_SDRAM

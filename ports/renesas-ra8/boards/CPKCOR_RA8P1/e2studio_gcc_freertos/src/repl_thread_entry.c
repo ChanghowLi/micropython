@@ -7,6 +7,7 @@
 #include "nor_flash_dev.h"
 #include "repl_thread.h"
 #include "rtc.h"
+#include "sd.h"
 #include "perf_counter/perf_counter.h"
 #include "SEGGER_RTT/SEGGER_RTT.h"
 #include "test/test.h"
@@ -53,6 +54,7 @@ void repl_thread_entry(void *pvParameters)
 
     RTC_Init();
     R_RSIP_Open(g_rsip.p_ctrl, g_rsip.p_cfg);
+    SD_Init();
     nor_flash_result = NorFlash_Init();
     if (nor_flash_result != 0) {
         printf("MPY: NOR flash initialization failed (0x%08lX).\r\n", nor_flash_result);
@@ -64,6 +66,21 @@ void repl_thread_entry(void *pvParameters)
     if (nor_flash_result == 0) {
         TestNorFlash(NORFLASH_MAP_START_ADDR, NORFLASH_SIZE);
     }
+#endif
+
+#if TEST_EN_SD
+    R_BSP_SoftwareDelay(500, BSP_DELAY_UNITS_MILLISECONDS);
+    if (SD_IsInsert() == 0) {
+    	printf("Wait SD Card insert");
+    	R_BSP_SoftwareDelay(1, BSP_DELAY_UNITS_SECONDS);
+    	while (SD_IsInsert() == 0) {
+    		printf(".");
+    		R_BSP_SoftwareDelay(1, BSP_DELAY_UNITS_SECONDS);
+    	}
+    }
+    printf("\r\nDetect SD Card insert\r\n");
+    SD_InitMedia();
+    TestSD();
 #endif
 
 soft_reset:
