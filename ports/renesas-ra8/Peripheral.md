@@ -52,11 +52,11 @@
 
 ### machine.freq()
 
-返回以 Hz 为单位的 CPU 时钟频率
+返回以 Hz 为单位的 CPU 时钟频率。当前仅支持查询，不支持在运行时设置频率。
 
 ### machine.idle()
 
-进入低功耗状态，看描述应该是类似调用 `__WFE()` 
+执行 `__WFI()` 进入等待中断状态，并在中断发生后继续执行。
 
 ### machine.lightsleep([time_ms])
 
@@ -66,17 +66,13 @@
 
 ### machine.wake_reason()
 
-获取唤醒原因
-
-### machine.wake_pins()
-
-获取可用于外部唤醒的按键号
+获取唤醒原因。当前仅完成接口框架，在低功耗唤醒检测接入前返回 `machine.WAKE_UNKNOWN`。
 
 ## 其它功能
 
 ### machine.unique_id()
 
-获取唯一 ID
+获取 MCU 的唯一 ID，并以 `bytes` 对象返回。
 
 ### machine.time_pulse_us(pin,pulse_level,timeout_us=1000000,/)
 
@@ -88,7 +84,7 @@
 
 ### machine.rng()
 
-返回软件生成的 24bit 随机数
+使用 RSIP 硬件随机数生成器返回一个 24 位随机数。
 
 ---
 
@@ -104,18 +100,18 @@ API 完成情况。函数说明写在上方每个函数的标题下
 | machine.soft_reset()    | ✅    |
 | machine.reset_cause()   | ✅    |
 | machine.bootloader()    | ❌    |
-| machine.disable_irq()   | ❌    |
-| machine.enable_irq()    | ❌    |
-| machine.freq()          | ❌    |
-| machine.idle()          | ❌    |
+| machine.disable_irq()   | ✅    |
+| machine.enable_irq()    | ✅    |
+| machine.freq()          | ✅（仅查询） |
+| machine.idle()          | ✅    |
 | machine.lightsleep()    | ❌    |
 | machine.deepsleep()     | ❌    |
-| machine.wake_reason()   | ❌    |
+| machine.wake_reason()   | ⚠️（仅接口框架） |
 | machine.wake_pins()     | ❌    |
-| machine.unique_id()     | ❌    |
+| machine.unique_id()     | ✅    |
 | machine.time_pulse_us() | ❌    |
 | machine.bitstream()     | ❌    |
-| machine.rng()           | ❌    |
+| machine.rng()           | ✅    |
 
 ## class Pin
 
@@ -594,5 +590,3 @@ API 完成情况。函数说明写在上方每个函数的标题下
 | UART.IRQ_RX           | ❌    |
 | UART.IRQ_TXIDLE       | ❌    |
 | UART.IRQ_BREAK        | ❌    |
-
-
