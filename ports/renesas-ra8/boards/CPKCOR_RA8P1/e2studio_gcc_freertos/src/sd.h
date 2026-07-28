@@ -7,6 +7,7 @@
 extern "C" {
 #endif
 
+uint32_t SD_Deinit(void);
 uint32_t SD_Init(void);
 uint32_t SD_InitMedia(void);
 uint32_t SD_IsInsert(void);

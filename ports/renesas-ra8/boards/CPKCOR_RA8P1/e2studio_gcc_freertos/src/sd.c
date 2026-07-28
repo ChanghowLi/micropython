@@ -1,25 +1,60 @@
 #include "hal_data.h"
 #include "sd.h"
 
+#if BSP_CFG_RTOS == 2
+#include "FreeRTOS.h"
+#include "event_groups.h"
+#endif
+
 #define SD_INSTANCE		g_rm_block_media0
 #define SD_CALLBACK		RM_BLOCK_MEDIA_Callback
+
+#define TAG	__FUNCTION__
 
 #ifndef __SD_DEBUG
 #define __SD_DEBUG	1
 #endif
 
 #if __SD_DEBUG
+
 #include "utils/log.h"
-#define TAG	__FUNCTION__
 #define LIKE_RETURN(v, t, msg, ...)		if (v == t) { LOG_E(TAG, msg, ##__VA_ARGS__); return v; }
 #define UNLIKE_RETURN(v, t, msg, ...)	if (v != t) { LOG_E(TAG, msg, ##__VA_ARGS__); return v; }
+#define SD_LOGD(msg, ...)				LOG_D(TAG, msg, ##__VA_ARGS__)
+#define SD_LOGW(msg, ...)				LOG_W(TAG, msg, ##__VA_ARGS__)
+#define SD_LOGE(msg, ...)				LOG_E(TAG, msg, ##__VA_ARGS__)
+
 #else
+
 #define LIKE_RETURN(v, t, msg, ...)		if (v == t) { return v; }
 #define UNLIKE_RETURN(v, t, msg, ...)	if (v != t) { return v; }
+#define SD_LOGD(msg, ...)
+
 #endif
 
-static volatile uint8_t s_inserted;
-static volatile uint8_t s_trans_done;
+union SD_Status {
+	struct {
+		uint32_t inserted : 1;
+		uint32_t trans_done : 1;
+		uint32_t : 30;
+	} b;
+	uint32_t val;
+};
+
+static volatile union SD_Status s_sd_status;
+
+#if BSP_CFG_RTOS == 2
+static EventGroupHandle_t s_sd_event = NULL;
+#endif
+
+uint32_t SD_Deinit(void)
+{
+	uint32_t err;
+
+	err = RM_BLOCK_MEDIA_SDMMC_Close(SD_INSTANCE.p_ctrl);
+
+	return 0;
+}
 
 uint32_t SD_Init(void)
 {
@@ -44,7 +79,7 @@ uint32_t SD_InitMedia(void)
 
 	RM_BLOCK_MEDIA_SDMMC_StatusGet(SD_INSTANCE.p_ctrl, &status);
 	if (status.media_inserted != true) {
-		while (s_inserted == 0) {
+		while (s_sd_status.b.inserted == 0) {
 			R_BSP_SoftwareDelay(1, BSP_DELAY_UNITS_MILLISECONDS);
 		}
 	#if __SD_DEBUG
@@ -54,7 +89,7 @@ uint32_t SD_InitMedia(void)
 	R_BSP_SoftwareDelay(1U, BSP_DELAY_UNITS_MILLISECONDS);
 	err = RM_BLOCK_MEDIA_SDMMC_MediaInit(SD_INSTANCE.p_ctrl);
 	UNLIKE_RETURN(err, 0, "MediaInit failed: %lu", err);
-	s_trans_done = 1;
+	s_sd_status.b.trans_done = 1;
 
 #if BSP_CFG_DCACHE_ENABLED
 	__DSB();
@@ -67,12 +102,12 @@ uint32_t SD_InitMedia(void)
 
 uint32_t SD_IsInsert(void)
 {
-	return s_inserted;
+	return s_sd_status.b.inserted;
 }
 
 uint32_t SD_IsTransDone(void)
 {
-	return s_trans_done;
+	return s_sd_status.b.trans_done;
 }
 
 uint32_t SD_Read(uint8_t *data, uint32_t block_addr, uint32_t size)
@@ -96,8 +131,8 @@ uint32_t SD_Read(uint8_t *data, uint32_t block_addr, uint32_t size)
 	for (i = 0; i < repeat; i++) {
 		err = RM_BLOCK_MEDIA_SDMMC_Read(SD_INSTANCE.p_ctrl, p_read, block_addr, 0x10000);
 		UNLIKE_RETURN(err, 0, "Read failed: %lu", err);
-		s_trans_done = 0;
-		while (s_trans_done == 0) {
+		s_sd_status.b.trans_done = 0;
+		while (s_sd_status.b.trans_done == 0) {
 			R_BSP_SoftwareDelay(10, BSP_DELAY_UNITS_MICROSECONDS);
 		}
 		block_addr += 0x10000;
@@ -107,7 +142,7 @@ uint32_t SD_Read(uint8_t *data, uint32_t block_addr, uint32_t size)
 
 	err = RM_BLOCK_MEDIA_SDMMC_Read(SD_INSTANCE.p_ctrl, p_read, block_addr, num_blocks);
 	UNLIKE_RETURN(err, 0, "Read failed: %lu", err);
-	s_trans_done = 0;
+	s_sd_status.b.trans_done = 0;
 
 #if BSP_CFG_DCACHE_ENABLED
 	__DSB();
@@ -134,7 +169,7 @@ uint32_t SD_WaitTrans(void)
 		RM_BLOCK_MEDIA_SDMMC_StatusGet(SD_INSTANCE.p_ctrl, &status);
 	}
 
-	while (s_trans_done == 0) {
+	while (s_sd_status.b.trans_done == 0) {
 		R_BSP_SoftwareDelay(1, BSP_DELAY_UNITS_MICROSECONDS);
 	}
 
@@ -156,7 +191,7 @@ uint32_t SD_Write(uint8_t const *src, uint32_t block_addr, uint32_t size)
 
 	uint8_t const *p8 = src;
 
-	if (s_trans_done == 0) {
+	if (s_sd_status.b.trans_done == 0) {
 		return FSP_ERR_IN_USE;
 	}
 
@@ -172,8 +207,8 @@ uint32_t SD_Write(uint8_t const *src, uint32_t block_addr, uint32_t size)
 	for (i = 0; i < repeat; i++) {
 		err = RM_BLOCK_MEDIA_SDMMC_Write(SD_INSTANCE.p_ctrl, p8, block_addr, 0x10000);
 		UNLIKE_RETURN(err, 0, "Write failed: %lu", err);
-		s_trans_done = 0;
-		while (s_trans_done == 0) {
+		s_sd_status.b.trans_done = 0;
+		while (s_sd_status.b.trans_done == 0) {
 			R_BSP_SoftwareDelay(10, BSP_DELAY_UNITS_MICROSECONDS);
 		}
 		block_addr += 0x10000;
@@ -183,7 +218,7 @@ uint32_t SD_Write(uint8_t const *src, uint32_t block_addr, uint32_t size)
 
 	err = RM_BLOCK_MEDIA_SDMMC_Write(SD_INSTANCE.p_ctrl, p8, block_addr, num_blocks);
 	UNLIKE_RETURN(err, 0, "Write failed: %lu", err);
-	s_trans_done = 0;
+	s_sd_status.b.trans_done = 0;
 
 #if BSP_CFG_DCACHE_ENABLED
 	__DSB();
@@ -198,33 +233,25 @@ void SD_CALLBACK(rm_block_media_callback_args_t *p_args)
 {
 	switch (p_args->event) {
 	case RM_BLOCK_MEDIA_EVENT_MEDIA_REMOVED:
-	#if __SD_DEBUG
-		LOG_D(TAG, "Removed");
-	#endif
-		s_inserted = 0;
+		SD_LOGD("Remove");
+		s_sd_status.b.inserted = 0;
 		break;
 	case RM_BLOCK_MEDIA_EVENT_MEDIA_INSERTED:
-	#if __SD_DEBUG
-		LOG_D(TAG, "Inserted");
-	#endif
-		s_inserted = 1;
+		SD_LOGD("Inserted");
+		s_sd_status.b.inserted = 1;
 		break;
 	case RM_BLOCK_MEDIA_EVENT_OPERATION_COMPLETE:
-		s_trans_done = 1;
+		s_sd_status.b.trans_done = 1;
 		break;
 	case RM_BLOCK_MEDIA_EVENT_ERROR:
 		break;
 	case RM_BLOCK_MEDIA_EVENT_POLL_STATUS:
 		break;
 	case RM_BLOCK_MEDIA_EVENT_MEDIA_SUSPEND:
-	#if __SD_DEBUG
-		LOG_D(TAG, "Suspend");
-	#endif
+		SD_LOGD("Suspend");
 		break;
 	case RM_BLOCK_MEDIA_EVENT_MEDIA_RESUME:
-	#if __SD_DEBUG
-		LOG_D(TAG, "Resume");
-	#endif
+		SD_LOGD("Resume");
 		break;
 	case RM_BLOCK_MEDIA_EVENT_WAIT:
 		break;
