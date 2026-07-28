@@ -294,3 +294,63 @@ ports/renesas-ra8/
 - `ports/renesas-ra/modtime.py`：因缺少 `time.mktime()` 在首个年份用例终止，属于端口专用测试失败，不属于跳过。
 
 `float` 已更新为 2026-07-22 双精度固件的最新状态：测试环境报告 `platform=minimal float=64-bit unicode`，共执行 66 个测试文件、4,935 个测试用例，66 项全部通过、无失败。上述 2 项跳过来自 Windows `CRLF` 与目标板 `LF` 的探针原始输出差异，双方实际均为小端；无需修改 RA8P1 固件。
+
+## 自动测试并生成 Excel 报告
+
+`ports/renesas-ra8/run_tests_excel.py` 用于自动运行 MicroPython 官方测试、汇总首次批量测试的成功/失败/跳过项目、将首次失败项目逐项单独复测，并生成 Excel 报告。修改或运行此电脑端脚本不需要重新编译、烧录固件。
+
+### 运行前准备
+
+1. 给开发板烧录能够正常进入 MicroPython REPL 的固件。
+2. 使用 USB 连接开发板并确认串口号。
+3. 关闭 MobaXterm、串口助手等占用该串口的程序；运行测试时不需要打开串口终端。
+4. 按 `Build.md` 的说明准备测试依赖（当前主要为 `pyserial`）。
+5. 在仓库根目录执行本节命令，不需要手动进入 `tests`；脚本会自动以 `tests` 为测试工作目录。
+
+### 测试 `basics`
+
+在 PowerShell 中执行：
+
+```powershell
+cd C:\Users\86187\Desktop\micropython
+python ports/renesas-ra8/run_tests_excel.py -t COM9 -b 2000000 --test-dirs basics
+```
+
+其中 `COM9` 是开发板串口号，应按实际环境修改。`2000000` 是串口波特率。
+
+测试完成后，默认报告位于：
+
+```text
+C:\Users\86187\Desktop\micropython\micropython-test-report.xlsx
+```
+
+### 测试其他目录
+
+只测试 `extmod`：
+
+```powershell
+python ports/renesas-ra8/run_tests_excel.py -t COM9 -b 2000000 --test-dirs extmod
+```
+
+一次测试 `basics`、`extmod` 和 `import`，结果写入同一个 Excel：
+
+```powershell
+python ports/renesas-ra8/run_tests_excel.py -t COM9 -b 2000000 --test-dirs basics extmod import
+```
+
+### 分别保存不同测试组的报告
+
+不指定 `-o` 时，后一次报告会覆盖默认的 `micropython-test-report.xlsx`。使用 `-o` 可以指定不同文件名：
+
+```powershell
+python ports/renesas-ra8/run_tests_excel.py -t COM9 -b 2000000 --test-dirs basics -o basics-test-report.xlsx
+python ports/renesas-ra8/run_tests_excel.py -t COM9 -b 2000000 --test-dirs extmod -o extmod-test-report.xlsx
+```
+
+### Excel 内容
+
+- “测试汇总”工作表记录测试目录以及首次测试和单项复测的数量。
+- “测试明细”工作表按列列出“首次批量测试：成功项目”“首次批量测试：失败项目”“首次批量测试：跳过项目”和“初次失败项目：单项复测结果”。
+- 复测列明确标记每个失败项目最终是“复测成功”“复测仍失败”还是“复测时跳过”。
+
+终端只显示整体进度和最终报告路径，不逐项打印测试结果。测试期间不要断开开发板或打开其他串口工具。

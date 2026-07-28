@@ -58,6 +58,7 @@ endif
 SRC_C := $(FSP_SRC_C)
 
 # Peripheral source file
+SRC_C += peripheral/irq.c
 SRC_C += peripheral/rtc.c
 
 # MicroPython integration sources
