@@ -32,6 +32,7 @@
 #include "py/runtime.h"
 #include "py/objarray.h"
 #include "modmachine.h"
+#include "pin.h"
 
 #if MICROPY_HW_ENABLE_RNG
 #include "mphalport.h"
@@ -56,6 +57,7 @@
 
 /** RA8 machine 模块提供的额外全局对象。 */
 #define MICROPY_PY_MACHINE_EXTRA_GLOBALS \
+    { MP_ROM_QSTR(MP_QSTR_Pin),              MP_ROM_PTR(&machine_pin_type) }, \
     { MP_ROM_QSTR(MP_QSTR_mem_backup),       MP_ROM_PTR(&machine_mem_backup_obj) }, \
     MICROPY_PY_MACHINE_RNG_ENTRY \
     /** 唤醒原因。 */ \
