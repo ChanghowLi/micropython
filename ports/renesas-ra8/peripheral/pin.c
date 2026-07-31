@@ -19,6 +19,8 @@ enum {
 enum {
     MACHINE_PIN_MODE_IN = 0,
     MACHINE_PIN_MODE_OUT,
+    MACHINE_PIN_MODE_OPEN_DRAIN,
+    MACHINE_PIN_MODE_ANALOG,
 };
 
 /**
@@ -80,6 +82,15 @@ static void machine_pin_configure(
     uint32_t cfg;
 
     switch (mode) {
+        case MACHINE_PIN_MODE_ANALOG:
+            if (value != MP_OBJ_NULL && value != mp_const_none) {
+                mp_raise_ValueError(
+                    MP_ERROR_TEXT("value is not valid for analog mode"));
+            }
+
+            cfg = IOPORT_CFG_ANALOG_ENABLE;
+            break;
+
         case MACHINE_PIN_MODE_IN:
             if (value != MP_OBJ_NULL && value != mp_const_none) {
                 mp_raise_ValueError(
@@ -89,8 +100,13 @@ static void machine_pin_configure(
             cfg = IOPORT_CFG_PORT_DIRECTION_INPUT;
             break;
 
+        case MACHINE_PIN_MODE_OPEN_DRAIN:
         case MACHINE_PIN_MODE_OUT:
             cfg = IOPORT_CFG_PORT_DIRECTION_OUTPUT;
+
+            if (mode == MACHINE_PIN_MODE_OPEN_DRAIN) {
+                cfg |= IOPORT_CFG_NMOS_ENABLE;
+            }
 
             if (value != MP_OBJ_NULL && value != mp_const_none) {
                 if (mp_obj_is_true(value)) {
@@ -111,6 +127,11 @@ static void machine_pin_configure(
                 break;
 
             case MACHINE_PIN_PULL_UP:
+                if (mode == MACHINE_PIN_MODE_ANALOG) {
+                    mp_raise_ValueError(
+                        MP_ERROR_TEXT("pull is not valid for analog mode"));
+                }
+
                 cfg |= IOPORT_CFG_PULLUP_ENABLE;
                 break;
 
@@ -120,7 +141,8 @@ static void machine_pin_configure(
     }
 
     if (drive != MP_OBJ_NULL && drive != mp_const_none) {
-        if (mode != MACHINE_PIN_MODE_OUT) {
+        if (mode != MACHINE_PIN_MODE_OUT &&
+            mode != MACHINE_PIN_MODE_OPEN_DRAIN) {
             mp_raise_ValueError(
                 MP_ERROR_TEXT("drive is only valid for output mode"));
         }
@@ -295,6 +317,238 @@ static MP_DEFINE_CONST_FUN_OBJ_KW(
     );
 
 /**
+ * @brief Read or set the pin direction mode.
+ *
+ * @param n_args Number of arguments including self.
+ * @param args Arguments containing self and an optional mode.
+ * @return Current mode when reading, otherwise None.
+ * @exception ValueError The requested mode is not supported.
+ * @exception OSError FSP failed to change the pin direction.
+ */
+static mp_obj_t machine_pin_mode(size_t n_args, const mp_obj_t *args)
+{
+    const machine_pin_obj_t *self = MP_OBJ_TO_PTR(args[0]);
+    uint32_t port = (uint32_t) self->pin >> 8;
+    uint32_t bit = (uint32_t) self->pin & 0xffU;
+
+    if (n_args == 1) {
+        uint32_t analog =
+            R_PFS->PORT[port].PIN[bit].PmnPFS_b.ASEL;
+        uint32_t direction =
+            R_PFS->PORT[port].PIN[bit].PmnPFS_b.PDR;
+        uint32_t open_drain =
+            R_PFS->PORT[port].PIN[bit].PmnPFS_b.NCODR;
+
+        if (analog != 0U) {
+            return MP_OBJ_NEW_SMALL_INT(MACHINE_PIN_MODE_ANALOG);
+        }
+
+        if (direction == 0U) {
+            return MP_OBJ_NEW_SMALL_INT(MACHINE_PIN_MODE_IN);
+        }
+
+        return MP_OBJ_NEW_SMALL_INT(
+            open_drain == 0U
+                ? MACHINE_PIN_MODE_OUT
+                : MACHINE_PIN_MODE_OPEN_DRAIN
+        );
+    }
+
+    mp_int_t mode = mp_obj_get_int(args[1]);
+    if (mode != MACHINE_PIN_MODE_ANALOG &&
+        mode != MACHINE_PIN_MODE_IN &&
+        mode != MACHINE_PIN_MODE_OPEN_DRAIN &&
+        mode != MACHINE_PIN_MODE_OUT) {
+        mp_raise_ValueError(MP_ERROR_TEXT("invalid pin mode"));
+    }
+
+    uint32_t cfg = R_PFS->PORT[port].PIN[bit].PmnPFS;
+
+    cfg &= ~((uint32_t) (
+        IOPORT_CFG_ANALOG_ENABLE |
+        IOPORT_CFG_PORT_DIRECTION_OUTPUT |
+        IOPORT_CFG_NMOS_ENABLE |
+        IOPORT_CFG_PMOS_ENABLE
+    ));
+
+    switch (mode) {
+        case MACHINE_PIN_MODE_ANALOG:
+            cfg |= IOPORT_CFG_ANALOG_ENABLE;
+            break;
+
+        case MACHINE_PIN_MODE_IN:
+            break;
+
+        case MACHINE_PIN_MODE_OPEN_DRAIN:
+            cfg |= IOPORT_CFG_PORT_DIRECTION_OUTPUT;
+            cfg |= IOPORT_CFG_NMOS_ENABLE;
+            break;
+
+        case MACHINE_PIN_MODE_OUT:
+            cfg |= IOPORT_CFG_PORT_DIRECTION_OUTPUT;
+            break;
+    }
+
+    fsp_err_t err = R_IOPORT_PinCfg(
+        g_ioport.p_ctrl,
+        self->pin,
+        cfg
+        );
+    if (err != FSP_SUCCESS) {
+        mp_raise_OSError(MP_EIO);
+    }
+
+    return mp_const_none;
+}
+
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(
+    machine_pin_mode_obj,
+    1,
+    2,
+    machine_pin_mode
+    );
+
+/**
+ * @brief Read or set the pin pull-up configuration.
+ *
+ * @param n_args Number of arguments including self.
+ * @param args Arguments containing self and an optional pull setting.
+ * @return Current pull setting when reading, otherwise None.
+ * @exception ValueError The requested pull setting is not supported.
+ * @exception OSError FSP failed to configure the pin.
+ */
+static mp_obj_t machine_pin_pull(size_t n_args, const mp_obj_t *args)
+{
+    const machine_pin_obj_t *self = MP_OBJ_TO_PTR(args[0]);
+    uint32_t port = (uint32_t) self->pin >> 8;
+    uint32_t bit = (uint32_t) self->pin & 0xffU;
+
+    uint32_t cfg = R_PFS->PORT[port].PIN[bit].PmnPFS;
+
+    if (n_args == 1) {
+        return MP_OBJ_NEW_SMALL_INT(
+            (cfg & IOPORT_CFG_PULLUP_ENABLE) != 0U
+                ? MACHINE_PIN_PULL_UP
+                : MACHINE_PIN_PULL_NONE
+            );
+    }
+
+    if (args[1] == mp_const_none) {
+        cfg &= ~((uint32_t) IOPORT_CFG_PULLUP_ENABLE);
+    } else {
+        mp_int_t pull = mp_obj_get_int(args[1]);
+
+        switch (pull) {
+            case MACHINE_PIN_PULL_NONE:
+                cfg &= ~((uint32_t) IOPORT_CFG_PULLUP_ENABLE);
+                break;
+
+            case MACHINE_PIN_PULL_UP:
+                cfg |= IOPORT_CFG_PULLUP_ENABLE;
+                break;
+
+            default:
+                mp_raise_ValueError(MP_ERROR_TEXT("invalid pin pull"));
+        }
+    }
+
+    fsp_err_t err = R_IOPORT_PinCfg(
+        g_ioport.p_ctrl,
+        self->pin,
+        cfg
+        );
+    if (err != FSP_SUCCESS) {
+        mp_raise_OSError(MP_EIO);
+    }
+
+    return mp_const_none;
+}
+
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(
+    machine_pin_pull_obj,
+    1,
+    2,
+    machine_pin_pull
+    );
+
+/**
+ * @brief Read or set the pin output drive capability.
+ *
+ * @param n_args Number of arguments including self.
+ * @param args Arguments containing self and an optional drive setting.
+ * @return Current drive setting when reading, otherwise None.
+ * @exception ValueError The pin is not an output or drive is invalid.
+ * @exception OSError FSP failed to configure the pin.
+ */
+static mp_obj_t machine_pin_drive(size_t n_args, const mp_obj_t *args)
+{
+    const machine_pin_obj_t *self = MP_OBJ_TO_PTR(args[0]);
+    uint32_t port = (uint32_t) self->pin >> 8;
+    uint32_t bit = (uint32_t) self->pin & 0xffU;
+
+    if (n_args == 1) {
+        uint32_t drive =
+            R_PFS->PORT[port].PIN[bit].PmnPFS_b.DSCR;
+
+        return MP_OBJ_NEW_SMALL_INT(drive);
+    }
+
+    if (R_PFS->PORT[port].PIN[bit].PmnPFS_b.PDR == 0U) {
+        mp_raise_ValueError(
+            MP_ERROR_TEXT("drive is only valid for output mode"));
+    }
+
+    mp_int_t drive = mp_obj_get_int(args[1]);
+    uint32_t drive_cfg;
+
+    switch (drive) {
+        case MACHINE_PIN_DRIVE_0:
+            drive_cfg = 0U;
+            break;
+
+        case MACHINE_PIN_DRIVE_1:
+            drive_cfg = IOPORT_CFG_DRIVE_MID;
+            break;
+
+        case MACHINE_PIN_DRIVE_2:
+            drive_cfg = IOPORT_CFG_DRIVE_HS_HIGH;
+            break;
+
+        case MACHINE_PIN_DRIVE_3:
+            drive_cfg = IOPORT_CFG_DRIVE_HIGH;
+            break;
+
+        default:
+            mp_raise_ValueError(MP_ERROR_TEXT("invalid pin drive"));
+    }
+
+    uint32_t cfg = R_PFS->PORT[port].PIN[bit].PmnPFS;
+
+    cfg &= ~((uint32_t) R_PFS_PORT_PIN_PmnPFS_DSCR_Msk);
+    cfg |= drive_cfg;
+
+    fsp_err_t err = R_IOPORT_PinCfg(
+        g_ioport.p_ctrl,
+        self->pin,
+        cfg
+        );
+    if (err != FSP_SUCCESS) {
+        mp_raise_OSError(MP_EIO);
+    }
+
+    return mp_const_none;
+}
+
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(
+    machine_pin_drive_obj,
+    1,
+    2,
+    machine_pin_drive
+    );
+
+
+
+/**
  * @brief 读取或设置 Pin 对象的数字电平。
  *
  * 不传入 value 时读取当前电平；传入 value 时根据其 Python
@@ -453,21 +707,42 @@ static MP_DEFINE_CONST_FUN_OBJ_1(
     machine_pin_toggle
     );
 
+MP_DEFINE_CONST_OBJ_TYPE(
+    machine_pin_board_pins_obj_type,
+    MP_QSTR_board,
+    MP_TYPE_FLAG_NONE,
+    locals_dict, &machine_pin_board_pins_locals_dict
+    );
+
+MP_DEFINE_CONST_OBJ_TYPE(
+    machine_pin_cpu_pins_obj_type,
+    MP_QSTR_cpu,
+    MP_TYPE_FLAG_NONE,
+    locals_dict, &machine_pin_cpu_pins_locals_dict
+    );
+
 /** machine.Pin 类的常量和方法。 */
 static const mp_rom_map_elem_t machine_pin_locals_dict_table[] = {
+    {MP_ROM_QSTR(MP_QSTR_ANALOG), MP_ROM_INT(MACHINE_PIN_MODE_ANALOG)},
     {MP_ROM_QSTR(MP_QSTR_DRIVE_0), MP_ROM_INT(MACHINE_PIN_DRIVE_0)},
     {MP_ROM_QSTR(MP_QSTR_DRIVE_1), MP_ROM_INT(MACHINE_PIN_DRIVE_1)},
     {MP_ROM_QSTR(MP_QSTR_DRIVE_2), MP_ROM_INT(MACHINE_PIN_DRIVE_2)},
     {MP_ROM_QSTR(MP_QSTR_DRIVE_3), MP_ROM_INT(MACHINE_PIN_DRIVE_3)},
     {MP_ROM_QSTR(MP_QSTR_IN), MP_ROM_INT(MACHINE_PIN_MODE_IN)},
+    {MP_ROM_QSTR(MP_QSTR_OPEN_DRAIN), MP_ROM_INT(MACHINE_PIN_MODE_OPEN_DRAIN)},
     {MP_ROM_QSTR(MP_QSTR_OUT), MP_ROM_INT(MACHINE_PIN_MODE_OUT)},
     {MP_ROM_QSTR(MP_QSTR_PULL_NONE), MP_ROM_INT(MACHINE_PIN_PULL_NONE)},
     {MP_ROM_QSTR(MP_QSTR_PULL_UP), MP_ROM_INT(MACHINE_PIN_PULL_UP)},
+    {MP_ROM_QSTR(MP_QSTR_board),MP_ROM_PTR(&machine_pin_board_pins_obj_type)},
+    {MP_ROM_QSTR(MP_QSTR_cpu),MP_ROM_PTR(&machine_pin_cpu_pins_obj_type)},
+    {MP_ROM_QSTR(MP_QSTR_drive), MP_ROM_PTR(&machine_pin_drive_obj)},
     {MP_ROM_QSTR(MP_QSTR_high), MP_ROM_PTR(&machine_pin_on_obj) },
     {MP_ROM_QSTR(MP_QSTR_init), MP_ROM_PTR(&machine_pin_init_obj)},
     {MP_ROM_QSTR(MP_QSTR_low), MP_ROM_PTR(&machine_pin_off_obj) },
+    {MP_ROM_QSTR(MP_QSTR_mode), MP_ROM_PTR(&machine_pin_mode_obj) },
     {MP_ROM_QSTR(MP_QSTR_off), MP_ROM_PTR(&machine_pin_off_obj)},
     {MP_ROM_QSTR(MP_QSTR_on), MP_ROM_PTR(&machine_pin_on_obj)},
+    {MP_ROM_QSTR(MP_QSTR_pull), MP_ROM_PTR(&machine_pin_pull_obj)},
     {MP_ROM_QSTR(MP_QSTR_toggle), MP_ROM_PTR(&machine_pin_toggle_obj)},
     {MP_ROM_QSTR(MP_QSTR_value), MP_ROM_PTR(&machine_pin_value_obj)},
 };
