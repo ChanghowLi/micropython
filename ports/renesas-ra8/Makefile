@@ -31,10 +31,17 @@ endif
 
 # ---- Board selection ----
 BOARD ?= CPKCOR_RA8P1
+BOARD_DIR = boards/$(BOARD)
 BUILD = build-$(BOARD)
 
 # Include board-specific build settings
 include boards/$(BOARD)/mpconfigboard.mk
+
+# Generated Pin files
+BOARD_PINS = $(BOARD_DIR)/pins.csv
+GEN_PINS_HDR = $(HEADER_BUILD)/pins.h
+GEN_PINS_SRC = $(BUILD)/pins_$(BOARD).c
+MAKE_PINS = boards/make-pins.py
 
 # qstr definitions
 QSTR_DEFS = boards/$(BOARD)/qstrdefsport.h
@@ -59,6 +66,7 @@ SRC_C := $(FSP_SRC_C)
 
 # Peripheral source file
 SRC_C += peripheral/irq.c
+SRC_C += peripheral/pin.c
 SRC_C += peripheral/rtc.c
 
 # MicroPython integration sources
@@ -214,9 +222,11 @@ SRC_QSTR += extmod/vfs_fat.c
 SRC_QSTR += extmod/vfs_fat_diskio.c
 SRC_QSTR += extmod/vfs_fat_file.c
 SRC_QSTR += extmod/vfs_lfs.c
+SRC_QSTR += peripheral/pin.c
 SRC_QSTR += shared/readline/readline.c
 SRC_QSTR += shared/runtime/pyexec.c
 SRC_QSTR += shared/runtime/sys_stdio_mphal.c
+SRC_QSTR += $(GEN_PINS_SRC)
 
 # ---- Object files ----
 # Preserve the source path below BUILD.  Flattening with notdir makes
@@ -226,6 +236,7 @@ PORT_OBJ = $(addprefix $(BUILD)/, $(SRC_C:.c=.o))
 OBJ = $(PY_CORE_O)
 OBJ += $(PORT_OBJ)
 OBJ += $(addprefix $(BUILD)/, $(SRC_O))
+OBJ += $(BUILD)/pins_$(BOARD).o
 
 # Disable all warnings for third-party libraries
 FREERTOS_SRC_C = $(filter $(FSP_PROJECT_DIR)/ra/aws/FreeRTOS/FreeRTOS/% $(FSP_PROJECT_DIR)/ra/fsp/src/rm_freertos_port/%,$(SRC_C))
@@ -333,6 +344,15 @@ info:
 	@echo "  QSTR sources (SRC_QSTR):"
 	@echo "============================================"
 	@for f in $(SRC_QSTR); do echo "  $$f"; done
+
+# Generate safe Pin objects from the board pins.csv.
+$(OBJ): | $(GEN_PINS_HDR)
+
+.PRECIOUS: $(GEN_PINS_SRC)
+$(BUILD)/%_$(BOARD).c $(HEADER_BUILD)/%.h: $(BOARD_DIR)/%.csv $(MAKE_PINS) | $(HEADER_BUILD)
+	$(ECHO) "GEN $@"
+	$(Q)$(PYTHON) $(MAKE_PINS) --board-csv $(BOARD_PINS) \
+	    --output-header $(GEN_PINS_HDR) --output-source $(GEN_PINS_SRC)
 
 # Include MicroPython standard rules
 include $(TOP)/py/mkrules.mk

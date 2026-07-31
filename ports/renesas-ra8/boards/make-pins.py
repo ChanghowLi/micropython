@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+
+import argparse
+import csv
+import re
+
+
+def parse_pin_name(pin_name):
+    """Convert a pin name such as P000 or PC09 into its port and bit."""
+
+    match = re.fullmatch(r"P([0-9A-F])([0-9]{2})", pin_name)
+    if match is None:
+        raise ValueError(f"invalid pin name: {pin_name}")
+
+    port = int(match.group(1), 16)
+    bit = int(match.group(2), 10)
+
+    if bit > 15:
+        raise ValueError(f"invalid pin bit: {pin_name}")
+
+    return port, bit
+
+
+def read_board_pins(filename):
+    """Read and validate safe board pins from pins.csv."""
+
+    pins = []
+
+    with open(filename, newline="", encoding="utf-8") as csv_file:
+        for row_number, row in enumerate(csv.reader(csv_file), start=1):
+            if not row:
+                continue
+
+            if len(row) != 2:
+                raise ValueError(
+                    f"{filename}:{row_number}: expected 2 columns"
+                )
+
+            board_name = row[0].strip()
+            cpu_name = row[1].strip()
+            port, bit = parse_pin_name(cpu_name)
+
+            pins.append((board_name, cpu_name, port, bit))
+
+    return pins
+
+
+def write_header(filename):
+    """Generate declarations shared by pin.c and generated pin source."""
+
+    with open(filename, "w", encoding="utf-8", newline="\n") as output:
+        output.write(
+            "#ifndef MICROPY_INCLUDED_RENESAS_RA8_GENHDR_PINS_H\n"
+            "#define MICROPY_INCLUDED_RENESAS_RA8_GENHDR_PINS_H\n"
+            "\n"
+            "extern const machine_pin_obj_t *const machine_pin_generated_pins[];\n"
+            "extern const size_t machine_pin_generated_pins_count;\n"
+            "\n"
+            "#endif\n"
+        )
+
+
+def write_source(filename, pins):
+    """Generate Pin objects and the safe-pin lookup array."""
+
+    with open(filename, "w", encoding="utf-8", newline="\n") as output:
+        output.write('#include "peripheral/pin.h"\n\n')
+
+        for _board_name, cpu_name, port, bit in pins:
+            output.write(
+                f"static const machine_pin_obj_t "
+                f"machine_pin_{cpu_name}_obj = {{\n"
+                f"    .base = {{ &machine_pin_type }},\n"
+                f"    .name = MP_QSTR_{cpu_name},\n"
+                f"    .pin = BSP_IO_PORT_{port:02d}_PIN_{bit:02d},\n"
+                f"}};\n\n"
+            )
+
+        output.write(
+            "const machine_pin_obj_t *const "
+            "machine_pin_generated_pins[] = {\n"
+        )
+
+        for _board_name, cpu_name, _port, _bit in pins:
+            output.write(f"    &machine_pin_{cpu_name}_obj,\n")
+
+        output.write(
+            "};\n\n"
+            "const size_t machine_pin_generated_pins_count =\n"
+            "    MP_ARRAY_SIZE(machine_pin_generated_pins);\n"
+        )
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--board-csv", required=True)
+    parser.add_argument("--output-header", required=True)
+    parser.add_argument("--output-source", required=True)
+    args = parser.parse_args()
+
+    pins = read_board_pins(args.board_csv)
+    write_header(args.output_header)
+    write_source(args.output_source, pins)
+
+
+if __name__ == "__main__":
+    main()
