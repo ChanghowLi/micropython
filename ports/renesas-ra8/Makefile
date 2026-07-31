@@ -40,7 +40,7 @@ include boards/$(BOARD)/mpconfigboard.mk
 # Generated Pin files
 BOARD_PINS = $(BOARD_DIR)/pins.csv
 GEN_PINS_HDR = $(HEADER_BUILD)/pins.h
-GEN_PINS_SRC = $(BUILD)/pins_$(BOARD).c
+GEN_PINS_SRC = $(FSP_PROJECT_DIR)/src/pins_$(BOARD).c
 MAKE_PINS = boards/make-pins.py
 
 # qstr definitions
@@ -61,6 +61,9 @@ FSP_SRC_C := $(shell powershell -NoProfile -Command "Get-ChildItem -Path $(__FSP
 else
 FSP_SRC_C := $(shell find $(FSP_SRC_DIRS) -type f -name '*.c' 2>/dev/null)
 endif
+
+# $(GEN_PINS_SRC) will include in $(SRC_QSTR), avoid redundant additions
+# FSP_SRC_C := $(filter-out $(GEN_PINS_SRC),$(FSP_SRC_C))
 
 SRC_C := $(FSP_SRC_C)
 
@@ -236,7 +239,6 @@ PORT_OBJ = $(addprefix $(BUILD)/, $(SRC_C:.c=.o))
 OBJ = $(PY_CORE_O)
 OBJ += $(PORT_OBJ)
 OBJ += $(addprefix $(BUILD)/, $(SRC_O))
-OBJ += $(BUILD)/pins_$(BOARD).o
 
 # Disable all warnings for third-party libraries
 FREERTOS_SRC_C = $(filter $(FSP_PROJECT_DIR)/ra/aws/FreeRTOS/FreeRTOS/% $(FSP_PROJECT_DIR)/ra/fsp/src/rm_freertos_port/%,$(SRC_C))
@@ -290,11 +292,13 @@ gencdb:
 # ---- Pre-build target for e2 studio integration ----
 # Generates all auto-generated headers without compiling/linking.
 # Usage: make BOARD=CPKCOR_RA8P1 genhdr
+GENHDR_DEPS += $(BUILD)/genhdr/compressed.data.h
+GENHDR_DEPS += $(BUILD)/genhdr/moduledefs.h
 GENHDR_DEPS  = $(BUILD)/genhdr/mpversion.h
 GENHDR_DEPS += $(BUILD)/genhdr/qstrdefs.generated.h
-GENHDR_DEPS += $(BUILD)/genhdr/moduledefs.h
 GENHDR_DEPS += $(BUILD)/genhdr/root_pointers.h
-GENHDR_DEPS += $(BUILD)/genhdr/compressed.data.h
+GENHDR_DEPS += $(GEN_PINS_HDR)
+GENHDR_DEPS += $(GEN_PINS_SRC)
 
 .PHONY: genhdr
 genhdr: $(GENHDR_DEPS)
@@ -336,23 +340,23 @@ info:
 	@echo "  $(INC)" | tr ' ' '\n' | sed 's/^-I/  /'
 	@echo ""
 	@echo "============================================"
-	@echo "  Source files (SRC_C):"
-	@echo "============================================"
-	@for f in $(SRC_C); do echo "  $$f"; done
-	@echo ""
-	@echo "============================================"
 	@echo "  QSTR sources (SRC_QSTR):"
 	@echo "============================================"
 	@for f in $(SRC_QSTR); do echo "  $$f"; done
+	@echo ""
+	@echo "============================================"
+	@echo "  Pin config:"
+	@echo "============================================"
+	@echo "  GEN_PINS_SRC = $(GEN_PINS_SRC)"
+	@echo "  HEADER_BUILD = $(HEADER_BUILD)"
 
 # Generate safe Pin objects from the board pins.csv.
 $(OBJ): | $(GEN_PINS_HDR)
 
-.PRECIOUS: $(GEN_PINS_SRC)
-$(BUILD)/%_$(BOARD).c $(HEADER_BUILD)/%.h: $(BOARD_DIR)/%.csv $(MAKE_PINS) | $(HEADER_BUILD)
-	$(ECHO) "GEN $@"
-	$(Q)$(PYTHON) $(MAKE_PINS) --board-csv $(BOARD_PINS) \
-	    --output-header $(GEN_PINS_HDR) --output-source $(GEN_PINS_SRC)
+.PRECIOUS: $(GEN_PINS_HDR) $(GEN_PINS_SRC)
+$(GEN_PINS_HDR) $(GEN_PINS_SRC) &: $(BOARD_PINS) $(MAKE_PINS) | $(HEADER_BUILD)
+	$(ECHO) "GEN $(GEN_PINS_SRC)"
+	$(Q)$(PYTHON) $(MAKE_PINS) --board-csv $(BOARD_PINS) --output-header $(GEN_PINS_HDR) --output-source $(GEN_PINS_SRC)
 
 # Include MicroPython standard rules
 include $(TOP)/py/mkrules.mk
