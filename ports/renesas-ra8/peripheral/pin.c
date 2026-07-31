@@ -30,13 +30,10 @@ enum {
 };
 
 /**
- * @brief 将用户传入的引脚标识转换为 Pin 对象。
- *
- * 支持已有的 Pin 对象和 pins.csv 中注册的安全引脚名称。
- *
- * @param user_obj 用户传入的 Pin 对象或引脚名称。
- * @return 对应的 Pin 对象。
- * @exception ValueError 引脚名称无效或尚未注册。
+ * @brief       将用户传入的引脚标识转换为 Pin 对象。支持已有的 Pin 对象和 pins.csv 中注册的安全引脚名称。
+ * @param       user_obj 用户传入的 Pin 对象或引脚名称。
+ * @return      对应的 Pin 对象。
+ * @exception   ValueError 引脚名称无效或尚未注册。
  */
 const machine_pin_obj_t *machine_pin_find(mp_obj_t user_obj)
 {
@@ -60,38 +57,29 @@ const machine_pin_obj_t *machine_pin_find(mp_obj_t user_obj)
 }
 
 /**
- * @brief 根据 MicroPython 模式配置 GPIO 引脚。
+ * @brief       根据 MicroPython 模式配置 GPIO 引脚。
  *
- * @param pin 要配置的 Pin 对象。
- * @param mode 输入或输出模式。
- * @param pull 无上下拉或内部上拉配置。
- * @param value 初始输出值，未提供时为 MP_OBJ_NULL。
- * @param drive 输出驱动能力，未提供时为 MP_OBJ_NULL。
- * @exception ValueError mode、pull 或 drive 不是当前支持的配置。
- * @exception OSError FSP 配置引脚失败。
+ * @param       pin   要配置的 Pin 对象。
+ * @param       mode  输入或输出模式。
+ * @param       pull  无上下拉或内部上拉配置。
+ * @param       value 初始输出值，未提供时为 MP_OBJ_NULL。
+ * @param       drive 输出驱动能力，未提供时为 MP_OBJ_NULL。
+ * @exception   ValueError mode、pull 或 drive 不是当前支持的配置。
+ * @exception   OSError FSP 配置引脚失败。
  */
-static void machine_pin_configure(
-    const machine_pin_obj_t *pin,
-    mp_int_t mode,
-    mp_obj_t pull,
-    mp_obj_t value,
-    mp_obj_t drive
-    ) {
+static void machine_pin_configure(const machine_pin_obj_t *pin, mp_int_t mode, mp_obj_t pull, mp_obj_t value, mp_obj_t drive)
+{
     uint32_t cfg;
 
     switch (mode) {
         case MACHINE_PIN_MODE_IN:
             if (value != MP_OBJ_NULL && value != mp_const_none) {
-                mp_raise_ValueError(
-                    MP_ERROR_TEXT("value is only valid for output mode"));
+                mp_raise_ValueError(MP_ERROR_TEXT("value is only valid for output mode"));
             }
-
             cfg = IOPORT_CFG_PORT_DIRECTION_INPUT;
             break;
-
         case MACHINE_PIN_MODE_OUT:
             cfg = IOPORT_CFG_PORT_DIRECTION_OUTPUT;
-
             if (value != MP_OBJ_NULL && value != mp_const_none) {
                 if (mp_obj_is_true(value)) {
                     cfg |= IOPORT_CFG_PORT_OUTPUT_HIGH;
@@ -100,7 +88,6 @@ static void machine_pin_configure(
                 }
             }
             break;
-
         default:
             mp_raise_ValueError(MP_ERROR_TEXT("invalid pin mode"));
     }
@@ -109,11 +96,9 @@ static void machine_pin_configure(
         switch (mp_obj_get_int(pull)) {
             case MACHINE_PIN_PULL_NONE:
                 break;
-
             case MACHINE_PIN_PULL_UP:
                 cfg |= IOPORT_CFG_PULLUP_ENABLE;
                 break;
-
             default:
                 mp_raise_ValueError(MP_ERROR_TEXT("invalid pin pull"));
         }
@@ -121,26 +106,21 @@ static void machine_pin_configure(
 
     if (drive != MP_OBJ_NULL && drive != mp_const_none) {
         if (mode != MACHINE_PIN_MODE_OUT) {
-            mp_raise_ValueError(
-                MP_ERROR_TEXT("drive is only valid for output mode"));
+            mp_raise_ValueError(MP_ERROR_TEXT("drive is only valid for output mode"));
         }
 
         switch (mp_obj_get_int(drive)) {
             case MACHINE_PIN_DRIVE_0:
                 break;
-
             case MACHINE_PIN_DRIVE_1:
                 cfg |= IOPORT_CFG_DRIVE_MID;
                 break;
-
             case MACHINE_PIN_DRIVE_2:
                 cfg |= IOPORT_CFG_DRIVE_HS_HIGH;
                 break;
-
             case MACHINE_PIN_DRIVE_3:
                 cfg |= IOPORT_CFG_DRIVE_HIGH;
                 break;
-
             default:
                 mp_raise_ValueError(MP_ERROR_TEXT("invalid pin drive"));
         }
@@ -153,22 +133,15 @@ static void machine_pin_configure(
 }
 
 /**
- * @brief 创建 machine.Pin 对象。
- *
- * 如果提供 mode 参数，则同时配置引脚方向、上下拉和驱动能力。value 仅用于指定输出模式的初始电平。
- *
- * @param type 正在构造的 MicroPython 类型。
- * @param n_args 位置参数数量。
- * @param n_kw 关键字参数数量。
- * @param args 位置参数和关键字参数值。
- * @return 与引脚标识对应的 MicroPython Pin 对象。
+ * @brief       创建 machine.Pin 对象。如果提供 mode 参数，则同时配置引脚方向、上下拉和驱动能力。value 仅用于指定输出模式的初始电平。
+ * @param       type   正在构造的 MicroPython 类型。
+ * @param       n_args 位置参数数量。
+ * @param       n_kw   关键字参数数量。
+ * @param       args   位置参数和关键字参数值。
+ * @return      与引脚标识对应的 MicroPython Pin 对象。
  */
-static mp_obj_t machine_pin_make_new(
-    const mp_obj_type_t *type,
-    size_t n_args,
-    size_t n_kw,
-    const mp_obj_t *args
-    ) {
+static mp_obj_t machine_pin_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args)
+{
     (void)type;
 
     enum {
@@ -187,57 +160,34 @@ static mp_obj_t machine_pin_make_new(
     };
 
     mp_arg_val_t parsed_args[MP_ARRAY_SIZE(allowed_args)];
-    mp_arg_parse_all_kw_array(
-        n_args,
-        n_kw,
-        args,
-        MP_ARRAY_SIZE(allowed_args),
-        allowed_args,
-        parsed_args
-        );
+    mp_arg_parse_all_kw_array(n_args, n_kw, args, MP_ARRAY_SIZE(allowed_args), allowed_args, parsed_args);
 
-    const machine_pin_obj_t *pin =
-        machine_pin_find(parsed_args[ARG_id].u_obj);
+    const machine_pin_obj_t *pin = machine_pin_find(parsed_args[ARG_id].u_obj);
 
     if (parsed_args[ARG_mode].u_obj != MP_OBJ_NULL) {
         mp_int_t mode = mp_obj_get_int(parsed_args[ARG_mode].u_obj);
-
-        machine_pin_configure(
-            pin,
-            mode,
-            parsed_args[ARG_pull].u_obj,
-            parsed_args[ARG_value].u_obj,
-            parsed_args[ARG_drive].u_obj
-            );
-    } else if (
-        (parsed_args[ARG_pull].u_obj != MP_OBJ_NULL &&
-        parsed_args[ARG_pull].u_obj != mp_const_none) ||
-        (parsed_args[ARG_value].u_obj != MP_OBJ_NULL &&
-        parsed_args[ARG_value].u_obj != mp_const_none) ||
-        (parsed_args[ARG_drive].u_obj != MP_OBJ_NULL &&
-        parsed_args[ARG_drive].u_obj != mp_const_none)
-        ) {
-        mp_raise_ValueError(
-            MP_ERROR_TEXT("pull, value and drive require mode"));
+        machine_pin_configure(pin, mode, parsed_args[ARG_pull].u_obj, parsed_args[ARG_value].u_obj, parsed_args[ARG_drive].u_obj);
+    }
+    else if (
+        (parsed_args[ARG_pull].u_obj != MP_OBJ_NULL && parsed_args[ARG_pull].u_obj != mp_const_none) ||
+        (parsed_args[ARG_value].u_obj != MP_OBJ_NULL && parsed_args[ARG_value].u_obj != mp_const_none) ||
+        (parsed_args[ARG_drive].u_obj != MP_OBJ_NULL && parsed_args[ARG_drive].u_obj != mp_const_none)) {
+        mp_raise_ValueError(MP_ERROR_TEXT("pull, value and drive require mode"));
     }
 
     return MP_OBJ_FROM_PTR(pin);
 }
 
 /**
- * @brief 使用指定参数重新配置 Pin 对象。
- *
- * @param n_args 位置参数数量，包括 self。
- * @param pos_args 位置参数，其中 pos_args[0] 是 Pin 对象。
- * @param kw_args 关键字参数。
- * @return None。
- * @exception ValueError 未提供 mode 但提供了其它配置参数。
+ * @brief       使用指定参数重新配置 Pin 对象。
+ * @param       n_args   位置参数数量，包括 self。
+ * @param       pos_args 位置参数，其中 pos_args[0] 是 Pin 对象。
+ * @param       kw_args  关键字参数。
+ * @return      None。
+ * @exception   V alueError 未提供 mode 但提供了其它配置参数。
  */
-static mp_obj_t machine_pin_init(
-    size_t n_args,
-    const mp_obj_t *pos_args,
-    mp_map_t *kw_args
-    ) {
+static mp_obj_t machine_pin_init(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)
+{
     enum {
         ARG_mode,
         ARG_pull,
@@ -266,23 +216,13 @@ static mp_obj_t machine_pin_init(
     if (parsed_args[ARG_mode].u_obj != MP_OBJ_NULL) {
         mp_int_t mode = mp_obj_get_int(parsed_args[ARG_mode].u_obj);
 
-        machine_pin_configure(
-            self,
-            mode,
-            parsed_args[ARG_pull].u_obj,
-            parsed_args[ARG_value].u_obj,
-            parsed_args[ARG_drive].u_obj
-            );
-    } else if (
-        (parsed_args[ARG_pull].u_obj != MP_OBJ_NULL &&
-        parsed_args[ARG_pull].u_obj != mp_const_none) ||
-        (parsed_args[ARG_value].u_obj != MP_OBJ_NULL &&
-        parsed_args[ARG_value].u_obj != mp_const_none) ||
-        (parsed_args[ARG_drive].u_obj != MP_OBJ_NULL &&
-        parsed_args[ARG_drive].u_obj != mp_const_none)
-        ) {
-        mp_raise_ValueError(
-            MP_ERROR_TEXT("pull, value and drive require mode"));
+        machine_pin_configure(self, mode, parsed_args[ARG_pull].u_obj, parsed_args[ARG_value].u_obj, parsed_args[ARG_drive].u_obj);
+    }
+    else if (
+        (parsed_args[ARG_pull].u_obj != MP_OBJ_NULL && parsed_args[ARG_pull].u_obj != mp_const_none) ||
+        (parsed_args[ARG_value].u_obj != MP_OBJ_NULL && parsed_args[ARG_value].u_obj != mp_const_none) ||
+        (parsed_args[ARG_drive].u_obj != MP_OBJ_NULL && parsed_args[ARG_drive].u_obj != mp_const_none)) {
+        mp_raise_ValueError(MP_ERROR_TEXT("pull, value and drive require mode"));
     }
 
     return mp_const_none;
@@ -295,31 +235,21 @@ static MP_DEFINE_CONST_FUN_OBJ_KW(
     );
 
 /**
- * @brief 读取或设置 Pin 对象的数字电平。
- *
- * 不传入 value 时读取当前电平；传入 value 时根据其 Python
- * 真值输出高电平或低电平。
- *
- * @param n_args 参数数量，包括 self。
- * @param args 参数数组，其中 args[0] 是 Pin 对象。
- * @return 读取时返回 0 或 1，写入时返回 None。
- * @exception OSError FSP 读取或写入引脚失败。
+ * @brief       读取或设置 Pin 对象的数字电平。不传入 value 时读取当前电平；传入 value 时根据其 Python 真值输出高电平或低电平。
+ * @param       n_args 参数数量，包括 self。
+ * @param       args   参数数组，其中 args[0] 是 Pin 对象。
+ * @return      读取时返回 0 或 1，写入时返回 None。
+ * @exception   OSError FSP 读取或写入引脚失败。
  */
-static mp_obj_t machine_pin_value(
-    size_t n_args,
-    const mp_obj_t *args
-    ) {
+static mp_obj_t machine_pin_value(size_t n_args, const mp_obj_t *args)
+{
     const machine_pin_obj_t *self = MP_OBJ_TO_PTR(args[0]);
     fsp_err_t err;
 
     if (n_args == 1) {
         bsp_io_level_t level;
 
-        err = R_IOPORT_PinRead(
-            g_ioport.p_ctrl,
-            self->pin,
-            &level
-            );
+        err = R_IOPORT_PinRead(g_ioport.p_ctrl, self->pin, &level);
         if (err != FSP_SUCCESS) {
             mp_raise_OSError(MP_EIO);
         }
@@ -327,15 +257,9 @@ static mp_obj_t machine_pin_value(
         return MP_OBJ_NEW_SMALL_INT(level == BSP_IO_LEVEL_HIGH);
     }
 
-    bsp_io_level_t level = mp_obj_is_true(args[1])
-        ? BSP_IO_LEVEL_HIGH
-        : BSP_IO_LEVEL_LOW;
+    bsp_io_level_t level = mp_obj_is_true(args[1]) ? BSP_IO_LEVEL_HIGH : BSP_IO_LEVEL_LOW;
 
-    err = R_IOPORT_PinWrite(
-        g_ioport.p_ctrl,
-        self->pin,
-        level
-        );
+    err = R_IOPORT_PinWrite(g_ioport.p_ctrl, self->pin, level);
     if (err != FSP_SUCCESS) {
         mp_raise_OSError(MP_EIO);
     }
@@ -343,28 +267,18 @@ static mp_obj_t machine_pin_value(
     return mp_const_none;
 }
 
-static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(
-    machine_pin_value_obj,
-    1,
-    2,
-    machine_pin_value
-    );
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_pin_value_obj, 1, 2, machine_pin_value);
 
 /**
- * @brief 直接调用 Pin 对象以读取或设置数字电平。
- *
- * @param self_in 当前 Pin 对象。
- * @param n_args 用户传入的位置参数数量，不包括 self。
- * @param n_kw 用户传入的关键字参数数量。
- * @param args 用户传入的位置参数。
- * @return 未传值时返回 0 或 1，传入值时返回 None。
+ * @brief       直接调用 Pin 对象以读取或设置数字电平。
+ * @param       self_in 当前 Pin 对象。
+ * @param       n_args  用户传入的位置参数数量，不包括 self。
+ * @param       n_kw    用户传入的关键字参数数量。
+ * @param       args    用户传入的位置参数。
+ * @return      未传值时返回 0 或 1，传入值时返回 None。
  */
-static mp_obj_t machine_pin_call(
-    mp_obj_t self_in,
-    size_t n_args,
-    size_t n_kw,
-    const mp_obj_t *args
-    ) {
+static mp_obj_t machine_pin_call(mp_obj_t self_in, size_t n_args, size_t n_kw, const mp_obj_t *args)
+{
     mp_arg_check_num(n_args, n_kw, 0, 1, false);
 
     mp_obj_t value_args[2] = {
@@ -380,10 +294,9 @@ static mp_obj_t machine_pin_call(
 }
 
 /**
- * @brief 将 Pin 对象的输出电平设置为高。
- *
- * @param self_in 当前 Pin 对象。
- * @return None。
+ * @brief       将 Pin 对象的输出电平设置为高。
+ * @param       self_in 当前 Pin 对象。
+ * @return      None。
  */
 static mp_obj_t machine_pin_on(mp_obj_t self_in)
 {
@@ -395,16 +308,13 @@ static mp_obj_t machine_pin_on(mp_obj_t self_in)
     return machine_pin_value(2, value_args);
 }
 
-static MP_DEFINE_CONST_FUN_OBJ_1(
-    machine_pin_on_obj,
-    machine_pin_on
-    );
+static MP_DEFINE_CONST_FUN_OBJ_1(machine_pin_on_obj, machine_pin_on);
 
 /**
- * @brief 将 Pin 对象的输出电平设置为低。
+ * @brief       将 Pin 对象的输出电平设置为低。
  *
- * @param self_in 当前 Pin 对象。
- * @return None。
+ * @param       self_in 当前 Pin 对象。
+ * @return      None。
  */
 static mp_obj_t machine_pin_off(mp_obj_t self_in)
 {
@@ -422,12 +332,13 @@ static MP_DEFINE_CONST_FUN_OBJ_1(
     );
     
 /**
- * @brief Toggle the current pin output level.
+ * @brief       Toggle the current pin output level.
  *
- * @param self_in Pin object.
- * @return None.
+ * @param       self_in Pin object.
+ * @return      None.
  */
-static mp_obj_t machine_pin_toggle(mp_obj_t self_in) {
+static mp_obj_t machine_pin_toggle(mp_obj_t self_in)
+{
     const machine_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
     bsp_io_level_t level;
 
