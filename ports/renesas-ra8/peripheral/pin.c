@@ -97,9 +97,6 @@ static void machine_pin_configure(const machine_pin_obj_t *pin, mp_int_t mode, m
             if (mode == MACHINE_PIN_MODE_OPEN_DRAIN) {
                 cfg |= IOPORT_CFG_NMOS_ENABLE;
             }
-
-        case MACHINE_PIN_MODE_OUT:
-            cfg = IOPORT_CFG_PORT_DIRECTION_OUTPUT;
             if (value != MP_OBJ_NULL && value != mp_const_none) {
                 if (mp_obj_is_true(value)) {
                     cfg |= IOPORT_CFG_PORT_OUTPUT_HIGH;
@@ -134,8 +131,6 @@ static void machine_pin_configure(const machine_pin_obj_t *pin, mp_int_t mode, m
             mode != MACHINE_PIN_MODE_OPEN_DRAIN) {
             mp_raise_ValueError(
                 MP_ERROR_TEXT("drive is only valid for output mode"));
-        if (mode != MACHINE_PIN_MODE_OUT) {
-            mp_raise_ValueError(MP_ERROR_TEXT("drive is only valid for output mode"));
         }
 
         switch (mp_obj_get_int(drive)) {
