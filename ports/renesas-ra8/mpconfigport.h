@@ -9,15 +9,15 @@
 #include "mpconfigboard.h"
 
 #ifndef MICROPY_ALLOC_PARSE_CHUNK_INIT
-#define MICROPY_ALLOC_PARSE_CHUNK_INIT             16
+#define MICROPY_ALLOC_PARSE_CHUNK_INIT              16
 #endif
 
 #ifndef MICROPY_ALLOC_PATH_MAX
-#define MICROPY_ALLOC_PATH_MAX                     256
+#define MICROPY_ALLOC_PATH_MAX                      256
 #endif
 
 #ifndef MICROPY_CONFIG_ROM_LEVEL
-#define MICROPY_CONFIG_ROM_LEVEL                MICROPY_CONFIG_ROM_LEVEL_EVERYTHING
+#define MICROPY_CONFIG_ROM_LEVEL                    MICROPY_CONFIG_ROM_LEVEL_EVERYTHING
 #endif
 
 /* py/test says its arch=armv7emdp, it has problem in test */
@@ -35,7 +35,7 @@
 #endif
 
 #ifndef MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE
-#define MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE       256
+#define MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE        256
 #endif
 
 #ifndef MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF
@@ -54,8 +54,12 @@
 #define MICROPY_FATFS_ENABLE_LFN                    2
 #endif
 
+#ifndef MICROPY_FATFS_EXFAT
+#define MICROPY_FATFS_EXFAT                         1
+#endif
+
 #ifndef MICROPY_FATFS_LFN_CODE_PAGE
-#define MICROPY_FATFS_LFN_CODE_PAGE                437
+#define MICROPY_FATFS_LFN_CODE_PAGE                 437
 #endif
 
 #ifndef MICROPY_FATFS_NORTC
@@ -67,7 +71,7 @@
 #endif
 
 #ifndef MICROPY_HEAP_SIZE
-#define MICROPY_HEAP_SIZE                       (256 * 1024)
+#define MICROPY_HEAP_SIZE                           (256 * 1024)
 #endif
 
 #ifndef MICROPY_HELPER_REPL
@@ -119,7 +123,7 @@
 #endif
 
 #ifndef MICROPY_PY_MACHINE_INCLUDEFILE
-#define MICROPY_PY_MACHINE_INCLUDEFILE          "ports/renesas-ra8/peripheral/modmachine.c"
+#define MICROPY_PY_MACHINE_INCLUDEFILE              "ports/renesas-ra8/peripheral/modmachine.c"
 #endif
 
 #ifndef MICROPY_PY_MACHINE_MEMX
@@ -159,7 +163,7 @@
 #endif
 
 #ifndef MICROPY_PY_SYS_PLATFORM
-#define MICROPY_PY_SYS_PLATFORM                 "renesas-ra8"
+#define MICROPY_PY_SYS_PLATFORM                     "renesas-ra8"
 #endif
 
 #ifndef MICROPY_PY_SYS_EXIT
@@ -175,11 +179,11 @@
 #endif
 
 #ifndef MP_SSIZE_MAX
-#define MP_SSIZE_MAX                            0x7fffffff
+#define MP_SSIZE_MAX                                0x7fffffff
 #endif
 
 #ifndef MP_STATE_PORT
-#define MP_STATE_PORT                           MP_STATE_VM
+#define MP_STATE_PORT                               MP_STATE_VM
 #endif
 
 typedef long mp_off_t;
