@@ -54,7 +54,6 @@ void repl_thread_entry(void *pvParameters)
 
     RTC_Init();
     R_RSIP_Open(g_rsip.p_ctrl, g_rsip.p_cfg);
-    SD_Init();
     nor_flash_result = NorFlash_Init();
     if (nor_flash_result != 0) {
         printf("MPY: NOR flash initialization failed (0x%08lX).\r\n", nor_flash_result);
@@ -69,6 +68,7 @@ void repl_thread_entry(void *pvParameters)
 #endif
 
 #if TEST_EN_SD
+    SD_Init();
     R_BSP_SoftwareDelay(500, BSP_DELAY_UNITS_MILLISECONDS);
     if (SD_IsInsert() == 0) {
     	printf("Wait SD Card insert");

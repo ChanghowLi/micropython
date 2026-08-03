@@ -18,7 +18,7 @@
 #define TAG __FUNCTION__
 
 #ifndef __MPHALPORT_DEBUG
-#define __MPHALPORT_DEBUG   1
+#define __MPHALPORT_DEBUG   0
 #endif
 
 #if __MPHALPORT_DEBUG
