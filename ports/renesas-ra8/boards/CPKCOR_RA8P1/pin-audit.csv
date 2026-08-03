@@ -1,200 +1,200 @@
-cpu_pin,status,connection,source_file,source_page,reason
-P000,SAFE,Arduino A0 (J1001),core+expansion,core 2/8; expansion 2/10,Direct user-header connection with no populated onboard peripheral found
-P001,SAFE,Arduino A1 (J1001),core+expansion,core 2/8; expansion 2/10,Direct user-header connection with no populated onboard peripheral found
-P002,SAFE,Arduino A2 (J1001),core+expansion,core 2/8; expansion 2/10,Direct user-header connection with no populated onboard peripheral found
-P003,SAFE,Arduino A3 (J1001),core+expansion,core 2/8; expansion 2/10,Direct user-header connection with no populated onboard peripheral found
-P007,SAFE,PMODa pin 2,core+expansion,core 2/8; expansion 2/5,Direct user-header connection with no populated onboard peripheral found
-P010,SAFE,Arduino D7 (J1000),core+expansion,core 2/8; expansion 2/10,Direct user-header connection with no populated onboard peripheral found
-P011,SAFE,Arduino J1002,core+expansion,core 2/8; expansion 2/10,Direct user-header connection with no populated onboard peripheral found
-P014,SAFE,Arduino A4 (J1001),core+expansion,core 2/8; expansion 2/10,Direct user-header connection with no populated onboard peripheral found
-PC09,SAFE,Arduino J1001,core+expansion,core 2/4/5/8; expansion 2/10,Core USB and flash branches use unpopulated NC resistors
-PC15,SAFE,PMODa pin 3,core+expansion,core 2/8; expansion 2/5,Direct user-header connection with no populated onboard peripheral found
-P100,SHARED,Arduino J1002 and PMODk via U500,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
-P101,SHARED,Arduino J1002 and PMODk via U500,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
-P102,SHARED,Arduino J1002 and PMODk via U500,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
-P103,SHARED,Arduino J1002 and PMODk via U500,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
-P104,SHARED,Arduino J1002 and PMODm via U501,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
-P105,SHARED,PMODm via U501,core+expansion,core 2/8; expansion 2/5,User I/O passes through TXB0108 level translator
-P106,SHARED,Arduino J1002 and PMODm via U501,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
-P107,SHARED,Arduino J1000 and PMODk via U500,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
-P502,SHARED,Arduino J1001 and PMODn via U502,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
-P800,SHARED,PMODm via U501,core+expansion,core 2/8; expansion 2/5,User I/O passes through TXB0108 level translator
-P801,SHARED,Arduino J1000 and PMODm via U501,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
-P802,SHARED,Arduino J1000 and PMODm via U501,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
-P803,SHARED,Arduino J1000 and PMODk via U500,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
-P804,SHARED,Arduino J1000 and PMODm via U501,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
-P808,SHARED,Arduino J1000 and PMODk via U500,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
-P809,SHARED,Arduino J1000 and PMODk via U500,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
-P810,SHARED,PMODn via U502,core+expansion,core 2/8; expansion 2/5,User I/O passes through TXB0108 level translator
-P812,SHARED,Arduino J1001 and PMODn via U502,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
-PC10,SHARED,PMODn via U502,core+expansion,core 2/8; expansion 2/5,User I/O passes through TXB0108 level translator
-P407,RESERVED,USB VBUS sensing and control,core+expansion,core 1/2/4/8; expansion 1/2,Connected to populated USB circuitry
-P814,RESERVED,USB FS DP,core+expansion,core 1/2/4/8; expansion 1/2,Dedicated USB differential data signal
-P815,RESERVED,USB FS DM,core+expansion,core 1/2/4/8; expansion 1/2,Dedicated USB differential data signal
-P208,RESERVED,TDI to onboard RA4M2 debugger,core,core 2/3/8,Connected to the onboard debug interface
-P209,RESERVED,TDO to onboard RA4M2 debugger,core,core 2/3/8,Connected to the onboard debug interface
-P210,RESERVED,TMS/SWDIO to onboard RA4M2 debugger,core,core 2/3/8,Connected to the onboard debug interface
-P211,RESERVED,TCK/SWCLK to onboard RA4M2 debugger,core,core 2/3/8,Connected to the onboard debug interface
-P111,RESERVED,SD card DAT3 via U601,core,core 2/6,Connected to the onboard SD card through a TXB0108 level translator
-PD01,RESERVED,SD card DAT2 via U601,core,core 2/6,Connected to the onboard SD card through a TXB0108 level translator
-PD02,RESERVED,SD card DAT1 via U601,core,core 2/6,Connected to the onboard SD card through a TXB0108 level translator
-PD03,RESERVED,SD card DAT0 via U601,core,core 2/6,Connected to the onboard SD card through a TXB0108 level translator
-PD04,RESERVED,SD card CMD via U601,core,core 2/6,Connected to the onboard SD card through a TXB0108 level translator
-PD05,RESERVED,SD card CLK via U601,core,core 2/6,Connected to the onboard SD card through a TXB0108 level translator
-PD07,RESERVED,SD card detect via U601,core,core 2/6,Connected to the onboard SD card interface
-P004,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P005,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P006,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P008,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P009,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P012,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P013,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P015,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P108,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P109,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P110,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P112,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P113,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P114,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P115,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P200,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P201,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P206,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P207,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P212,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P213,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P214,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P215,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P300,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P301,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P302,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P303,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P304,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P305,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P306,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P307,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P308,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P309,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P310,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P311,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P312,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P400,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P401,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P402,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P403,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P404,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P405,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P406,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P408,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P409,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P410,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P411,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P412,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P413,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P414,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P415,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P500,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P501,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P503,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P504,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P505,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P506,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P507,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P508,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P509,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P510,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P511,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P512,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P513,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P514,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P515,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P600,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P601,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P602,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P603,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P604,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P605,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P606,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P607,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P608,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P609,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P610,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P611,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P612,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P613,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P614,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P615,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P700,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P701,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P702,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P703,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P704,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P705,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P706,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P707,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P708,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P709,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P710,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P711,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P712,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P713,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P714,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P715,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P805,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P806,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P807,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P811,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P813,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P902,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P903,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P904,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P905,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P906,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P907,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P908,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P909,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P910,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P911,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P912,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P913,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P914,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-P915,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PA00,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PA01,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PA02,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PA03,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PA04,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PA05,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PA06,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PA07,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PA08,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PA09,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PA10,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PA11,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PA12,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PA13,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PA14,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PA15,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PB00,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PB01,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PB02,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PB03,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PB04,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PB05,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PB06,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PB07,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PC00,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PC01,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PC02,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PC03,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PC04,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PC05,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PC06,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PC07,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PC08,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PC11,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PC12,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PC13,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PC14,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PD00,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
-PD06,UNKNOWN,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+cpu_pin,status,in_pins_csv,connection,source_file,source_page,reason
+P000,SAFE,YES,Arduino A0 (J1001),core+expansion,core 2/8; expansion 2/10,Direct user-header connection with no populated onboard peripheral found
+P001,SAFE,YES,Arduino A1 (J1001),core+expansion,core 2/8; expansion 2/10,Direct user-header connection with no populated onboard peripheral found
+P002,SAFE,YES,Arduino A2 (J1001),core+expansion,core 2/8; expansion 2/10,Direct user-header connection with no populated onboard peripheral found
+P003,SAFE,YES,Arduino A3 (J1001),core+expansion,core 2/8; expansion 2/10,Direct user-header connection with no populated onboard peripheral found
+P007,SAFE,YES,PMODa pin 2,core+expansion,core 2/8; expansion 2/5,Direct user-header connection with no populated onboard peripheral found
+P010,SAFE,YES,Arduino D7 (J1000),core+expansion,core 2/8; expansion 2/10,Direct user-header connection with no populated onboard peripheral found
+P011,SAFE,YES,Arduino J1002,core+expansion,core 2/8; expansion 2/10,Direct user-header connection with no populated onboard peripheral found
+P014,SAFE,YES,Arduino A4 (J1001),core+expansion,core 2/8; expansion 2/10,Direct user-header connection with no populated onboard peripheral found
+PC09,SAFE,YES,Arduino J1001,core+expansion,core 2/4/5/8; expansion 2/10,Core USB and flash branches use unpopulated NC resistors
+PC15,SAFE,YES,PMODa pin 3,core+expansion,core 2/8; expansion 2/5,Direct user-header connection with no populated onboard peripheral found
+P100,SHARED,YES,Arduino J1002 and PMODk via U500,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
+P101,SHARED,YES,Arduino J1002 and PMODk via U500,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
+P102,SHARED,YES,Arduino J1002 and PMODk via U500,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
+P103,SHARED,YES,Arduino J1002 and PMODk via U500,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
+P104,SHARED,YES,Arduino J1002 and PMODm via U501,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
+P105,SHARED,YES,PMODm via U501,core+expansion,core 2/8; expansion 2/5,User I/O passes through TXB0108 level translator
+P106,SHARED,YES,Arduino J1002 and PMODm via U501,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
+P107,SHARED,YES,Arduino J1000 and PMODk via U500,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
+P502,SHARED,NO,Arduino J1001 and PMODn via U502,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
+P800,SHARED,YES,PMODm via U501,core+expansion,core 2/8; expansion 2/5,User I/O passes through TXB0108 level translator
+P801,SHARED,YES,Arduino J1000 and PMODm via U501,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
+P802,SHARED,YES,Arduino J1000 and PMODm via U501,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
+P803,SHARED,YES,Arduino J1000 and PMODk via U500,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
+P804,SHARED,YES,Arduino J1000 and PMODm via U501,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
+P808,SHARED,NO,Arduino J1000 and PMODk via U500,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
+P809,SHARED,NO,Arduino J1000 and PMODk via U500,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
+P810,SHARED,YES,PMODn via U502,core+expansion,core 2/8; expansion 2/5,User I/O passes through TXB0108 level translator
+P812,SHARED,YES,Arduino J1001 and PMODn via U502,core+expansion,core 2/8; expansion 2/5/10,User I/O passes through TXB0108 level translator
+PC10,SHARED,YES,PMODn via U502,core+expansion,core 2/8; expansion 2/5,User I/O passes through TXB0108 level translator
+P407,RESERVED,NO,USB VBUS sensing and control,core+expansion,core 1/2/4/8; expansion 1/2,Connected to populated USB circuitry
+P814,RESERVED,NO,USB FS DP,core+expansion,core 1/2/4/8; expansion 1/2,Dedicated USB differential data signal
+P815,RESERVED,NO,USB FS DM,core+expansion,core 1/2/4/8; expansion 1/2,Dedicated USB differential data signal
+P208,RESERVED,NO,TDI to onboard RA4M2 debugger,core,core 2/3/8,Connected to the onboard debug interface
+P209,RESERVED,NO,TDO to onboard RA4M2 debugger,core,core 2/3/8,Connected to the onboard debug interface
+P210,RESERVED,NO,TMS/SWDIO to onboard RA4M2 debugger,core,core 2/3/8,Connected to the onboard debug interface
+P211,RESERVED,NO,TCK/SWCLK to onboard RA4M2 debugger,core,core 2/3/8,Connected to the onboard debug interface
+P111,RESERVED,NO,SD card DAT3 via U601,core,core 2/6,Connected to the onboard SD card through a TXB0108 level translator
+PD01,RESERVED,NO,SD card DAT2 via U601,core,core 2/6,Connected to the onboard SD card through a TXB0108 level translator
+PD02,RESERVED,NO,SD card DAT1 via U601,core,core 2/6,Connected to the onboard SD card through a TXB0108 level translator
+PD03,RESERVED,NO,SD card DAT0 via U601,core,core 2/6,Connected to the onboard SD card through a TXB0108 level translator
+PD04,RESERVED,NO,SD card CMD via U601,core,core 2/6,Connected to the onboard SD card through a TXB0108 level translator
+PD05,RESERVED,NO,SD card CLK via U601,core,core 2/6,Connected to the onboard SD card through a TXB0108 level translator
+PD07,RESERVED,NO,SD card detect via U601,core,core 2/6,Connected to the onboard SD card interface
+P004,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P005,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P006,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P008,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P009,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P012,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P013,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P015,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P108,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P109,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P110,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P112,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P113,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P114,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P115,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P200,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P201,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P206,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P207,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P212,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P213,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P214,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P215,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P300,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P301,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P302,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P303,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P304,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P305,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P306,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P307,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P308,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P309,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P310,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P311,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P312,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P400,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P401,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P402,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P403,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P404,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P405,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P406,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P408,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P409,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P410,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P411,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P412,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P413,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P414,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P415,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P500,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P501,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P503,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P504,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P505,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P506,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P507,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P508,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P509,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P510,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P511,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P512,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P513,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P514,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P515,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P600,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P601,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P602,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P603,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P604,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P605,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P606,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P607,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P608,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P609,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P610,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P611,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P612,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P613,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P614,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P615,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P700,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P701,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P702,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P703,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P704,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P705,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P706,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P707,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P708,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P709,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P710,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P711,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P712,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P713,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P714,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P715,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P805,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P806,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P807,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P811,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P813,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P902,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P903,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P904,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P905,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P906,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P907,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P908,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P909,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P910,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P911,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P912,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P913,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P914,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+P915,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PA00,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PA01,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PA02,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PA03,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PA04,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PA05,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PA06,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PA07,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PA08,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PA09,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PA10,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PA11,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PA12,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PA13,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PA14,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PA15,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PB00,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PB01,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PB02,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PB03,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PB04,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PB05,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PB06,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PB07,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PC00,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PC01,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PC02,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PC03,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PC04,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PC05,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PC06,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PC07,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PC08,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PC11,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PC12,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PC13,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PC14,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PD00,UNKNOWN,NO,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet
+PD06,UNKNOWN,YES,Unresolved,core+expansion,unresolved,No verified user-accessible route or populated peripheral classification yet

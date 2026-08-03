@@ -12,6 +12,10 @@ typedef struct _machine_pin_obj_t {
 
 #include "genhdr/pins.h"
 
+extern const mp_obj_dict_t machine_pin_board_pins_locals_dict;
+extern const mp_obj_dict_t machine_pin_cpu_pins_locals_dict;
+extern const mp_obj_type_t machine_pin_board_pins_obj_type;
+extern const mp_obj_type_t machine_pin_cpu_pins_obj_type;
 extern const mp_obj_type_t machine_pin_type;
 
 const machine_pin_obj_t *machine_pin_find(mp_obj_t user_obj);

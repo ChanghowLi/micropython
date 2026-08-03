@@ -77,6 +77,37 @@ def write_source(filename, pins):
             )
 
         output.write(
+            "static const mp_rom_map_elem_t "
+            "machine_pin_cpu_pins_locals_dict_table[] = {\n"
+        )
+
+        for _board_name, cpu_name, _port, _bit in pins:
+            output.write(
+                f"    {{ MP_ROM_QSTR(MP_QSTR_{cpu_name}), "
+                f"MP_ROM_PTR(&machine_pin_{cpu_name}_obj) }},\n"
+            )
+
+        output.write(
+            "};\n"
+            "MP_DEFINE_CONST_DICT(machine_pin_cpu_pins_locals_dict, "
+            "machine_pin_cpu_pins_locals_dict_table);\n\n"
+            "static const mp_rom_map_elem_t "
+            "machine_pin_board_pins_locals_dict_table[] = {\n"
+        )
+
+        for board_name, cpu_name, _port, _bit in pins:
+            output.write(
+                f"    {{ MP_ROM_QSTR(MP_QSTR_{board_name}), "
+                f"MP_ROM_PTR(&machine_pin_{cpu_name}_obj) }},\n"
+            )
+
+        output.write(
+            "};\n"
+            "MP_DEFINE_CONST_DICT(machine_pin_board_pins_locals_dict, "
+            "machine_pin_board_pins_locals_dict_table);\n\n"
+        )
+
+        output.write(
             "const machine_pin_obj_t *const "
             "machine_pin_generated_pins[] = {\n"
         )
