@@ -8,6 +8,7 @@ typedef struct _machine_pin_obj_t {
     mp_obj_base_t base;
     qstr name;
     bsp_io_port_pin_t pin;
+    uint32_t alt_mask;
 } machine_pin_obj_t;
 
 #include "genhdr/pins.h"

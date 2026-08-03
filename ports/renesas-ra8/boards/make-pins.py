@@ -45,6 +45,62 @@ def read_board_pins(filename):
     return pins
 
 
+def read_af_masks(filename, pins):
+    """Read alternate-function PSEL values and build a mask for each safe pin."""
+
+    af_masks = {cpu_name: 0 for _board_name, cpu_name, _port, _bit in pins}
+    seen = set()
+
+    if filename is None:
+        return af_masks
+
+    with open(filename, newline="", encoding="utf-8-sig") as csv_file:
+        reader = csv.DictReader(csv_file)
+        required_fields = {"CPU_PIN", "PSEL", "PERIPHERAL", "SIGNAL", "GROUP"}
+
+        if reader.fieldnames is None or set(reader.fieldnames) != required_fields:
+            raise ValueError(
+                f"{filename}: expected columns "
+                "CPU_PIN,PSEL,PERIPHERAL,SIGNAL,GROUP"
+            )
+
+        for row_number, row in enumerate(reader, start=2):
+            cpu_name = row["CPU_PIN"].strip()
+            psel_text = row["PSEL"].strip()
+
+            parse_pin_name(cpu_name)
+
+            if cpu_name not in af_masks:
+                raise ValueError(
+                    f"{filename}:{row_number}: alternate function for "
+                    f"non-safe pin: {cpu_name}"
+                )
+
+            try:
+                psel = int(psel_text, 10)
+            except ValueError as exc:
+                raise ValueError(
+                    f"{filename}:{row_number}: invalid PSEL: {psel_text}"
+                ) from exc
+
+            if not 1 <= psel <= 31:
+                raise ValueError(
+                    f"{filename}:{row_number}: PSEL must be from 1 to 31"
+                )
+
+            key = (cpu_name, psel)
+            if key in seen:
+                raise ValueError(
+                    f"{filename}:{row_number}: duplicate PSEL {psel} "
+                    f"for {cpu_name}"
+                )
+
+            seen.add(key)
+            af_masks[cpu_name] |= 1 << psel
+
+    return af_masks
+
+
 def write_header(filename):
     """Generate declarations shared by pin.c and generated pin source."""
 
@@ -60,7 +116,7 @@ def write_header(filename):
         )
 
 
-def write_source(filename, pins):
+def write_source(filename, pins, af_masks):
     """Generate Pin objects and the safe-pin lookup array."""
 
     with open(filename, "w", encoding="utf-8", newline="\n") as output:
@@ -73,6 +129,7 @@ def write_source(filename, pins):
                 f"    .base = {{ &machine_pin_type }},\n"
                 f"    .name = MP_QSTR_{cpu_name},\n"
                 f"    .pin = BSP_IO_PORT_{port:02d}_PIN_{bit:02d},\n"
+                f"    .alt_mask = 0x{af_masks[cpu_name]:08x}U,\n"
                 f"}};\n\n"
             )
 
@@ -124,14 +181,16 @@ def write_source(filename, pins):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--af-csv")
     parser.add_argument("--board-csv", required=True)
     parser.add_argument("--output-header", required=True)
     parser.add_argument("--output-source", required=True)
     args = parser.parse_args()
 
     pins = read_board_pins(args.board_csv)
+    af_masks = read_af_masks(args.af_csv, pins)
     write_header(args.output_header)
-    write_source(args.output_source, pins)
+    write_source(args.output_source, pins, af_masks)
 
 
 if __name__ == "__main__":

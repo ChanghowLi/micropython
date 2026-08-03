@@ -5,6 +5,7 @@ CMSIS_MCU = RA8P1
 MCU_SERIES = m85
 
 # FSP project inputs used by the standalone MicroPython Makefile build.
+BOARD_AF = boards/CPKCOR_RA8P1/cpkcor_ra8p1_af.csv
 FSP_PROJECT_DIR = boards/CPKCOR_RA8P1/e2studio_gcc_freertos
 
 # Keep linker-generator inputs in the board directory.  The e2 studio script

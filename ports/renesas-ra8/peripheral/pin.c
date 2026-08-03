@@ -21,6 +21,8 @@ enum {
     MACHINE_PIN_MODE_OUT,
     MACHINE_PIN_MODE_OPEN_DRAIN,
     MACHINE_PIN_MODE_ANALOG,
+    MACHINE_PIN_MODE_ALT,
+    MACHINE_PIN_MODE_ALT_OPEN_DRAIN,
 };
 
 /**
@@ -69,9 +71,31 @@ const machine_pin_obj_t *machine_pin_find(mp_obj_t user_obj)
  * @exception   ValueError mode、pull 或 drive 不是当前支持的配置。
  * @exception   OSError FSP 配置引脚失败。
  */
-static void machine_pin_configure(const machine_pin_obj_t *pin, mp_int_t mode, mp_obj_t pull, mp_obj_t value, mp_obj_t drive)
+static void machine_pin_configure(const machine_pin_obj_t *pin, mp_int_t mode, mp_obj_t pull, mp_obj_t value, mp_obj_t drive, mp_obj_t alt)
 {
     uint32_t cfg;
+    mp_int_t alt_value = -1;
+
+    if (alt != MP_OBJ_NULL && alt != mp_const_none) {
+        alt_value = mp_obj_get_int(alt);
+    }
+
+    if (mode == MACHINE_PIN_MODE_ALT ||
+        mode == MACHINE_PIN_MODE_ALT_OPEN_DRAIN) {
+        if (alt_value < 1 || alt_value > 31) {
+            mp_raise_ValueError(
+                MP_ERROR_TEXT("ALT mode requires alt from 1 to 31"));
+        }
+
+        uint32_t alt_bit = (uint32_t) 1U << (uint32_t) alt_value;
+        if ((pin->alt_mask & alt_bit) == 0U) {
+            mp_raise_ValueError(
+                MP_ERROR_TEXT("invalid alternate function for pin"));
+        }
+    } else if (alt_value != -1) {
+        mp_raise_ValueError(
+            MP_ERROR_TEXT("alt is only valid for ALT mode"));
+    }
 
     switch (mode) {
         case MACHINE_PIN_MODE_ANALOG:
@@ -88,6 +112,20 @@ static void machine_pin_configure(const machine_pin_obj_t *pin, mp_int_t mode, m
                 mp_raise_ValueError(MP_ERROR_TEXT("value is only valid for output mode"));
             }
             cfg = IOPORT_CFG_PORT_DIRECTION_INPUT;
+            break;
+
+        case MACHINE_PIN_MODE_ALT:
+        case MACHINE_PIN_MODE_ALT_OPEN_DRAIN:
+            if (value != MP_OBJ_NULL && value != mp_const_none) {
+                mp_raise_ValueError(
+                    MP_ERROR_TEXT("value is not valid for ALT mode"));
+            }
+
+            cfg = (((uint32_t) alt_value << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) & R_PFS_PORT_PIN_PmnPFS_PSEL_Msk) | IOPORT_CFG_PERIPHERAL_PIN;
+
+            if (mode == MACHINE_PIN_MODE_ALT_OPEN_DRAIN) {
+                cfg |= IOPORT_CFG_NMOS_ENABLE;
+            }
             break;
 
         case MACHINE_PIN_MODE_OPEN_DRAIN:
@@ -127,10 +165,12 @@ static void machine_pin_configure(const machine_pin_obj_t *pin, mp_int_t mode, m
     }
 
     if (drive != MP_OBJ_NULL && drive != mp_const_none) {
-        if (mode != MACHINE_PIN_MODE_OUT &&
-            mode != MACHINE_PIN_MODE_OPEN_DRAIN) {
+        if (mode != MACHINE_PIN_MODE_ALT &&
+            mode != MACHINE_PIN_MODE_ALT_OPEN_DRAIN &&
+            mode != MACHINE_PIN_MODE_OPEN_DRAIN &&
+            mode != MACHINE_PIN_MODE_OUT) {
             mp_raise_ValueError(
-                MP_ERROR_TEXT("drive is only valid for output mode"));
+                MP_ERROR_TEXT("drive is only valid for output or ALT mode"));
         }
 
         switch (mp_obj_get_int(drive)) {
@@ -174,6 +214,7 @@ static mp_obj_t machine_pin_make_new(const mp_obj_type_t *type, size_t n_args, s
         ARG_pull,
         ARG_value,
         ARG_drive,
+        ARG_alt,
     };
     static const mp_arg_t allowed_args[] = {
         {MP_QSTR_id, MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
@@ -181,6 +222,7 @@ static mp_obj_t machine_pin_make_new(const mp_obj_type_t *type, size_t n_args, s
         {MP_QSTR_pull, MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_value, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_drive, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
+        {MP_QSTR_alt, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
     };
 
     mp_arg_val_t parsed_args[MP_ARRAY_SIZE(allowed_args)];
@@ -190,13 +232,19 @@ static mp_obj_t machine_pin_make_new(const mp_obj_type_t *type, size_t n_args, s
 
     if (parsed_args[ARG_mode].u_obj != MP_OBJ_NULL) {
         mp_int_t mode = mp_obj_get_int(parsed_args[ARG_mode].u_obj);
-        machine_pin_configure(pin, mode, parsed_args[ARG_pull].u_obj, parsed_args[ARG_value].u_obj, parsed_args[ARG_drive].u_obj);
+        machine_pin_configure(pin, mode, parsed_args[ARG_pull].u_obj, parsed_args[ARG_value].u_obj, parsed_args[ARG_drive].u_obj, parsed_args[ARG_alt].u_obj);
     }
     else if (
-        (parsed_args[ARG_pull].u_obj != MP_OBJ_NULL && parsed_args[ARG_pull].u_obj != mp_const_none) ||
-        (parsed_args[ARG_value].u_obj != MP_OBJ_NULL && parsed_args[ARG_value].u_obj != mp_const_none) ||
-        (parsed_args[ARG_drive].u_obj != MP_OBJ_NULL && parsed_args[ARG_drive].u_obj != mp_const_none)) {
-        mp_raise_ValueError(MP_ERROR_TEXT("pull, value and drive require mode"));
+        (parsed_args[ARG_pull].u_obj != MP_OBJ_NULL &&
+         parsed_args[ARG_pull].u_obj != mp_const_none) ||
+        (parsed_args[ARG_value].u_obj != MP_OBJ_NULL &&
+         parsed_args[ARG_value].u_obj != mp_const_none) ||
+        (parsed_args[ARG_drive].u_obj != MP_OBJ_NULL &&
+         parsed_args[ARG_drive].u_obj != mp_const_none) ||
+        (parsed_args[ARG_alt].u_obj != MP_OBJ_NULL &&
+         parsed_args[ARG_alt].u_obj != mp_const_none)) {
+        mp_raise_ValueError(
+            MP_ERROR_TEXT("pull, value, drive and alt require mode"));
     }
 
     return MP_OBJ_FROM_PTR(pin);
@@ -217,12 +265,14 @@ static mp_obj_t machine_pin_init(size_t n_args, const mp_obj_t *pos_args, mp_map
         ARG_pull,
         ARG_value,
         ARG_drive,
+        ARG_alt,
     };
     static const mp_arg_t allowed_args[] = {
         {MP_QSTR_mode, MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_pull, MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_value, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_drive, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
+        {MP_QSTR_alt, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
     };
 
     mp_arg_val_t parsed_args[MP_ARRAY_SIZE(allowed_args)];
@@ -240,13 +290,19 @@ static mp_obj_t machine_pin_init(size_t n_args, const mp_obj_t *pos_args, mp_map
     if (parsed_args[ARG_mode].u_obj != MP_OBJ_NULL) {
         mp_int_t mode = mp_obj_get_int(parsed_args[ARG_mode].u_obj);
 
-        machine_pin_configure(self, mode, parsed_args[ARG_pull].u_obj, parsed_args[ARG_value].u_obj, parsed_args[ARG_drive].u_obj);
+        machine_pin_configure(self, mode, parsed_args[ARG_pull].u_obj, parsed_args[ARG_value].u_obj, parsed_args[ARG_drive].u_obj, parsed_args[ARG_alt].u_obj);
     }
     else if (
-        (parsed_args[ARG_pull].u_obj != MP_OBJ_NULL && parsed_args[ARG_pull].u_obj != mp_const_none) ||
-        (parsed_args[ARG_value].u_obj != MP_OBJ_NULL && parsed_args[ARG_value].u_obj != mp_const_none) ||
-        (parsed_args[ARG_drive].u_obj != MP_OBJ_NULL && parsed_args[ARG_drive].u_obj != mp_const_none)) {
-        mp_raise_ValueError(MP_ERROR_TEXT("pull, value and drive require mode"));
+        (parsed_args[ARG_pull].u_obj != MP_OBJ_NULL &&
+         parsed_args[ARG_pull].u_obj != mp_const_none) ||
+        (parsed_args[ARG_value].u_obj != MP_OBJ_NULL &&
+         parsed_args[ARG_value].u_obj != mp_const_none) ||
+        (parsed_args[ARG_drive].u_obj != MP_OBJ_NULL &&
+         parsed_args[ARG_drive].u_obj != mp_const_none) ||
+        (parsed_args[ARG_alt].u_obj != MP_OBJ_NULL &&
+         parsed_args[ARG_alt].u_obj != mp_const_none)) {
+        mp_raise_ValueError(
+            MP_ERROR_TEXT("pull, value, drive and alt require mode"));
     }
 
     return mp_const_none;
@@ -276,6 +332,8 @@ static mp_obj_t machine_pin_mode(size_t n_args, const mp_obj_t *args)
     if (n_args == 1) {
         uint32_t analog =
             R_PFS->PORT[port].PIN[bit].PmnPFS_b.ASEL;
+        uint32_t peripheral =
+            R_PFS->PORT[port].PIN[bit].PmnPFS_b.PMR;
         uint32_t direction =
             R_PFS->PORT[port].PIN[bit].PmnPFS_b.PDR;
         uint32_t open_drain =
@@ -283,6 +341,14 @@ static mp_obj_t machine_pin_mode(size_t n_args, const mp_obj_t *args)
 
         if (analog != 0U) {
             return MP_OBJ_NEW_SMALL_INT(MACHINE_PIN_MODE_ANALOG);
+        }
+
+        if (peripheral != 0U) {
+            return MP_OBJ_NEW_SMALL_INT(
+                open_drain == 0U
+                    ? MACHINE_PIN_MODE_ALT
+                    : MACHINE_PIN_MODE_ALT_OPEN_DRAIN
+            );
         }
 
         if (direction == 0U) {
@@ -297,6 +363,13 @@ static mp_obj_t machine_pin_mode(size_t n_args, const mp_obj_t *args)
     }
 
     mp_int_t mode = mp_obj_get_int(args[1]);
+
+    if (mode == MACHINE_PIN_MODE_ALT ||
+        mode == MACHINE_PIN_MODE_ALT_OPEN_DRAIN) {
+        mp_raise_ValueError(
+            MP_ERROR_TEXT("use init(..., alt=...) for ALT mode"));
+    }
+
     if (mode != MACHINE_PIN_MODE_ANALOG &&
         mode != MACHINE_PIN_MODE_IN &&
         mode != MACHINE_PIN_MODE_OPEN_DRAIN &&
@@ -308,9 +381,11 @@ static mp_obj_t machine_pin_mode(size_t n_args, const mp_obj_t *args)
 
     cfg &= ~((uint32_t) (
         IOPORT_CFG_ANALOG_ENABLE |
-        IOPORT_CFG_PORT_DIRECTION_OUTPUT |
         IOPORT_CFG_NMOS_ENABLE |
-        IOPORT_CFG_PMOS_ENABLE
+        IOPORT_CFG_PERIPHERAL_PIN |
+        IOPORT_CFG_PMOS_ENABLE |
+        IOPORT_CFG_PORT_DIRECTION_OUTPUT |
+        R_PFS_PORT_PIN_PmnPFS_PSEL_Msk
     ));
 
     switch (mode) {
@@ -640,6 +715,8 @@ MP_DEFINE_CONST_OBJ_TYPE(
 
 /** machine.Pin 类的常量和方法。 */
 static const mp_rom_map_elem_t machine_pin_locals_dict_table[] = {
+    {MP_ROM_QSTR(MP_QSTR_ALT), MP_ROM_INT(MACHINE_PIN_MODE_ALT)},
+    {MP_ROM_QSTR(MP_QSTR_ALT_OPEN_DRAIN), MP_ROM_INT(MACHINE_PIN_MODE_ALT_OPEN_DRAIN)},
     {MP_ROM_QSTR(MP_QSTR_ANALOG), MP_ROM_INT(MACHINE_PIN_MODE_ANALOG)},
     {MP_ROM_QSTR(MP_QSTR_DRIVE_0), MP_ROM_INT(MACHINE_PIN_DRIVE_0)},
     {MP_ROM_QSTR(MP_QSTR_DRIVE_1), MP_ROM_INT(MACHINE_PIN_DRIVE_1)},

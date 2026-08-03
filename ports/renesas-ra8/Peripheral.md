@@ -249,8 +249,8 @@ API 完成情况。函数说明写在上方每个函数的标题下
 
 | 函数或属性       | 状态 |
 | ---------------- | ---- |
-| machine.Pin()    | 🟡 `IN`、`OUT`、`OPEN_DRAIN`、`ANALOG` 及 `Pin.cpu`/`Pin.board` 对象已通过 REPL 验证；`ALT`、`ALT_OPEN_DRAIN` 尚未实现，GPIO 电气行为待验证 |
-| Pin.init()       | 🟡 支持当前已实现的 4 种模式及 `pull`、`value`、`drive`，尚未支持 `alt` |
+| machine.Pin()    | 🟡 `IN`、`OUT`、`OPEN_DRAIN`、`ANALOG`、`ALT`、`ALT_OPEN_DRAIN` 及 `Pin.cpu`/`Pin.board` 对象已通过 REPL 验证；逐引脚 PSEL 合法与非法配置路径已通过板端验证，ALT 实际外设信号及 GPIO 电气行为待验证 |
+| Pin.init()       | 🟡 支持 6 种引脚模式及 `pull`、`value`、`drive`、`alt`；配置、模式读回及逐引脚 PSEL 合法与非法路径已通过板端验证，ALT 实际外设信号待验证 |
 | Pin.value()      | ✅    |
 | Pin.__call__()   | ✅    |
 | Pin.on()         | ✅    |
@@ -258,7 +258,7 @@ API 完成情况。函数说明写在上方每个函数的标题下
 | Pin.irq()        | ❌    |
 | Pin.low()        | ✅    |
 | Pin.high()       | ✅    |
-| Pin.mode()       | 🟡 已实现并验证 `IN`、`OUT`、`OPEN_DRAIN`、`ANALOG`，尚未支持两种 `ALT` 模式 |
+| Pin.mode()       | 🟡 已通过 REPL 验证 6 种模式的查询及从 ALT 切回 GPIO；设置 ALT 时须使用 `Pin.init(..., alt=...)` |
 | Pin.pull()       | ✅ 支持 `PULL_NONE`、`PULL_UP` 和 `None`；RA8P1 硬件不支持 `PULL_DOWN` |
 | Pin.drive()      | ✅ 支持并验证 `DRIVE_0`～`DRIVE_3` |
 | Pin.toggle()     | ✅    |
