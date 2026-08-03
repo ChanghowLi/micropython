@@ -71,6 +71,7 @@ SRC_C := $(FSP_SRC_C)
 SRC_C += peripheral/irq.c
 SRC_C += peripheral/pin.c
 SRC_C += peripheral/rtc.c
+SRC_C += peripheral/sdcard.c
 
 # MicroPython integration sources
 SRC_C += extmod/machine_mem.c
@@ -145,7 +146,6 @@ INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_rsip_protected/crypto_procedures_protec
 INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/rm_freertos_port
 INC += -I$(FSP_PROJECT_DIR)/ra_gen
 INC += -I$(FSP_PROJECT_DIR)/src
-INC += -I$(FSP_PROJECT_DIR)/src/utils
 
 # ---- Compiler flags ----
 # Match e2 studio settings exactly: cortex-m85+nopacbti
@@ -226,6 +226,7 @@ SRC_QSTR += extmod/vfs_fat_diskio.c
 SRC_QSTR += extmod/vfs_fat_file.c
 SRC_QSTR += extmod/vfs_lfs.c
 SRC_QSTR += peripheral/pin.c
+SRC_QSTR += peripheral/sdcard.c
 SRC_QSTR += shared/readline/readline.c
 SRC_QSTR += shared/runtime/pyexec.c
 SRC_QSTR += shared/runtime/sys_stdio_mphal.c

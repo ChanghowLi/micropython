@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 #ifndef LOG_CFG_EN_COLOR
-#define LOG_CFG_EN_COLOR            0
+#define LOG_CFG_EN_COLOR            1
 #endif
 
 #ifndef LOG_CFG_EN_TIMESTAMP

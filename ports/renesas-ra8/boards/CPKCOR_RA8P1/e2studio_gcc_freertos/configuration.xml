@@ -787,7 +787,7 @@
       <property id="config.awsfreertos.thread.configuse_timers" value="config.awsfreertos.thread.configuse_timers.enabled"/>
       <property id="config.awsfreertos.thread.configtimer_task_priority" value="3"/>
       <property id="config.awsfreertos.thread.configtimer_queue_length" value="10"/>
-      <property id="config.awsfreertos.thread.configtimer_task_stack_depth" value="128"/>
+      <property id="config.awsfreertos.thread.configtimer_task_stack_depth" value="1024"/>
       <property id="config.awsfreertos.thread.configlibrary_max_syscall_interrupt_priority" value="board.icu.common.irq.priority1"/>
       <property id="config.awsfreertos.thread.configassert" value="assert(x)"/>
       <property id="config.awsfreertos.thread.configinclude_application_defined_privileged_functions" value="config.awsfreertos.thread.configinclude_application_defined_privileged_functions.disabled"/>
@@ -804,7 +804,7 @@
       <property id="config.awsfreertos.thread.include_xtaskgetidletaskhandle" value="config.awsfreertos.thread.include_xtaskgetidletaskhandle.disabled"/>
       <property id="config.awsfreertos.thread.include_etaskgetstate" value="config.awsfreertos.thread.include_etaskgetstate.disabled"/>
       <property id="config.awsfreertos.thread.include_xeventgroupsetbitfromisr" value="config.awsfreertos.thread.include_xeventgroupsetbitfromisr.enabled"/>
-      <property id="config.awsfreertos.thread.include_xtimerpendfunctioncall" value="config.awsfreertos.thread.include_xtimerpendfunctioncall.disabled"/>
+      <property id="config.awsfreertos.thread.include_xtimerpendfunctioncall" value="config.awsfreertos.thread.include_xtimerpendfunctioncall.enabled"/>
       <property id="config.awsfreertos.thread.include_xtaskabortdelay" value="config.awsfreertos.thread.include_xtaskabortdelay.disabled"/>
       <property id="config.awsfreertos.thread.include_xtaskgethandle" value="config.awsfreertos.thread.include_xtaskgethandle.disabled"/>
       <property id="config.awsfreertos.thread.include_xtaskresumefromisr" value="config.awsfreertos.thread.include_xtaskresumefromisr.enabled"/>
