@@ -200,6 +200,8 @@ API 完成情况。函数说明写在上方每个函数的标题下
 - wake: 指定该中断可以从哪些低功耗模式唤醒系统，可使用 `machine.IDLE`、`machine.SLEEP`、`machine.DEEPSLEEP` 或它们的按位或组合
 - hard: 为 `True` 时使用硬中断。硬中断延迟更低，但中断处理函数中不能分配内存；并非所有端口都支持此参数
 
+当前 RA8P1 端口支持安全引脚使用的 IRQ0～IRQ19、IRQ21～IRQ31 通道，支持下降沿、上升沿、双边沿和低电平触发。当前 FSP ICU 驱动不支持高电平触发，使用 `Pin.IRQ_HIGH_LEVEL` 时抛出 `ValueError`。低功耗唤醒尚未实现，`wake` 仅支持 `None`，其它值抛出 `NotImplementedError`。
+
 以下方法不属于 `Pin` 核心 API，仅部分端口提供。
 
 ### Pin.low()
@@ -255,7 +257,7 @@ API 完成情况。函数说明写在上方每个函数的标题下
 | Pin.__call__()   | ✅    |
 | Pin.on()         | ✅    |
 | Pin.off()        | ✅    |
-| Pin.irq()        | ❌    |
+| Pin.irq()        | 🟡 已实现IRQ对象、回调启停、下降沿/上升沿/双边沿/低电平、优先级及软/硬中断；IRQ0已通过真实引脚验证，IRQ1已通过独立实例配置验证；`wake`和高电平触发暂不支持，其余通道尚未逐个板端验证 |
 | Pin.low()        | ✅    |
 | Pin.high()       | ✅    |
 | Pin.mode()       | 🟡 已通过 REPL 验证 6 种模式的查询及从 ALT 切回 GPIO；设置 ALT 时须使用 `Pin.init(..., alt=...)` |

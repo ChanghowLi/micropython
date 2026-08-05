@@ -1,7 +1,57 @@
 #include "py/mperrno.h"
+#include "py/mphal.h"
 #include "py/runtime.h"
 
 #include "pin.h"
+#include "pin_irq.h"
+
+#define MACHINE_PIN_PINS_PER_PORT (16)
+#define MACHINE_PIN_PORT_COUNT (16)
+
+static uint8_t machine_pin_owners[MACHINE_PIN_PORT_COUNT][MACHINE_PIN_PINS_PER_PORT];
+
+bool machine_pin_take(bsp_io_port_pin_t pin_id, machine_pin_owner_t owner)
+{
+    uint32_t port = (uint32_t)pin_id >> 8;
+    uint32_t bit = (uint32_t)pin_id & 0xffU;
+
+    if (port >= MACHINE_PIN_PORT_COUNT || bit >= MACHINE_PIN_PINS_PER_PORT || owner == MACHINE_PIN_OWNER_FREE)
+    {
+        return false;
+    }
+
+    mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
+
+    if (machine_pin_owners[port][bit] != MACHINE_PIN_OWNER_FREE)
+    {
+        MICROPY_END_ATOMIC_SECTION(atomic_state);
+        return false;
+    }
+
+    machine_pin_owners[port][bit] = (uint8_t)owner;
+    MICROPY_END_ATOMIC_SECTION(atomic_state);
+    return true;
+}
+
+void machine_pin_give(bsp_io_port_pin_t pin_id, machine_pin_owner_t owner)
+{
+    uint32_t port = (uint32_t)pin_id >> 8;
+    uint32_t bit = (uint32_t)pin_id & 0xffU;
+
+    if (port >= MACHINE_PIN_PORT_COUNT || bit >= MACHINE_PIN_PINS_PER_PORT || owner == MACHINE_PIN_OWNER_FREE)
+    {
+        return;
+    }
+
+    mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
+
+    if (machine_pin_owners[port][bit] == owner)
+    {
+        machine_pin_owners[port][bit] = MACHINE_PIN_OWNER_FREE;
+    }
+
+    MICROPY_END_ATOMIC_SECTION(atomic_state);
+}
 
 /**
  * @brief machine.Pin 支持的 GPIO 输出驱动能力。
@@ -723,6 +773,10 @@ static const mp_rom_map_elem_t machine_pin_locals_dict_table[] = {
     {MP_ROM_QSTR(MP_QSTR_DRIVE_2), MP_ROM_INT(MACHINE_PIN_DRIVE_2)},
     {MP_ROM_QSTR(MP_QSTR_DRIVE_3), MP_ROM_INT(MACHINE_PIN_DRIVE_3)},
     {MP_ROM_QSTR(MP_QSTR_IN), MP_ROM_INT(MACHINE_PIN_MODE_IN)},
+    {MP_ROM_QSTR(MP_QSTR_IRQ_FALLING), MP_ROM_INT(MACHINE_PIN_IRQ_FALLING)},
+    {MP_ROM_QSTR(MP_QSTR_IRQ_HIGH_LEVEL), MP_ROM_INT(MACHINE_PIN_IRQ_HIGH_LEVEL)},
+    {MP_ROM_QSTR(MP_QSTR_IRQ_LOW_LEVEL), MP_ROM_INT(MACHINE_PIN_IRQ_LOW_LEVEL)},
+    {MP_ROM_QSTR(MP_QSTR_IRQ_RISING), MP_ROM_INT(MACHINE_PIN_IRQ_RISING)},
     {MP_ROM_QSTR(MP_QSTR_OPEN_DRAIN), MP_ROM_INT(MACHINE_PIN_MODE_OPEN_DRAIN)},
     {MP_ROM_QSTR(MP_QSTR_OUT), MP_ROM_INT(MACHINE_PIN_MODE_OUT)},
     {MP_ROM_QSTR(MP_QSTR_PULL_NONE), MP_ROM_INT(MACHINE_PIN_PULL_NONE)},
@@ -732,6 +786,7 @@ static const mp_rom_map_elem_t machine_pin_locals_dict_table[] = {
     {MP_ROM_QSTR(MP_QSTR_drive), MP_ROM_PTR(&machine_pin_drive_obj)},
     {MP_ROM_QSTR(MP_QSTR_high), MP_ROM_PTR(&machine_pin_on_obj) },
     {MP_ROM_QSTR(MP_QSTR_init), MP_ROM_PTR(&machine_pin_init_obj)},
+    {MP_ROM_QSTR(MP_QSTR_irq), MP_ROM_PTR(&machine_pin_irq_obj)},
     {MP_ROM_QSTR(MP_QSTR_low), MP_ROM_PTR(&machine_pin_off_obj) },
     {MP_ROM_QSTR(MP_QSTR_mode), MP_ROM_PTR(&machine_pin_mode_obj) },
     {MP_ROM_QSTR(MP_QSTR_off), MP_ROM_PTR(&machine_pin_off_obj)},

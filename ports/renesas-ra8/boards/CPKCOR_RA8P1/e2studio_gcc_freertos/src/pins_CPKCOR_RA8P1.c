@@ -5,6 +5,8 @@ static const machine_pin_obj_t machine_pin_P000_obj = {
     .name = MP_QSTR_P000,
     .pin = BSP_IO_PORT_00_PIN_00,
     .alt_mask = 0x00000000U,
+    .irq_channel = 6,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P001_obj = {
@@ -12,6 +14,8 @@ static const machine_pin_obj_t machine_pin_P001_obj = {
     .name = MP_QSTR_P001,
     .pin = BSP_IO_PORT_00_PIN_01,
     .alt_mask = 0x00000000U,
+    .irq_channel = 7,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P002_obj = {
@@ -19,6 +23,8 @@ static const machine_pin_obj_t machine_pin_P002_obj = {
     .name = MP_QSTR_P002,
     .pin = BSP_IO_PORT_00_PIN_02,
     .alt_mask = 0x00000000U,
+    .irq_channel = 8,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P003_obj = {
@@ -26,6 +32,8 @@ static const machine_pin_obj_t machine_pin_P003_obj = {
     .name = MP_QSTR_P003,
     .pin = BSP_IO_PORT_00_PIN_03,
     .alt_mask = 0x00000000U,
+    .irq_channel = 29,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P004_obj = {
@@ -33,6 +41,8 @@ static const machine_pin_obj_t machine_pin_P004_obj = {
     .name = MP_QSTR_P004,
     .pin = BSP_IO_PORT_00_PIN_04,
     .alt_mask = 0x00000000U,
+    .irq_channel = 9,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P005_obj = {
@@ -40,6 +50,8 @@ static const machine_pin_obj_t machine_pin_P005_obj = {
     .name = MP_QSTR_P005,
     .pin = BSP_IO_PORT_00_PIN_05,
     .alt_mask = 0x00000000U,
+    .irq_channel = 10,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P006_obj = {
@@ -47,6 +59,8 @@ static const machine_pin_obj_t machine_pin_P006_obj = {
     .name = MP_QSTR_P006,
     .pin = BSP_IO_PORT_00_PIN_06,
     .alt_mask = 0x00000000U,
+    .irq_channel = 11,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P007_obj = {
@@ -54,6 +68,8 @@ static const machine_pin_obj_t machine_pin_P007_obj = {
     .name = MP_QSTR_P007,
     .pin = BSP_IO_PORT_00_PIN_07,
     .alt_mask = 0x00000000U,
+    .irq_channel = 28,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P008_obj = {
@@ -61,6 +77,8 @@ static const machine_pin_obj_t machine_pin_P008_obj = {
     .name = MP_QSTR_P008,
     .pin = BSP_IO_PORT_00_PIN_08,
     .alt_mask = 0x00000000U,
+    .irq_channel = 12,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P009_obj = {
@@ -68,6 +86,8 @@ static const machine_pin_obj_t machine_pin_P009_obj = {
     .name = MP_QSTR_P009,
     .pin = BSP_IO_PORT_00_PIN_09,
     .alt_mask = 0x00000000U,
+    .irq_channel = 13,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P010_obj = {
@@ -75,6 +95,8 @@ static const machine_pin_obj_t machine_pin_P010_obj = {
     .name = MP_QSTR_P010,
     .pin = BSP_IO_PORT_00_PIN_10,
     .alt_mask = 0x00000000U,
+    .irq_channel = 14,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P011_obj = {
@@ -82,6 +104,8 @@ static const machine_pin_obj_t machine_pin_P011_obj = {
     .name = MP_QSTR_P011,
     .pin = BSP_IO_PORT_00_PIN_11,
     .alt_mask = 0x00000000U,
+    .irq_channel = 16,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P014_obj = {
@@ -89,6 +113,8 @@ static const machine_pin_obj_t machine_pin_P014_obj = {
     .name = MP_QSTR_P014,
     .pin = BSP_IO_PORT_00_PIN_14,
     .alt_mask = 0x00000000U,
+    .irq_channel = 27,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P015_obj = {
@@ -96,6 +122,8 @@ static const machine_pin_obj_t machine_pin_P015_obj = {
     .name = MP_QSTR_P015,
     .pin = BSP_IO_PORT_00_PIN_15,
     .alt_mask = 0x00000000U,
+    .irq_channel = 13,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P100_obj = {
@@ -103,6 +131,8 @@ static const machine_pin_obj_t machine_pin_P100_obj = {
     .name = MP_QSTR_P100,
     .pin = BSP_IO_PORT_01_PIN_00,
     .alt_mask = 0x1040406eU,
+    .irq_channel = 2,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P101_obj = {
@@ -110,6 +140,8 @@ static const machine_pin_obj_t machine_pin_P101_obj = {
     .name = MP_QSTR_P101,
     .pin = BSP_IO_PORT_01_PIN_01,
     .alt_mask = 0x1040006eU,
+    .irq_channel = 1,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P102_obj = {
@@ -117,6 +149,8 @@ static const machine_pin_obj_t machine_pin_P102_obj = {
     .name = MP_QSTR_P102,
     .pin = BSP_IO_PORT_01_PIN_02,
     .alt_mask = 0x1001046eU,
+    .irq_channel = 17,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P103_obj = {
@@ -124,6 +158,8 @@ static const machine_pin_obj_t machine_pin_P103_obj = {
     .name = MP_QSTR_P103,
     .pin = BSP_IO_PORT_01_PIN_03,
     .alt_mask = 0x1041446cU,
+    .irq_channel = 16,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P104_obj = {
@@ -131,6 +167,8 @@ static const machine_pin_obj_t machine_pin_P104_obj = {
     .name = MP_QSTR_P104,
     .pin = BSP_IO_PORT_01_PIN_04,
     .alt_mask = 0x1040046cU,
+    .irq_channel = 1,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P105_obj = {
@@ -138,6 +176,8 @@ static const machine_pin_obj_t machine_pin_P105_obj = {
     .name = MP_QSTR_P105,
     .pin = BSP_IO_PORT_01_PIN_05,
     .alt_mask = 0x50402458U,
+    .irq_channel = 0,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P106_obj = {
@@ -145,6 +185,8 @@ static const machine_pin_obj_t machine_pin_P106_obj = {
     .name = MP_QSTR_P106,
     .pin = BSP_IO_PORT_01_PIN_06,
     .alt_mask = 0x5040045eU,
+    .irq_channel = 16,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P107_obj = {
@@ -152,6 +194,8 @@ static const machine_pin_obj_t machine_pin_P107_obj = {
     .name = MP_QSTR_P107,
     .pin = BSP_IO_PORT_01_PIN_07,
     .alt_mask = 0x1040041eU,
+    .irq_channel = 31,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P109_obj = {
@@ -159,6 +203,8 @@ static const machine_pin_obj_t machine_pin_P109_obj = {
     .name = MP_QSTR_P109,
     .pin = BSP_IO_PORT_01_PIN_09,
     .alt_mask = 0x00200008U,
+    .irq_channel = 23,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P200_obj = {
@@ -166,6 +212,8 @@ static const machine_pin_obj_t machine_pin_P200_obj = {
     .name = MP_QSTR_P200,
     .pin = BSP_IO_PORT_02_PIN_00,
     .alt_mask = 0x00000000U,
+    .irq_channel = -1,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P201_obj = {
@@ -173,6 +221,8 @@ static const machine_pin_obj_t machine_pin_P201_obj = {
     .name = MP_QSTR_P201,
     .pin = BSP_IO_PORT_02_PIN_01,
     .alt_mask = 0x00000000U,
+    .irq_channel = 4,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P206_obj = {
@@ -180,6 +230,8 @@ static const machine_pin_obj_t machine_pin_P206_obj = {
     .name = MP_QSTR_P206,
     .pin = BSP_IO_PORT_02_PIN_06,
     .alt_mask = 0x41ec8a0cU,
+    .irq_channel = 0,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P207_obj = {
@@ -187,6 +239,8 @@ static const machine_pin_obj_t machine_pin_P207_obj = {
     .name = MP_QSTR_P207,
     .pin = BSP_IO_PORT_02_PIN_07,
     .alt_mask = 0x02400008U,
+    .irq_channel = 25,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P304_obj = {
@@ -194,6 +248,8 @@ static const machine_pin_obj_t machine_pin_P304_obj = {
     .name = MP_QSTR_P304,
     .pin = BSP_IO_PORT_03_PIN_04,
     .alt_mask = 0x4160800cU,
+    .irq_channel = 9,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P305_obj = {
@@ -201,6 +257,8 @@ static const machine_pin_obj_t machine_pin_P305_obj = {
     .name = MP_QSTR_P305,
     .pin = BSP_IO_PORT_03_PIN_05,
     .alt_mask = 0x4160800cU,
+    .irq_channel = 8,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P306_obj = {
@@ -208,6 +266,8 @@ static const machine_pin_obj_t machine_pin_P306_obj = {
     .name = MP_QSTR_P306,
     .pin = BSP_IO_PORT_03_PIN_06,
     .alt_mask = 0x41e0800cU,
+    .irq_channel = 28,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P307_obj = {
@@ -215,6 +275,8 @@ static const machine_pin_obj_t machine_pin_P307_obj = {
     .name = MP_QSTR_P307,
     .pin = BSP_IO_PORT_03_PIN_07,
     .alt_mask = 0x41e0a01cU,
+    .irq_channel = 27,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P308_obj = {
@@ -222,6 +284,8 @@ static const machine_pin_obj_t machine_pin_P308_obj = {
     .name = MP_QSTR_P308,
     .pin = BSP_IO_PORT_03_PIN_08,
     .alt_mask = 0x4060822cU,
+    .irq_channel = 26,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P309_obj = {
@@ -229,6 +293,8 @@ static const machine_pin_obj_t machine_pin_P309_obj = {
     .name = MP_QSTR_P309,
     .pin = BSP_IO_PORT_03_PIN_09,
     .alt_mask = 0x03408228U,
+    .irq_channel = 25,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P310_obj = {
@@ -236,6 +302,8 @@ static const machine_pin_obj_t machine_pin_P310_obj = {
     .name = MP_QSTR_P310,
     .pin = BSP_IO_PORT_03_PIN_10,
     .alt_mask = 0x03c0802aU,
+    .irq_channel = 24,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P311_obj = {
@@ -243,6 +311,8 @@ static const machine_pin_obj_t machine_pin_P311_obj = {
     .name = MP_QSTR_P311,
     .pin = BSP_IO_PORT_03_PIN_11,
     .alt_mask = 0x0241c02eU,
+    .irq_channel = 23,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P312_obj = {
@@ -250,6 +320,8 @@ static const machine_pin_obj_t machine_pin_P312_obj = {
     .name = MP_QSTR_P312,
     .pin = BSP_IO_PORT_03_PIN_12,
     .alt_mask = 0x00000000U,
+    .irq_channel = 22,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P400_obj = {
@@ -257,6 +329,8 @@ static const machine_pin_obj_t machine_pin_P400_obj = {
     .name = MP_QSTR_P400,
     .pin = BSP_IO_PORT_04_PIN_00,
     .alt_mask = 0x002484aaU,
+    .irq_channel = 0,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P401_obj = {
@@ -264,6 +338,8 @@ static const machine_pin_obj_t machine_pin_P401_obj = {
     .name = MP_QSTR_P401,
     .pin = BSP_IO_PORT_04_PIN_01,
     .alt_mask = 0x002180acU,
+    .irq_channel = 5,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P402_obj = {
@@ -271,6 +347,8 @@ static const machine_pin_obj_t machine_pin_P402_obj = {
     .name = MP_QSTR_P402,
     .pin = BSP_IO_PORT_04_PIN_02,
     .alt_mask = 0x00654420U,
+    .irq_channel = 4,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P403_obj = {
@@ -278,6 +356,8 @@ static const machine_pin_obj_t machine_pin_P403_obj = {
     .name = MP_QSTR_P403,
     .pin = BSP_IO_PORT_04_PIN_03,
     .alt_mask = 0x00644428U,
+    .irq_channel = 14,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P404_obj = {
@@ -285,6 +365,8 @@ static const machine_pin_obj_t machine_pin_P404_obj = {
     .name = MP_QSTR_P404,
     .pin = BSP_IO_PORT_04_PIN_04,
     .alt_mask = 0x00640428U,
+    .irq_channel = 15,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P405_obj = {
@@ -292,6 +374,8 @@ static const machine_pin_obj_t machine_pin_P405_obj = {
     .name = MP_QSTR_P405,
     .pin = BSP_IO_PORT_04_PIN_05,
     .alt_mask = 0x01e4a01aU,
+    .irq_channel = 30,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P406_obj = {
@@ -299,6 +383,8 @@ static const machine_pin_obj_t machine_pin_P406_obj = {
     .name = MP_QSTR_P406,
     .pin = BSP_IO_PORT_04_PIN_06,
     .alt_mask = 0x01648058U,
+    .irq_channel = 31,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P413_obj = {
@@ -306,6 +392,8 @@ static const machine_pin_obj_t machine_pin_P413_obj = {
     .name = MP_QSTR_P413,
     .pin = BSP_IO_PORT_04_PIN_13,
     .alt_mask = 0x4040080cU,
+    .irq_channel = 18,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P414_obj = {
@@ -313,6 +401,8 @@ static const machine_pin_obj_t machine_pin_P414_obj = {
     .name = MP_QSTR_P414,
     .pin = BSP_IO_PORT_04_PIN_14,
     .alt_mask = 0x00418858U,
+    .irq_channel = 9,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P415_obj = {
@@ -320,6 +410,8 @@ static const machine_pin_obj_t machine_pin_P415_obj = {
     .name = MP_QSTR_P415,
     .pin = BSP_IO_PORT_04_PIN_15,
     .alt_mask = 0x00418858U,
+    .irq_channel = 8,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P511_obj = {
@@ -327,6 +419,8 @@ static const machine_pin_obj_t machine_pin_P511_obj = {
     .name = MP_QSTR_P511,
     .pin = BSP_IO_PORT_05_PIN_11,
     .alt_mask = 0x00412098U,
+    .irq_channel = 15,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P512_obj = {
@@ -334,6 +428,8 @@ static const machine_pin_obj_t machine_pin_P512_obj = {
     .name = MP_QSTR_P512,
     .pin = BSP_IO_PORT_05_PIN_12,
     .alt_mask = 0x00410098U,
+    .irq_channel = 14,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P513_obj = {
@@ -341,6 +437,8 @@ static const machine_pin_obj_t machine_pin_P513_obj = {
     .name = MP_QSTR_P513,
     .pin = BSP_IO_PORT_05_PIN_13,
     .alt_mask = 0x0240a018U,
+    .irq_channel = 31,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P514_obj = {
@@ -348,6 +446,8 @@ static const machine_pin_obj_t machine_pin_P514_obj = {
     .name = MP_QSTR_P514,
     .pin = BSP_IO_PORT_05_PIN_14,
     .alt_mask = 0x02402098U,
+    .irq_channel = 13,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P515_obj = {
@@ -355,6 +455,8 @@ static const machine_pin_obj_t machine_pin_P515_obj = {
     .name = MP_QSTR_P515,
     .pin = BSP_IO_PORT_05_PIN_15,
     .alt_mask = 0x02402098U,
+    .irq_channel = 12,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P600_obj = {
@@ -362,6 +464,8 @@ static const machine_pin_obj_t machine_pin_P600_obj = {
     .name = MP_QSTR_P600,
     .pin = BSP_IO_PORT_06_PIN_00,
     .alt_mask = 0x50400408U,
+    .irq_channel = 30,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P601_obj = {
@@ -369,6 +473,8 @@ static const machine_pin_obj_t machine_pin_P601_obj = {
     .name = MP_QSTR_P601,
     .pin = BSP_IO_PORT_06_PIN_01,
     .alt_mask = 0x50002218U,
+    .irq_channel = 29,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P700_obj = {
@@ -376,6 +482,8 @@ static const machine_pin_obj_t machine_pin_P700_obj = {
     .name = MP_QSTR_P700,
     .pin = BSP_IO_PORT_07_PIN_00,
     .alt_mask = 0x01648058U,
+    .irq_channel = 16,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P701_obj = {
@@ -383,6 +491,8 @@ static const machine_pin_obj_t machine_pin_P701_obj = {
     .name = MP_QSTR_P701,
     .pin = BSP_IO_PORT_07_PIN_01,
     .alt_mask = 0x41e4a058U,
+    .irq_channel = 17,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P702_obj = {
@@ -390,6 +500,8 @@ static const machine_pin_obj_t machine_pin_P702_obj = {
     .name = MP_QSTR_P702,
     .pin = BSP_IO_PORT_07_PIN_02,
     .alt_mask = 0x41e48058U,
+    .irq_channel = 18,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P703_obj = {
@@ -397,6 +509,8 @@ static const machine_pin_obj_t machine_pin_P703_obj = {
     .name = MP_QSTR_P703,
     .pin = BSP_IO_PORT_07_PIN_03,
     .alt_mask = 0x09e0824aU,
+    .irq_channel = 19,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P704_obj = {
@@ -404,6 +518,8 @@ static const machine_pin_obj_t machine_pin_P704_obj = {
     .name = MP_QSTR_P704,
     .pin = BSP_IO_PORT_07_PIN_04,
     .alt_mask = 0x08e1804eU,
+    .irq_channel = 26,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P705_obj = {
@@ -411,6 +527,8 @@ static const machine_pin_obj_t machine_pin_P705_obj = {
     .name = MP_QSTR_P705,
     .pin = BSP_IO_PORT_07_PIN_05,
     .alt_mask = 0x09c1806eU,
+    .irq_channel = 19,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P706_obj = {
@@ -418,6 +536,8 @@ static const machine_pin_obj_t machine_pin_P706_obj = {
     .name = MP_QSTR_P706,
     .pin = BSP_IO_PORT_07_PIN_06,
     .alt_mask = 0x0950822aU,
+    .irq_channel = 7,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P707_obj = {
@@ -425,6 +545,8 @@ static const machine_pin_obj_t machine_pin_P707_obj = {
     .name = MP_QSTR_P707,
     .pin = BSP_IO_PORT_07_PIN_07,
     .alt_mask = 0x0a508228U,
+    .irq_channel = 8,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P708_obj = {
@@ -432,6 +554,8 @@ static const machine_pin_obj_t machine_pin_P708_obj = {
     .name = MP_QSTR_P708,
     .pin = BSP_IO_PORT_07_PIN_08,
     .alt_mask = 0x0044acd8U,
+    .irq_channel = 11,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P709_obj = {
@@ -439,6 +563,8 @@ static const machine_pin_obj_t machine_pin_P709_obj = {
     .name = MP_QSTR_P709,
     .pin = BSP_IO_PORT_07_PIN_09,
     .alt_mask = 0x0040a8d8U,
+    .irq_channel = 10,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P710_obj = {
@@ -446,6 +572,8 @@ static const machine_pin_obj_t machine_pin_P710_obj = {
     .name = MP_QSTR_P710,
     .pin = BSP_IO_PORT_07_PIN_10,
     .alt_mask = 0x02408858U,
+    .irq_channel = 17,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P711_obj = {
@@ -453,6 +581,8 @@ static const machine_pin_obj_t machine_pin_P711_obj = {
     .name = MP_QSTR_P711,
     .pin = BSP_IO_PORT_07_PIN_11,
     .alt_mask = 0x0240406aU,
+    .irq_channel = 3,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P712_obj = {
@@ -460,6 +590,8 @@ static const machine_pin_obj_t machine_pin_P712_obj = {
     .name = MP_QSTR_P712,
     .pin = BSP_IO_PORT_07_PIN_12,
     .alt_mask = 0x0240006aU,
+    .irq_channel = 2,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P713_obj = {
@@ -467,6 +599,8 @@ static const machine_pin_obj_t machine_pin_P713_obj = {
     .name = MP_QSTR_P713,
     .pin = BSP_IO_PORT_07_PIN_13,
     .alt_mask = 0x0240001aU,
+    .irq_channel = 14,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P714_obj = {
@@ -474,6 +608,8 @@ static const machine_pin_obj_t machine_pin_P714_obj = {
     .name = MP_QSTR_P714,
     .pin = BSP_IO_PORT_07_PIN_14,
     .alt_mask = 0x82400018U,
+    .irq_channel = 13,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P715_obj = {
@@ -481,6 +617,8 @@ static const machine_pin_obj_t machine_pin_P715_obj = {
     .name = MP_QSTR_P715,
     .pin = BSP_IO_PORT_07_PIN_15,
     .alt_mask = 0x02400018U,
+    .irq_channel = 12,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P800_obj = {
@@ -488,6 +626,8 @@ static const machine_pin_obj_t machine_pin_P800_obj = {
     .name = MP_QSTR_P800,
     .pin = BSP_IO_PORT_08_PIN_00,
     .alt_mask = 0x1000001eU,
+    .irq_channel = 11,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P801_obj = {
@@ -495,6 +635,8 @@ static const machine_pin_obj_t machine_pin_P801_obj = {
     .name = MP_QSTR_P801,
     .pin = BSP_IO_PORT_08_PIN_01,
     .alt_mask = 0x1040001eU,
+    .irq_channel = 12,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P802_obj = {
@@ -502,6 +644,8 @@ static const machine_pin_obj_t machine_pin_P802_obj = {
     .name = MP_QSTR_P802,
     .pin = BSP_IO_PORT_08_PIN_02,
     .alt_mask = 0x1000001cU,
+    .irq_channel = 18,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P803_obj = {
@@ -509,6 +653,8 @@ static const machine_pin_obj_t machine_pin_P803_obj = {
     .name = MP_QSTR_P803,
     .pin = BSP_IO_PORT_08_PIN_03,
     .alt_mask = 0x1000201cU,
+    .irq_channel = 19,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P804_obj = {
@@ -516,6 +662,8 @@ static const machine_pin_obj_t machine_pin_P804_obj = {
     .name = MP_QSTR_P804,
     .pin = BSP_IO_PORT_08_PIN_04,
     .alt_mask = 0x9000201cU,
+    .irq_channel = 14,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P805_obj = {
@@ -523,6 +671,8 @@ static const machine_pin_obj_t machine_pin_P805_obj = {
     .name = MP_QSTR_P805,
     .pin = BSP_IO_PORT_08_PIN_05,
     .alt_mask = 0x02408010U,
+    .irq_channel = 30,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P806_obj = {
@@ -530,6 +680,8 @@ static const machine_pin_obj_t machine_pin_P806_obj = {
     .name = MP_QSTR_P806,
     .pin = BSP_IO_PORT_08_PIN_06,
     .alt_mask = 0x02408010U,
+    .irq_channel = 0,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P807_obj = {
@@ -537,6 +689,8 @@ static const machine_pin_obj_t machine_pin_P807_obj = {
     .name = MP_QSTR_P807,
     .pin = BSP_IO_PORT_08_PIN_07,
     .alt_mask = 0x02000008U,
+    .irq_channel = 11,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P810_obj = {
@@ -544,6 +698,8 @@ static const machine_pin_obj_t machine_pin_P810_obj = {
     .name = MP_QSTR_P810,
     .pin = BSP_IO_PORT_08_PIN_10,
     .alt_mask = 0x48204028U,
+    .irq_channel = 21,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P811_obj = {
@@ -551,6 +707,8 @@ static const machine_pin_obj_t machine_pin_P811_obj = {
     .name = MP_QSTR_P811,
     .pin = BSP_IO_PORT_08_PIN_11,
     .alt_mask = 0x48280028U,
+    .irq_channel = 22,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P812_obj = {
@@ -558,6 +716,8 @@ static const machine_pin_obj_t machine_pin_P812_obj = {
     .name = MP_QSTR_P812,
     .pin = BSP_IO_PORT_08_PIN_12,
     .alt_mask = 0x08284028U,
+    .irq_channel = 23,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P902_obj = {
@@ -565,6 +725,8 @@ static const machine_pin_obj_t machine_pin_P902_obj = {
     .name = MP_QSTR_P902,
     .pin = BSP_IO_PORT_09_PIN_02,
     .alt_mask = 0x02048a08U,
+    .irq_channel = 0,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P903_obj = {
@@ -572,6 +734,8 @@ static const machine_pin_obj_t machine_pin_P903_obj = {
     .name = MP_QSTR_P903,
     .pin = BSP_IO_PORT_09_PIN_03,
     .alt_mask = 0x02000008U,
+    .irq_channel = 1,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P904_obj = {
@@ -579,6 +743,8 @@ static const machine_pin_obj_t machine_pin_P904_obj = {
     .name = MP_QSTR_P904,
     .pin = BSP_IO_PORT_09_PIN_04,
     .alt_mask = 0x02400008U,
+    .irq_channel = 2,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P905_obj = {
@@ -586,6 +752,8 @@ static const machine_pin_obj_t machine_pin_P905_obj = {
     .name = MP_QSTR_P905,
     .pin = BSP_IO_PORT_09_PIN_05,
     .alt_mask = 0x0bc08428U,
+    .irq_channel = 8,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P906_obj = {
@@ -593,6 +761,8 @@ static const machine_pin_obj_t machine_pin_P906_obj = {
     .name = MP_QSTR_P906,
     .pin = BSP_IO_PORT_09_PIN_06,
     .alt_mask = 0x4bcc8418U,
+    .irq_channel = 9,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P907_obj = {
@@ -600,6 +770,8 @@ static const machine_pin_obj_t machine_pin_P907_obj = {
     .name = MP_QSTR_P907,
     .pin = BSP_IO_PORT_09_PIN_07,
     .alt_mask = 0x4bcca418U,
+    .irq_channel = 10,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P908_obj = {
@@ -607,6 +779,8 @@ static const machine_pin_obj_t machine_pin_P908_obj = {
     .name = MP_QSTR_P908,
     .pin = BSP_IO_PORT_09_PIN_08,
     .alt_mask = 0x4b598418U,
+    .irq_channel = 11,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P909_obj = {
@@ -614,6 +788,8 @@ static const machine_pin_obj_t machine_pin_P909_obj = {
     .name = MP_QSTR_P909,
     .pin = BSP_IO_PORT_09_PIN_09,
     .alt_mask = 0x4b598418U,
+    .irq_channel = 21,
+    .irq_deep_standby = true,
 };
 
 static const machine_pin_obj_t machine_pin_P910_obj = {
@@ -621,6 +797,8 @@ static const machine_pin_obj_t machine_pin_P910_obj = {
     .name = MP_QSTR_P910,
     .pin = BSP_IO_PORT_09_PIN_10,
     .alt_mask = 0x02400008U,
+    .irq_channel = 7,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P911_obj = {
@@ -628,6 +806,8 @@ static const machine_pin_obj_t machine_pin_P911_obj = {
     .name = MP_QSTR_P911,
     .pin = BSP_IO_PORT_09_PIN_11,
     .alt_mask = 0x02400008U,
+    .irq_channel = 6,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P912_obj = {
@@ -635,6 +815,8 @@ static const machine_pin_obj_t machine_pin_P912_obj = {
     .name = MP_QSTR_P912,
     .pin = BSP_IO_PORT_09_PIN_12,
     .alt_mask = 0x02400008U,
+    .irq_channel = 5,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P913_obj = {
@@ -642,6 +824,8 @@ static const machine_pin_obj_t machine_pin_P913_obj = {
     .name = MP_QSTR_P913,
     .pin = BSP_IO_PORT_09_PIN_13,
     .alt_mask = 0x02400208U,
+    .irq_channel = 3,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P914_obj = {
@@ -649,6 +833,8 @@ static const machine_pin_obj_t machine_pin_P914_obj = {
     .name = MP_QSTR_P914,
     .pin = BSP_IO_PORT_09_PIN_14,
     .alt_mask = 0x02002018U,
+    .irq_channel = 9,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_P915_obj = {
@@ -656,6 +842,8 @@ static const machine_pin_obj_t machine_pin_P915_obj = {
     .name = MP_QSTR_P915,
     .pin = BSP_IO_PORT_09_PIN_15,
     .alt_mask = 0x02000018U,
+    .irq_channel = 8,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_PA07_obj = {
@@ -663,6 +851,8 @@ static const machine_pin_obj_t machine_pin_PA07_obj = {
     .name = MP_QSTR_PA07,
     .pin = BSP_IO_PORT_10_PIN_07,
     .alt_mask = 0x08208a2cU,
+    .irq_channel = 16,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_PB00_obj = {
@@ -670,6 +860,8 @@ static const machine_pin_obj_t machine_pin_PB00_obj = {
     .name = MP_QSTR_PB00,
     .pin = BSP_IO_PORT_11_PIN_00,
     .alt_mask = 0x0bd04428U,
+    .irq_channel = 10,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_PB01_obj = {
@@ -677,6 +869,8 @@ static const machine_pin_obj_t machine_pin_PB01_obj = {
     .name = MP_QSTR_PB01,
     .pin = BSP_IO_PORT_11_PIN_01,
     .alt_mask = 0x0240cc28U,
+    .irq_channel = 12,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_PB02_obj = {
@@ -684,6 +878,8 @@ static const machine_pin_obj_t machine_pin_PB02_obj = {
     .name = MP_QSTR_PB02,
     .pin = BSP_IO_PORT_11_PIN_02,
     .alt_mask = 0x03c08428U,
+    .irq_channel = 11,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_PB03_obj = {
@@ -691,6 +887,8 @@ static const machine_pin_obj_t machine_pin_PB03_obj = {
     .name = MP_QSTR_PB03,
     .pin = BSP_IO_PORT_11_PIN_03,
     .alt_mask = 0x03408428U,
+    .irq_channel = 13,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_PB04_obj = {
@@ -698,6 +896,8 @@ static const machine_pin_obj_t machine_pin_PB04_obj = {
     .name = MP_QSTR_PB04,
     .pin = BSP_IO_PORT_11_PIN_04,
     .alt_mask = 0x0340c428U,
+    .irq_channel = 9,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_PB05_obj = {
@@ -705,6 +905,8 @@ static const machine_pin_obj_t machine_pin_PB05_obj = {
     .name = MP_QSTR_PB05,
     .pin = BSP_IO_PORT_11_PIN_05,
     .alt_mask = 0x02400028U,
+    .irq_channel = 15,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_PB06_obj = {
@@ -712,6 +914,8 @@ static const machine_pin_obj_t machine_pin_PB06_obj = {
     .name = MP_QSTR_PB06,
     .pin = BSP_IO_PORT_11_PIN_06,
     .alt_mask = 0x02404028U,
+    .irq_channel = 0,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_PB07_obj = {
@@ -719,6 +923,8 @@ static const machine_pin_obj_t machine_pin_PB07_obj = {
     .name = MP_QSTR_PB07,
     .pin = BSP_IO_PORT_11_PIN_07,
     .alt_mask = 0x02400008U,
+    .irq_channel = 1,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_PC09_obj = {
@@ -726,6 +932,8 @@ static const machine_pin_obj_t machine_pin_PC09_obj = {
     .name = MP_QSTR_PC09,
     .pin = BSP_IO_PORT_12_PIN_09,
     .alt_mask = 0x10000800U,
+    .irq_channel = 5,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_PC10_obj = {
@@ -733,6 +941,8 @@ static const machine_pin_obj_t machine_pin_PC10_obj = {
     .name = MP_QSTR_PC10,
     .pin = BSP_IO_PORT_12_PIN_10,
     .alt_mask = 0x10000808U,
+    .irq_channel = 4,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_PC11_obj = {
@@ -740,6 +950,8 @@ static const machine_pin_obj_t machine_pin_PC11_obj = {
     .name = MP_QSTR_PC11,
     .pin = BSP_IO_PORT_12_PIN_11,
     .alt_mask = 0x00402818U,
+    .irq_channel = 3,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_PC12_obj = {
@@ -747,6 +959,8 @@ static const machine_pin_obj_t machine_pin_PC12_obj = {
     .name = MP_QSTR_PC12,
     .pin = BSP_IO_PORT_12_PIN_12,
     .alt_mask = 0x00402818U,
+    .irq_channel = 2,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_PC13_obj = {
@@ -754,6 +968,8 @@ static const machine_pin_obj_t machine_pin_PC13_obj = {
     .name = MP_QSTR_PC13,
     .pin = BSP_IO_PORT_12_PIN_13,
     .alt_mask = 0x00400818U,
+    .irq_channel = 1,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_PC14_obj = {
@@ -761,6 +977,8 @@ static const machine_pin_obj_t machine_pin_PC14_obj = {
     .name = MP_QSTR_PC14,
     .pin = BSP_IO_PORT_12_PIN_14,
     .alt_mask = 0x0040081cU,
+    .irq_channel = 0,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_PC15_obj = {
@@ -768,6 +986,8 @@ static const machine_pin_obj_t machine_pin_PC15_obj = {
     .name = MP_QSTR_PC15,
     .pin = BSP_IO_PORT_12_PIN_15,
     .alt_mask = 0x00010814U,
+    .irq_channel = 30,
+    .irq_deep_standby = false,
 };
 
 static const machine_pin_obj_t machine_pin_PD06_obj = {
@@ -775,6 +995,8 @@ static const machine_pin_obj_t machine_pin_PD06_obj = {
     .name = MP_QSTR_PD06,
     .pin = BSP_IO_PORT_13_PIN_06,
     .alt_mask = 0x00700008U,
+    .irq_channel = 18,
+    .irq_deep_standby = false,
 };
 
 static const mp_rom_map_elem_t machine_pin_cpu_pins_locals_dict_table[] = {
