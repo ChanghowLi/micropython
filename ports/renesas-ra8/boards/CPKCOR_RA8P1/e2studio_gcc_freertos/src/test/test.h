@@ -19,6 +19,10 @@ extern "C" {
 #define TEST_EN_LCD			0
 #endif
 
+#ifndef TEST_EN_MRAM
+#define TEST_EN_MRAM		1
+#endif
+
 #ifndef TEST_EN_NOR_FLASH
 #define TEST_EN_NOR_FLASH	0
 #endif
@@ -45,6 +49,10 @@ uint32_t TestHyperRAM(uint32_t start_addr, uint32_t size);
 
 #if TEST_EN_LCD
 uint32_t TestLCD(void *lcd_device);
+#endif
+
+#if TEST_EN_MRAM
+uint32_t TestMRAM(uint32_t start_addr, uint32_t size);
 #endif
 
 #if TEST_EN_NOR_FLASH
