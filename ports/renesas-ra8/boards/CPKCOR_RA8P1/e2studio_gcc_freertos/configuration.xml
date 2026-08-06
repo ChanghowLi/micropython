@@ -1021,6 +1021,36 @@
         </stack>
       </stack>
       <stack module="module.driver.external_irq_on_icu.2101464813"/>
+      <stack module="module.driver.external_irq_on_icu.1332641148"/>
+      <stack module="module.driver.external_irq_on_icu.1904977970"/>
+      <stack module="module.driver.external_irq_on_icu.1245790184"/>
+      <stack module="module.driver.external_irq_on_icu.210175269"/>
+      <stack module="module.driver.external_irq_on_icu.291481225"/>
+      <stack module="module.driver.external_irq_on_icu.1286329179"/>
+      <stack module="module.driver.external_irq_on_icu.2025449722"/>
+      <stack module="module.driver.external_irq_on_icu.100349627"/>
+      <stack module="module.driver.external_irq_on_icu.886331047"/>
+      <stack module="module.driver.external_irq_on_icu.2001999607"/>
+      <stack module="module.driver.external_irq_on_icu.61337033"/>
+      <stack module="module.driver.external_irq_on_icu.1999260689"/>
+      <stack module="module.driver.external_irq_on_icu.397683000"/>
+      <stack module="module.driver.external_irq_on_icu.1499139671"/>
+      <stack module="module.driver.external_irq_on_icu.253007973"/>
+      <stack module="module.driver.external_irq_on_icu.1452596386"/>
+      <stack module="module.driver.external_irq_on_icu.1194981106"/>
+      <stack module="module.driver.external_irq_on_icu.625562423"/>
+      <stack module="module.driver.external_irq_on_icu.2002696309"/>
+      <stack module="module.driver.external_irq_on_icu.1183387211"/>
+      <stack module="module.driver.external_irq_on_icu.1285038375"/>
+      <stack module="module.driver.external_irq_on_icu.851629272"/>
+      <stack module="module.driver.external_irq_on_icu.1280185668"/>
+      <stack module="module.driver.external_irq_on_icu.964580088"/>
+      <stack module="module.driver.external_irq_on_icu.1495731999"/>
+      <stack module="module.driver.external_irq_on_icu.626017979"/>
+      <stack module="module.driver.external_irq_on_icu.768257778"/>
+      <stack module="module.driver.external_irq_on_icu.113710829"/>
+      <stack module="module.driver.external_irq_on_icu.282779553"/>
+      <stack module="module.driver.external_irq_on_icu.1036943611"/>
       <stack module="module.driver.spi_on_sci_b_spi.1034699602"/>
       <stack module="module.driver.flash_on_mram.745389232"/>
     </context>
