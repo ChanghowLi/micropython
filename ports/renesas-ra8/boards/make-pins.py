@@ -45,28 +45,32 @@ def read_board_pins(filename):
     return pins
 
 
-def read_af_masks(filename, pins):
-    """Read alternate-function PSEL values and build a mask for each safe pin."""
+def read_pin_functions(filename, pins):
+    """Read IRQ and alternate-function data for each safe pin."""
 
     af_masks = {cpu_name: 0 for _board_name, cpu_name, _port, _bit in pins}
+    irq_channels = {cpu_name: -1 for _board_name, cpu_name, _port, _bit in pins}
+    irq_deep_standby = {
+        cpu_name: False for _board_name, cpu_name, _port, _bit in pins
+    }
     seen = set()
 
     if filename is None:
-        return af_masks
+        return af_masks, irq_channels, irq_deep_standby
 
     with open(filename, newline="", encoding="utf-8-sig") as csv_file:
         reader = csv.DictReader(csv_file)
-        required_fields = {"CPU_PIN", "PSEL", "PERIPHERAL", "SIGNAL", "GROUP"}
+        required_fields = ["CPU_PIN", "IRQ"] + [
+            f"AF{psel}" for psel in range(1, 32)
+        ]
 
-        if reader.fieldnames is None or set(reader.fieldnames) != required_fields:
+        if reader.fieldnames != required_fields:
             raise ValueError(
-                f"{filename}: expected columns "
-                "CPU_PIN,PSEL,PERIPHERAL,SIGNAL,GROUP"
+                f"{filename}: expected columns CPU_PIN,IRQ,AF1,...,AF31"
             )
 
         for row_number, row in enumerate(reader, start=2):
             cpu_name = row["CPU_PIN"].strip()
-            psel_text = row["PSEL"].strip()
 
             parse_pin_name(cpu_name)
 
@@ -76,29 +80,28 @@ def read_af_masks(filename, pins):
                     f"non-safe pin: {cpu_name}"
                 )
 
-            try:
-                psel = int(psel_text, 10)
-            except ValueError as exc:
+            if cpu_name in seen:
                 raise ValueError(
-                    f"{filename}:{row_number}: invalid PSEL: {psel_text}"
-                ) from exc
-
-            if not 1 <= psel <= 31:
-                raise ValueError(
-                    f"{filename}:{row_number}: PSEL must be from 1 to 31"
+                    f"{filename}:{row_number}: duplicate pin: {cpu_name}"
                 )
 
-            key = (cpu_name, psel)
-            if key in seen:
-                raise ValueError(
-                    f"{filename}:{row_number}: duplicate PSEL {psel} "
-                    f"for {cpu_name}"
-                )
+            seen.add(cpu_name)
+            irq = row["IRQ"].strip()
+            if irq:
+                match = re.fullmatch(r"IRQ([0-9]|[12][0-9]|3[01])(-DS)?", irq)
+                if match is None:
+                    raise ValueError(
+                        f"{filename}:{row_number}: invalid IRQ: {irq}"
+                    )
 
-            seen.add(key)
-            af_masks[cpu_name] |= 1 << psel
+                irq_channels[cpu_name] = int(match.group(1), 10)
+                irq_deep_standby[cpu_name] = match.group(2) is not None
 
-    return af_masks
+            for psel in range(1, 32):
+                if row[f"AF{psel}"].strip():
+                    af_masks[cpu_name] |= 1 << psel
+
+    return af_masks, irq_channels, irq_deep_standby
 
 
 def write_header(filename):
@@ -116,7 +119,7 @@ def write_header(filename):
         )
 
 
-def write_source(filename, pins, af_masks):
+def write_source(filename, pins, af_masks, irq_channels, irq_deep_standby):
     """Generate Pin objects and the safe-pin lookup array."""
 
     with open(filename, "w", encoding="utf-8", newline="\n") as output:
@@ -130,6 +133,9 @@ def write_source(filename, pins, af_masks):
                 f"    .name = MP_QSTR_{cpu_name},\n"
                 f"    .pin = BSP_IO_PORT_{port:02d}_PIN_{bit:02d},\n"
                 f"    .alt_mask = 0x{af_masks[cpu_name]:08x}U,\n"
+                f"    .irq_channel = {irq_channels[cpu_name]},\n"
+                f"    .irq_deep_standby = "
+                f"{'true' if irq_deep_standby[cpu_name] else 'false'},\n"
                 f"}};\n\n"
             )
 
@@ -188,9 +194,17 @@ def main():
     args = parser.parse_args()
 
     pins = read_board_pins(args.board_csv)
-    af_masks = read_af_masks(args.af_csv, pins)
+    af_masks, irq_channels, irq_deep_standby = read_pin_functions(
+        args.af_csv, pins
+    )
     write_header(args.output_header)
-    write_source(args.output_source, pins, af_masks)
+    write_source(
+        args.output_source,
+        pins,
+        af_masks,
+        irq_channels,
+        irq_deep_standby,
+    )
 
 
 if __name__ == "__main__":
