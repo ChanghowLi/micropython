@@ -4,15 +4,12 @@
 #include "hal_data.h"
 #include "py/obj.h"
 
-typedef enum _machine_pin_owner_t
-{
-    MACHINE_PIN_OWNER_FREE = 0,
-    MACHINE_PIN_OWNER_GPIO,
-    MACHINE_PIN_OWNER_I2C,
-    MACHINE_PIN_OWNER_IRQ,
-    MACHINE_PIN_OWNER_SPI,
-    MACHINE_PIN_OWNER_UART,
-} machine_pin_owner_t;
+enum {
+    MACHINE_PIN_IRQ_FALLING = 1,
+    MACHINE_PIN_IRQ_RISING = 2,
+    MACHINE_PIN_IRQ_LOW_LEVEL = 4,
+    MACHINE_PIN_IRQ_HIGH_LEVEL = 8,
+};
 
 typedef struct _machine_pin_obj_t {
     mp_obj_base_t base;
@@ -27,12 +24,15 @@ typedef struct _machine_pin_obj_t {
 
 extern const mp_obj_dict_t machine_pin_board_pins_locals_dict;
 extern const mp_obj_dict_t machine_pin_cpu_pins_locals_dict;
+extern const mp_obj_fun_builtin_var_t machine_pin_irq_obj;
 extern const mp_obj_type_t machine_pin_board_pins_obj_type;
 extern const mp_obj_type_t machine_pin_cpu_pins_obj_type;
 extern const mp_obj_type_t machine_pin_type;
 
 const machine_pin_obj_t *machine_pin_find(mp_obj_t user_obj);
-bool machine_pin_take(bsp_io_port_pin_t pin_id, machine_pin_owner_t owner);
-void machine_pin_give(bsp_io_port_pin_t pin_id, machine_pin_owner_t owner);
+void machine_pin_deinit_all(void);
+void machine_pin_give(bsp_io_port_pin_t pin_id);
+void machine_pin_irq_deinit(void);
+bool machine_pin_take(bsp_io_port_pin_t pin_id);
 
 #endif

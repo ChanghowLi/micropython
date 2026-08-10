@@ -32,7 +32,6 @@
 #include "hal_data.h"
 #include "modmachine.h"
 #include "pin.h"
-#include "pin_irq.h"
 #include "sdcard.h"
 
 #include "py/objarray.h"

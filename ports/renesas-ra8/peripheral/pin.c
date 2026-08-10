@@ -3,52 +3,49 @@
 #include "py/runtime.h"
 
 #include "pin.h"
-#include "pin_irq.h"
 
 #define MACHINE_PIN_PINS_PER_PORT (16)
 #define MACHINE_PIN_PORT_COUNT (16)
 
-static uint8_t machine_pin_owners[MACHINE_PIN_PORT_COUNT][MACHINE_PIN_PINS_PER_PORT];
+static uint16_t machine_pin_states[MACHINE_PIN_PORT_COUNT];
 
-bool machine_pin_take(bsp_io_port_pin_t pin_id, machine_pin_owner_t owner)
+bool machine_pin_take(bsp_io_port_pin_t pin_id)
 {
-    uint32_t port = (uint32_t)pin_id >> 8;
-    uint32_t bit = (uint32_t)pin_id & 0xffU;
+    uint32_t port = (uint32_t)pin_id >> 8;    //取port
+    uint32_t bit = (uint32_t)pin_id & 0xffU;  //取pin
 
-    if (port >= MACHINE_PIN_PORT_COUNT || bit >= MACHINE_PIN_PINS_PER_PORT || owner == MACHINE_PIN_OWNER_FREE)
-    {
+    if (port >= MACHINE_PIN_PORT_COUNT || bit >= MACHINE_PIN_PINS_PER_PORT){
         return false;
     }
 
     mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
 
-    if (machine_pin_owners[port][bit] != MACHINE_PIN_OWNER_FREE)
-    {
+    uint16_t mask = (uint16_t)(1U << bit);
+
+    if ((machine_pin_states[port] & mask) != 0U){
         MICROPY_END_ATOMIC_SECTION(atomic_state);
         return false;
     }
 
-    machine_pin_owners[port][bit] = (uint8_t)owner;
+    machine_pin_states[port] |= mask;
     MICROPY_END_ATOMIC_SECTION(atomic_state);
     return true;
 }
 
-void machine_pin_give(bsp_io_port_pin_t pin_id, machine_pin_owner_t owner)
+void machine_pin_give(bsp_io_port_pin_t pin_id)
 {
     uint32_t port = (uint32_t)pin_id >> 8;
     uint32_t bit = (uint32_t)pin_id & 0xffU;
 
-    if (port >= MACHINE_PIN_PORT_COUNT || bit >= MACHINE_PIN_PINS_PER_PORT || owner == MACHINE_PIN_OWNER_FREE)
+    if (port >= MACHINE_PIN_PORT_COUNT || bit >= MACHINE_PIN_PINS_PER_PORT)
     {
         return;
     }
 
     mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
 
-    if (machine_pin_owners[port][bit] == owner)
-    {
-        machine_pin_owners[port][bit] = MACHINE_PIN_OWNER_FREE;
-    }
+    uint16_t mask = (uint16_t)(1U << bit);
+    machine_pin_states[port] &= (uint16_t)~mask;
 
     MICROPY_END_ATOMIC_SECTION(atomic_state);
 }
@@ -246,6 +243,23 @@ static void machine_pin_configure(const machine_pin_obj_t *pin, mp_int_t mode, m
     }
 }
 
+static void machine_pin_take_and_configure(const machine_pin_obj_t *pin, mp_int_t mode, mp_obj_t pull, mp_obj_t value, mp_obj_t drive, mp_obj_t alt)
+{
+    if (!machine_pin_take(pin->pin)) {
+        mp_raise_OSError(MP_EBUSY);
+    }
+
+    nlr_buf_t nlr;
+    if (nlr_push(&nlr) == 0) {
+        machine_pin_configure(pin, mode, pull, value, drive, alt);
+        nlr_pop();
+    }
+    else {
+        machine_pin_give(pin->pin);
+        nlr_jump(nlr.ret_val);
+    }
+}
+
 /**
  * @brief       创建 machine.Pin 对象。如果提供 mode 参数，则同时配置引脚方向、上下拉和驱动能力。value 仅用于指定输出模式的初始电平。
  * @param       type   正在构造的 MicroPython 类型。
@@ -282,7 +296,7 @@ static mp_obj_t machine_pin_make_new(const mp_obj_type_t *type, size_t n_args, s
 
     if (parsed_args[ARG_mode].u_obj != MP_OBJ_NULL) {
         mp_int_t mode = mp_obj_get_int(parsed_args[ARG_mode].u_obj);
-        machine_pin_configure(pin, mode, parsed_args[ARG_pull].u_obj, parsed_args[ARG_value].u_obj, parsed_args[ARG_drive].u_obj, parsed_args[ARG_alt].u_obj);
+        machine_pin_take_and_configure(pin, mode, parsed_args[ARG_pull].u_obj, parsed_args[ARG_value].u_obj, parsed_args[ARG_drive].u_obj, parsed_args[ARG_alt].u_obj);
     }
     else if (
         (parsed_args[ARG_pull].u_obj != MP_OBJ_NULL &&
@@ -339,8 +353,7 @@ static mp_obj_t machine_pin_init(size_t n_args, const mp_obj_t *pos_args, mp_map
 
     if (parsed_args[ARG_mode].u_obj != MP_OBJ_NULL) {
         mp_int_t mode = mp_obj_get_int(parsed_args[ARG_mode].u_obj);
-
-        machine_pin_configure(self, mode, parsed_args[ARG_pull].u_obj, parsed_args[ARG_value].u_obj, parsed_args[ARG_drive].u_obj, parsed_args[ARG_alt].u_obj);
+        machine_pin_take_and_configure(self, mode, parsed_args[ARG_pull].u_obj, parsed_args[ARG_value].u_obj, parsed_args[ARG_drive].u_obj, parsed_args[ARG_alt].u_obj);
     }
     else if (
         (parsed_args[ARG_pull].u_obj != MP_OBJ_NULL &&
@@ -358,11 +371,22 @@ static mp_obj_t machine_pin_init(size_t n_args, const mp_obj_t *pos_args, mp_map
     return mp_const_none;
 }
 
-static MP_DEFINE_CONST_FUN_OBJ_KW(
-    machine_pin_init_obj,
-    1,
-    machine_pin_init
-    );
+static mp_obj_t machine_pin_deinit(mp_obj_t self_in)
+{
+    const machine_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
+
+    machine_pin_configure(
+        self,
+        MACHINE_PIN_MODE_IN,
+        MP_OBJ_NULL,
+        MP_OBJ_NULL,
+        MP_OBJ_NULL,
+        MP_OBJ_NULL
+        );
+    machine_pin_give(self->pin);
+
+    return mp_const_none;
+}
 
 /**
  * @brief Read or set the pin direction mode.
@@ -468,13 +492,6 @@ static mp_obj_t machine_pin_mode(size_t n_args, const mp_obj_t *args)
     return mp_const_none;
 }
 
-static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(
-    machine_pin_mode_obj,
-    1,
-    2,
-    machine_pin_mode
-    );
-
 /**
  * @brief Read or set the pin pull-up configuration.
  *
@@ -530,13 +547,6 @@ static mp_obj_t machine_pin_pull(size_t n_args, const mp_obj_t *args)
 
     return mp_const_none;
 }
-
-static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(
-    machine_pin_pull_obj,
-    1,
-    2,
-    machine_pin_pull
-    );
 
 /**
  * @brief Read or set the pin output drive capability.
@@ -606,15 +616,6 @@ static mp_obj_t machine_pin_drive(size_t n_args, const mp_obj_t *args)
     return mp_const_none;
 }
 
-static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(
-    machine_pin_drive_obj,
-    1,
-    2,
-    machine_pin_drive
-    );
-
-
-
 /**
  * @brief 读取或设置 Pin 对象的数字电平。
  *
@@ -651,8 +652,6 @@ static mp_obj_t machine_pin_value(size_t n_args, const mp_obj_t *args)
 
     return mp_const_none;
 }
-
-static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_pin_value_obj, 1, 2, machine_pin_value);
 
 /**
  * @brief       直接调用 Pin 对象以读取或设置数字电平。
@@ -693,8 +692,6 @@ static mp_obj_t machine_pin_on(mp_obj_t self_in)
     return machine_pin_value(2, value_args);
 }
 
-static MP_DEFINE_CONST_FUN_OBJ_1(machine_pin_on_obj, machine_pin_on);
-
 /**
  * @brief       将 Pin 对象的输出电平设置为低。
  *
@@ -711,11 +708,6 @@ static mp_obj_t machine_pin_off(mp_obj_t self_in)
     return machine_pin_value(2, value_args);
 }
 
-static MP_DEFINE_CONST_FUN_OBJ_1(
-    machine_pin_off_obj,
-    machine_pin_off
-    );
-    
 /**
  * @brief       Toggle the current pin output level.
  *
@@ -744,10 +736,26 @@ static mp_obj_t machine_pin_toggle(mp_obj_t self_in)
     return mp_const_none;
 }
 
-static MP_DEFINE_CONST_FUN_OBJ_1(
-    machine_pin_toggle_obj,
-    machine_pin_toggle
-    );
+void machine_pin_deinit_all(void)
+{
+    mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
+
+    for (size_t port = 0; port < MACHINE_PIN_PORT_COUNT; ++port) {
+        machine_pin_states[port] = 0;
+    }
+
+    MICROPY_END_ATOMIC_SECTION(atomic_state);
+}
+
+static MP_DEFINE_CONST_FUN_OBJ_1(machine_pin_deinit_obj, machine_pin_deinit);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_pin_drive_obj, 1, 2, machine_pin_drive);
+static MP_DEFINE_CONST_FUN_OBJ_KW(machine_pin_init_obj, 1, machine_pin_init);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_pin_mode_obj, 1, 2, machine_pin_mode);
+static MP_DEFINE_CONST_FUN_OBJ_1(machine_pin_off_obj, machine_pin_off);
+static MP_DEFINE_CONST_FUN_OBJ_1(machine_pin_on_obj, machine_pin_on);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_pin_pull_obj, 1, 2, machine_pin_pull);
+static MP_DEFINE_CONST_FUN_OBJ_1(machine_pin_toggle_obj, machine_pin_toggle);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_pin_value_obj, 1, 2, machine_pin_value);
 
 MP_DEFINE_CONST_OBJ_TYPE(
     machine_pin_board_pins_obj_type,
@@ -762,6 +770,7 @@ MP_DEFINE_CONST_OBJ_TYPE(
     MP_TYPE_FLAG_NONE,
     locals_dict, &machine_pin_cpu_pins_locals_dict
     );
+
 
 /** machine.Pin 类的常量和方法。 */
 static const mp_rom_map_elem_t machine_pin_locals_dict_table[] = {
@@ -783,6 +792,7 @@ static const mp_rom_map_elem_t machine_pin_locals_dict_table[] = {
     {MP_ROM_QSTR(MP_QSTR_PULL_UP), MP_ROM_INT(MACHINE_PIN_PULL_UP)},
     {MP_ROM_QSTR(MP_QSTR_board),MP_ROM_PTR(&machine_pin_board_pins_obj_type)},
     {MP_ROM_QSTR(MP_QSTR_cpu),MP_ROM_PTR(&machine_pin_cpu_pins_obj_type)},
+    {MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&machine_pin_deinit_obj)},
     {MP_ROM_QSTR(MP_QSTR_drive), MP_ROM_PTR(&machine_pin_drive_obj)},
     {MP_ROM_QSTR(MP_QSTR_high), MP_ROM_PTR(&machine_pin_on_obj) },
     {MP_ROM_QSTR(MP_QSTR_init), MP_ROM_PTR(&machine_pin_init_obj)},

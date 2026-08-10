@@ -12,7 +12,7 @@
     <option key="#FSPVersion#" value="6.4.0"/>
     <option key="#ConfigurationFragments#" value="Renessa##BSP##Board##ra8p1_cpkcor##"/>
     <option key="#SELECTED_TOOLCHAIN#" value="gcc-arm-embedded"/>
-    <option key="#ToolchainVersion#" value="13.2.1.arm-13-7"/>
+    <option key="#ToolchainVersion#" value=""/>
   </generalSettings>
   <raBspConfiguration>
     <config id="config.bsp.ra8p1.R7KA8P1KFLCAC">
@@ -974,7 +974,12 @@
       <property id="module.driver.external_irq.p_callback" value="machine_pin_irq_callback"/>
       <property id="module.driver.external_irq.ipl" value="board.icu.common.irq.priority12"/>
     </module>
-    <module id="module.driver.spi_on_spi_b.58159120">
+    <module id="module.driver.flash_on_mram.745389232">
+      <property id="module.driver.mram.name" value="g_mram0"/>
+      <property id="module.driver.mram.p_callback" value="NULL"/>
+      <property id="module.driver.mram.err_ipl" value="_disabled"/>
+    </module>
+    <module id="module.driver.spi_on_spi_b.1420757555">
       <property id="module.driver.spi_b.name" value="g_spi0"/>
       <property id="module.driver.spi_b.channel" value="0"/>
       <property id="module.driver.spi_b.rxi_ipl" value="board.icu.common.irq.priority12"/>
@@ -1000,11 +1005,6 @@
       <property id="module.driver.spi_b.spck_delay" value="module.driver.spi_b.spck_delay.one"/>
       <property id="module.driver.spi_b.ssl_negation_delay" value="module.driver.spi_b.ssl_negation_delay.one"/>
       <property id="module.driver.spi_b.next_access_delay" value="module.driver.spi_b.next_access_delay.one"/>
-    </module>
-    <module id="module.driver.flash_on_mram.745389232">
-      <property id="module.driver.mram.name" value="g_mram0"/>
-      <property id="module.driver.mram.p_callback" value="NULL"/>
-      <property id="module.driver.mram.err_ipl" value="_disabled"/>
     </module>
     <context id="_hal.0">
       <stack module="module.driver.ioport_on_ioport.0"/>
@@ -1051,8 +1051,8 @@
       <stack module="module.driver.external_irq_on_icu.113710829"/>
       <stack module="module.driver.external_irq_on_icu.282779553"/>
       <stack module="module.driver.external_irq_on_icu.1036943611"/>
-      <stack module="module.driver.spi_on_sci_b_spi.1034699602"/>
       <stack module="module.driver.flash_on_mram.745389232"/>
+      <stack module="module.driver.spi_on_spi_b.1420757555"/>
     </context>
     <context id="rtos.awsfreertos.thread.0">
       <property id="_symbol" value="repl_thread"/>

@@ -10,7 +10,6 @@
 
 #include "hal_data.h"
 #include "pin.h"
-#include "pin_irq.h"
 #include "py/mperrno.h"
 #include "py/runtime.h"
 #include "shared/runtime/mpirq.h"
@@ -159,7 +158,7 @@ static mp_uint_t machine_pin_irq_trigger(mp_obj_t pin_in, mp_uint_t trigger)
 
         if (irq->pin_taken)
         {
-            machine_pin_give(pin->pin, MACHINE_PIN_OWNER_IRQ);
+            machine_pin_give(pin->pin);
             irq->pin_taken = false;
         }
 
@@ -170,7 +169,7 @@ static mp_uint_t machine_pin_irq_trigger(mp_obj_t pin_in, mp_uint_t trigger)
 
     if (!irq->pin_taken)
     {
-        if (!machine_pin_take(pin->pin, MACHINE_PIN_OWNER_IRQ))
+        if (!machine_pin_take(pin->pin))
         {
             mp_raise_OSError(MP_EBUSY);
         }
@@ -340,8 +339,6 @@ static mp_obj_t machine_pin_irq(size_t n_args, const mp_obj_t *pos_args, mp_map_
     return MP_OBJ_FROM_PTR(irq);
 }
 
-MP_DEFINE_CONST_FUN_OBJ_KW(machine_pin_irq_obj, 1, machine_pin_irq);
-
 void machine_pin_irq_deinit(void)
 {
     for (size_t channel = 0; channel < MACHINE_PIN_IRQ_CHANNEL_COUNT; ++channel)
@@ -357,7 +354,7 @@ void machine_pin_irq_deinit(void)
 
         if (irq->pin_taken)
         {
-            machine_pin_give(irq->pin->pin, MACHINE_PIN_OWNER_IRQ);
+            machine_pin_give(irq->pin->pin);
             irq->pin_taken = false;
         }
 
@@ -369,3 +366,5 @@ void machine_pin_irq_deinit(void)
         MP_STATE_PORT(machine_pin_irq_obj[channel]) = NULL;
     }
 }
+
+MP_DEFINE_CONST_FUN_OBJ_KW(machine_pin_irq_obj, 1, machine_pin_irq);

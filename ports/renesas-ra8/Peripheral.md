@@ -353,15 +353,15 @@ API 完成情况。函数说明写在上方每个函数的标题下
 
 | 函数或常量                 | 状态 |
 | -------------------------- | ---- |
-| machine.SPI()              | ❌    |
+| machine.SPI()              | ✅    |
 | machine.SoftSPI()          | ❌    |
-| SPI.init()                 | ❌    |
-| SPI.deinit()               | ❌    |
+| SPI.init()                 | ✅    |
+| SPI.deinit()               | ✅    |
 | SPI.read()                 | ❌    |
 | SPI.readinto()             | ❌    |
-| SPI.write()                | ❌    |
-| SPI.write_readinto()       | ❌    |
-| SPI.MSB                    | ❌    |
+| SPI.write()                | ✅    |
+| SPI.write_readinto()       | ✅    |
+| SPI.MSB                    | ✅    |
 | SPI.LSB                    | ❌    |
 | SPI.CONTROLLER             | ❌    |
 
