@@ -33,6 +33,7 @@
 #include "modmachine.h"
 #include "pin.h"
 #include "sdcard.h"
+#include "spi.h"
 
 #include "py/objarray.h"
 #include "py/runtime.h"
@@ -219,6 +220,8 @@ void machine_init(void)
 void machine_deinit(void)
 {
     machine_pin_irq_deinit();
+    machine_spi_deinit_all();
+    machine_pin_deinit_all();
     machine_reset_cause_value = MACHINE_RESET_SOFT;
     machine_wake_reason_value = MACHINE_WAKE_UNKNOWN;
 }

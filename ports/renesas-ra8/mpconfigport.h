@@ -138,6 +138,14 @@
 #define MICROPY_PY_MACHINE_SIGNAL                   0
 #endif
 
+#ifndef MICROPY_PY_MACHINE_SPI
+#define MICROPY_PY_MACHINE_SPI                      1
+#endif
+
+#ifndef MICROPY_PY_MACHINE_SPI_MSB
+#define MICROPY_PY_MACHINE_SPI_MSB                  0
+#endif
+
 #ifndef MICROPY_PY_MATH_GAMMA_FIX_NEGINF
 #define MICROPY_PY_MATH_GAMMA_FIX_NEGINF            1
 #endif

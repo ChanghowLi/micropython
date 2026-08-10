@@ -75,10 +75,12 @@ SRC_C := $(FSP_SRC_C)
 
 # Peripheral source file
 SRC_C += peripheral/irq.c
+SRC_C += peripheral/machine_spi.c
 SRC_C += peripheral/pin.c
 SRC_C += peripheral/pin_irq.c
 SRC_C += peripheral/rtc.c
 SRC_C += peripheral/sdcard.c
+SRC_C += peripheral/spi.c
 
 # MicroPython integration sources
 SRC_C += extmod/machine_mem.c
@@ -233,6 +235,7 @@ SRC_QSTR += extmod/vfs_fat.c
 SRC_QSTR += extmod/vfs_fat_diskio.c
 SRC_QSTR += extmod/vfs_fat_file.c
 SRC_QSTR += extmod/vfs_lfs.c
+SRC_QSTR += peripheral/machine_spi.c
 SRC_QSTR += peripheral/pin.c
 SRC_QSTR += peripheral/pin_irq.c
 SRC_QSTR += peripheral/sdcard.c
