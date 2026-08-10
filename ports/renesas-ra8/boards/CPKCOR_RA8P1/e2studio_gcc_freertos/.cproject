@@ -316,7 +316,7 @@
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="py"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="ra"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="ra_gen"/>
-						<entry excluding="runtime/stdout_helpers.c|runtime/softtimer.c|runtime/semihosting_rv32.c|runtime/semihosting_arm.c|runtime/mpirq.c|runtime/interrupt_char.c|runtime/gchelper_thumb1.s|runtime/gchelper_rv64i.s|runtime/gchelper_rv32i.s|runtime/gchelper_native.c|tinyusb|netutils|memzip" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="shared"/>
+						<entry excluding="runtime/stdout_helpers.c|runtime/softtimer.c|runtime/semihosting_rv32.c|runtime/semihosting_arm.c|runtime/interrupt_char.c|runtime/gchelper_thumb1.s|runtime/gchelper_rv64i.s|runtime/gchelper_rv32i.s|runtime/gchelper_native.c|tinyusb|netutils|memzip" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="shared"/>
 						<entry excluding="repl_thread_entry_01.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
 					</sourceEntries>
 				</configuration>

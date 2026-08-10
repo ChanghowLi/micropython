@@ -18,7 +18,16 @@
 
 ### machine.mem_backup(region=0)
 
-返回一个不受软复位影响的内存
+返回一个不受软复位影响的内存。当前只提供一个 backup mem，且仅不受软复位影响，硬复位和断电会清除状态
+
+```python
+# 有参调用和无参调用会返回同一块内存，虽然是不同的对象
+backup_a = machine.mem_backup()
+backup_b = machine.mem_backup(0)
+
+# 这种调用会抛出异常 ValueError
+backup_c = machine.mem_backup(1)
+```
 
 ## 复位相关
 

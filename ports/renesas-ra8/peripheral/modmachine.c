@@ -38,6 +38,25 @@
 #include "py/objarray.h"
 #include "py/runtime.h"
 
+#define TAG __FUNCTION__
+
+#ifndef __MODMACHINE_DEBUG
+#define __MODMACHINE_DEBUG  1
+#endif
+
+#if __MODMACHINE_DEBUG
+#include "utils/log.h"
+#define LOGD(msg, ...)  LOG_D(TAG, msg, ##__VA_ARGS__)
+#define LOGI(msg, ...)  LOG_I(TAG, msg, ##__VA_ARGS__)
+#define LOGW(msg, ...)  LOG_W(TAG, msg, ##__VA_ARGS__)
+#define LOGE(msg, ...)  LOG_E(TAG, msg, ##__VA_ARGS__)
+#else
+#define LOGD(msg, ...)
+#define LOGI(msg, ...)
+#define LOGW(msg, ...)
+#define LOGE(msg, ...)
+#endif
+
 #if MICROPY_HW_ENABLE_RNG
 #include "mphalport.h"
 #endif
@@ -53,8 +72,7 @@
 #define MACHINE_WAKE_UNKNOWN         (0)
 
 #if MICROPY_HW_ENABLE_RNG
-#define MICROPY_PY_MACHINE_RNG_ENTRY \
-    { MP_ROM_QSTR(MP_QSTR_rng), MP_ROM_PTR(&machine_rng_obj) },
+#define MICROPY_PY_MACHINE_RNG_ENTRY { MP_ROM_QSTR(MP_QSTR_rng), MP_ROM_PTR(&machine_rng_obj) },
 #else
 #define MICROPY_PY_MACHINE_RNG_ENTRY
 #endif
@@ -99,9 +117,8 @@ static void mp_machine_set_freq(size_t n_args, const mp_obj_t *args)
 }
 
 /**
- * @brief 获取 MCU 的唯一标识符。
- *
- * @return 包含 MCU 唯一标识符的 Python bytes 对象。
+ * @brief   获取 MCU 的唯一标识符。
+ * @return  包含 MCU 唯一标识符的 Python bytes 对象。
  */
 static mp_obj_t mp_machine_unique_id(void)
 {
@@ -115,9 +132,8 @@ static mp_obj_t mp_machine_unique_id(void)
 #if MICROPY_HW_ENABLE_RNG
 
 /**
- * @brief 获取一个 24 位硬件随机数。
- *
- * @return 取值范围为 0 到 0xFFFFFF 的 Python int 对象。
+ * @brief   获取一个 24 位硬件随机数。
+ * @return  取值范围为 0 到 0xFFFFFF 的 Python int 对象。
  */
 static mp_obj_t machine_rng(void)
 {
@@ -126,9 +142,7 @@ static mp_obj_t machine_rng(void)
 
     mp_hal_get_random(sizeof(random), random);
 
-    value = (uint32_t)random[0]
-        | ((uint32_t)random[1] << 8)
-        | ((uint32_t)random[2] << 16);
+    value = (uint32_t)random[0] | ((uint32_t)random[1] << 8) | ((uint32_t)random[2] << 16);
 
     return MP_OBJ_NEW_SMALL_INT(value);
 }
@@ -139,31 +153,23 @@ static MP_DEFINE_CONST_FUN_OBJ_0(machine_rng_obj, machine_rng);
 
 static mp_obj_t machine_mem_backup_region0_view(void) 
 {
-    return mp_obj_new_memoryview(
-        MP_OBJ_ARRAY_TYPECODE_FLAG_RW | 'I',
-        MACHINE_BACKUP_REGION0_WORDS,
-        machine_mem_backup_region0
-    );
+    return mp_obj_new_memoryview(MP_OBJ_ARRAY_TYPECODE_FLAG_RW | 'I', MACHINE_BACKUP_REGION0_WORDS, machine_mem_backup_region0);
 }
 
 static mp_obj_t machine_mem_backup(size_t n_args, const mp_obj_t *args)
 {
     mp_int_t region = 0;
 
-    if (n_args == 1) 
-    {
+    if (n_args == 1)  {
         region = mp_obj_get_int(args[0]);
     }
 
-    if (region == 0) 
-    {
+    if (region == 0) {
         return machine_mem_backup_region0_view();
     }
 
-    if (region == -1)
-    {
-        mp_obj_t regions[] = 
-        {
+    if (region == -1) {
+        mp_obj_t regions[] = {
             machine_mem_backup_region0_view(),
         };
         return mp_obj_new_tuple(MP_ARRAY_SIZE(regions), regions);
@@ -172,39 +178,29 @@ static mp_obj_t machine_mem_backup(size_t n_args, const mp_obj_t *args)
     mp_raise_ValueError(MP_ERROR_TEXT("invalid backup memory region"));
 }
 
-static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_mem_backup_obj, 0, 1, machine_mem_backup);
-
 static mp_int_t machine_decode_reset_cause(void) 
 {
     uint32_t rstsr0 = machine_reset_flags.rstsr0;
     uint32_t rstsr1 = machine_reset_flags.rstsr1;
     uint32_t rstsr2 = machine_reset_flags.rstsr2;
 
-    if (!(rstsr2 & R_SYSTEM_RSTSR2_CWSF_Msk)) 
-    {
+    if (!(rstsr2 & R_SYSTEM_RSTSR2_CWSF_Msk)) {
         return MACHINE_RESET_POWER_ON;
     }
 
-    if (rstsr0 & R_SYSTEM_RSTSR0_DPSRSTF_Msk) 
-    {
+    if (rstsr0 & R_SYSTEM_RSTSR0_DPSRSTF_Msk) {
         return MACHINE_RESET_DEEPSLEEP;
     }
 
-    if (rstsr1 & (
-        R_SYSTEM_RSTSR1_IWDTRF_Msk |
-        R_SYSTEM_RSTSR1_WDTRF_Msk |
-        R_SYSTEM_RSTSR1_WDT1RF_Msk
-        )) {
+    if (rstsr1 & (R_SYSTEM_RSTSR1_IWDTRF_Msk | R_SYSTEM_RSTSR1_WDTRF_Msk | R_SYSTEM_RSTSR1_WDT1RF_Msk)) {
         return MACHINE_RESET_WDT;
     }
 
-    if (rstsr1 & R_SYSTEM_RSTSR1_SWRF_Msk) 
-    {
+    if (rstsr1 & R_SYSTEM_RSTSR1_SWRF_Msk) {
         return MACHINE_RESET_HARD;
     }
 
-    if (rstsr0 & R_SYSTEM_RSTSR0_PORF_Msk) 
-    {
+    if (rstsr0 & R_SYSTEM_RSTSR0_PORF_Msk) {
         return MACHINE_RESET_POWER_ON;
     }
 
@@ -213,6 +209,8 @@ static mp_int_t machine_decode_reset_cause(void)
 
 void machine_init(void) 
 {
+    LOGD("Call. First init: %b", machine_first_init);
+
     if (machine_first_init) {
         machine_reset_cause_value = machine_decode_reset_cause();
         machine_first_init = false;
@@ -246,9 +244,6 @@ static mp_obj_t machine_wake_reason(void)
     return MP_OBJ_NEW_SMALL_INT(machine_wake_reason_value);
 }
 
-static MP_DEFINE_CONST_FUN_OBJ_0(
-    machine_wake_reason_obj, machine_wake_reason);
-
 static void mp_machine_idle(void)
 {
     __WFI();
@@ -267,3 +262,6 @@ MP_NORETURN static void mp_machine_deepsleep(size_t n_args, const mp_obj_t *args
     (void)args;
     mp_raise_NotImplementedError(MP_ERROR_TEXT("machine.deepsleep not supported"));
 }
+
+static MP_DEFINE_CONST_FUN_OBJ_0(machine_wake_reason_obj, machine_wake_reason);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_mem_backup_obj, 0, 1, machine_mem_backup);

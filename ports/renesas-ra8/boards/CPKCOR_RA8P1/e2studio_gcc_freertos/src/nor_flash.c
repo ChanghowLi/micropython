@@ -1,7 +1,8 @@
+#include <inttypes.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include "hal_data.h"
 #include "nor_flash.h"
-#include "utils/log.h"
 
 #define OSPI_NAME	g_nor_flash
 
@@ -12,8 +13,28 @@
 #define W35T51NW_MEMORY_CAPACITY	0x1A
 #define W35T51NW_EXTENSION			0x02
 
-#define REPORT_ERR(r, e, msg, ...)	do { if (e) { LOG_E(__FUNCTION__, msg, ##__VA_ARGS__); if (r) return e; } } while(0)
-#define UNLIKE(e, r)				do { if (e != r) { return e; } } while (0)
+#ifndef __NOR_FLASH_DEBUG
+#define __NOR_FLASH_DEBUG 1
+#endif
+
+#define TAG __FUNCTION__
+
+#if __NOR_FLASH_DEBUG
+#include "utils/log.h"
+#define LIKE_RETURN(v, t, msg, ...)		if (v == t) { LOG_E(TAG, msg, ##__VA_ARGS__); return v; }
+#define UNLIKE_RETURN(v, t, msg, ...)	if (v != t) { LOG_E(TAG, msg, ##__VA_ARGS__); return v; }
+#define NF_LOGD(msg, ...)				LOG_D(TAG, msg, ##__VA_ARGS__)
+#define NF_LOGI(msg, ...)				LOG_I(TAG, msg, ##__VA_ARGS__)
+#define NF_LOGW(msg, ...)				LOG_W(TAG, msg, ##__VA_ARGS__)
+#define NF_LOGE(msg, ...)				LOG_E(TAG, msg, ##__VA_ARGS__)
+#else
+#define LIKE_RETURN(v, t, msg, ...)		if (v == t) { return v; }
+#define UNLIKE_RETURN(v, t, msg, ...)	if (v != t) { return v; }
+#define NF_LOGD(msg, ...)
+#define NF_LOGI(msg, ...)
+#define NF_LOGW(msg, ...)
+#define NF_LOGE(msg, ...)
+#endif
 
 struct NorFlash {
 	uint8_t read_dummy_cycles_opi;
@@ -41,10 +62,24 @@ uint32_t NorFlash_EraseChip(void)
 	uint32_t err;
 	spi_flash_direct_transfer_t cmd;
 
+#if BSP_CFG_DCACHE_ENABLED
+	bool dcache_reenable = false;
+	bool dcache_enable = SCB->CCR & SCB_CCR_DC_Msk ? true : false;
+	if (dcache_enable) {
+		__DSB();
+		__ISB();
+		SCB_DisableDCache();
+		dcache_reenable = true;
+	}
+#endif
+
 	memset(&cmd, 0, sizeof(spi_flash_direct_transfer_t));
 
 	err = NorFlash_SetWriteEnable();
-	REPORT_ERR(1, err, "SetWriteEnable failed: 0x%lX", err);
+	if (err) {
+		NF_LOGE("SetWriteEnable failed: %" PRIu32, err);
+		goto EXIT;
+	}
 
 	if (g_nor_flash_ctrl.spi_protocol == SPI_FLASH_PROTOCOL_EXTENDED_SPI) {
 		cmd.command = 0x60;
@@ -55,7 +90,18 @@ uint32_t NorFlash_EraseChip(void)
 		cmd.command_length = 0x02;
 	}
 	err = R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_WRITE);
-	REPORT_ERR(1, err, "DirectTransfer failed: 0x%lX", err);
+	if (err) {
+		NF_LOGE("DirectTransfer failed: %" PRIu32, err);
+	}
+
+EXIT:
+#if BSP_CFG_DCACHE_ENABLED
+	if (dcache_reenable) {
+		__DSB();
+		__ISB();
+		SCB_EnableDCache();
+	}
+#endif
 
 	return 0;
 }
@@ -66,13 +112,18 @@ uint32_t NorFlash_EraseSector(uint32_t sector)
 	spi_flash_direct_transfer_t cmd;
 
 #if BSP_CFG_DCACHE_ENABLED
-	__DSB();
-	__ISB();
-    SCB_DisableDCache();
+	bool dcache_reenable = false;
+	bool dcache_enable = SCB->CCR & SCB_CCR_DC_Msk ? true : false;
+	if (dcache_enable) {
+		__DSB();
+		__ISB();
+		SCB_DisableDCache();
+		dcache_reenable = true;
+	}
 #endif
 
 	err = NorFlash_SetWriteEnable();
-	REPORT_ERR(1, err, "SetWriteEnable failed: 0x%lX", err);
+	UNLIKE_RETURN(err, 0, "SetWriteEnable failed: %" PRIu32, err);
 
 	memset(&cmd, 0, sizeof(spi_flash_direct_transfer_t));
 	cmd.address = sector * NORFLASH_SECTOR_SIZE;
@@ -86,14 +137,16 @@ uint32_t NorFlash_EraseSector(uint32_t sector)
 		cmd.command_length = 0x02;
 	}
 	err = R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_WRITE);
-	REPORT_ERR(1, err, "DirectTransfer failed: 0x%lX", err);
-	err = NorFlash_WaitOperation(20);
-	REPORT_ERR(1, err, "SetWriteEnable failed: 0x%lX", err);
+	UNLIKE_RETURN(err, 0, "DirectTransfer failed: %" PRIu32, err);
+	err = NorFlash_WaitOperation(500);
+	UNLIKE_RETURN(err, 0, "SetWriteEnable failed: %" PRIu32, err);
 
 #if BSP_CFG_DCACHE_ENABLED
-	__DSB();
-	__ISB();
-    SCB_EnableDCache();
+	if (dcache_reenable) {
+		__DSB();
+		__ISB();
+		SCB_EnableDCache();
+	}
 #endif
 
 	return 0;
@@ -110,30 +163,37 @@ uint32_t NorFlash_Program(uint32_t address, void const *data, uint32_t length)
 	uint32_t remain = length % 64;
 
 #if BSP_CFG_DCACHE_ENABLED
-	__DSB();
-	__ISB();
-    SCB_DisableDCache();
+	bool dcache_reenable = false;
+	bool dcache_enable = SCB->CCR & SCB_CCR_DC_Msk ? true : false;
+	if (dcache_enable) {
+		__DSB();
+		__ISB();
+		SCB_DisableDCache();
+		dcache_reenable = true;
+	}
 #endif
 
 	for (i = 0; i < repeat; i++) {
-		err = R_OSPI_B_Write(g_nor_flash.p_ctrl, p_data, p_flash, 64);
-		REPORT_ERR(1, err, "Write failed: 0x%lX. Src: 0x%p, Target: 0x%p. i = %lu", err, p_data, p_flash, i);
+		err = R_OSPI_B_Write(&g_nor_flash_ctrl, p_data, p_flash, 64);
+		UNLIKE_RETURN(err, 0, "Write failed: %" PRIu32 ". Src: 0x%p, Target: 0x%p. i = %" PRIu32, err, p_data, p_flash, i);
 		err = NorFlash_WaitOperation(5000);
-		REPORT_ERR(1, err, "Wait failed: 0x%lX. Src: 0x%p, Target: 0x%p. i = %lu", err, p_data, p_flash, i);
+		UNLIKE_RETURN(err, 0, "Wait failed: %" PRIu32 ". Src: 0x%p, Target: 0x%p. i = %" PRIu32, err, p_data, p_flash, i);
 		p_data = &p_data[64];
 		p_flash = &p_flash[64];
 	}
 	if (remain) {
-		err = R_OSPI_B_Write(g_nor_flash.p_ctrl, p_data, p_flash, remain);
-		REPORT_ERR(1, err, "Write failed: 0x%lX. Src: 0x%p, Target: 0x%p", err, p_data, p_flash);
+		err = R_OSPI_B_Write(&g_nor_flash_ctrl, p_data, p_flash, remain);
+		UNLIKE_RETURN(err, 0, "Write failed: %" PRIu32 ". Src: 0x%p, Target: 0x%p", err, p_data, p_flash);
 		err = NorFlash_WaitOperation(5000);
-		REPORT_ERR(1, err, "Wait failed: 0x%lX. Src: 0x%p, Target: 0x%p", err, p_data, p_flash);
+		UNLIKE_RETURN(err, 0, "Wait failed: %" PRIu32 ". Src: 0x%p, Target: 0x%p", err, p_data, p_flash);
 	}
 
 #if BSP_CFG_DCACHE_ENABLED
-	__DSB();
-	__ISB();
-    SCB_EnableDCache();
+	if (dcache_reenable) {
+		__DSB();
+		__ISB();
+		SCB_EnableDCache();
+	}
 #endif
 
 	return 0;
@@ -153,7 +213,14 @@ uint32_t NorFlash_Init(void)
 	uint8_t *p8 = p_cfg_extend->p_autocalibration_preamble_pattern_addr;
 
 #if BSP_CFG_DCACHE_ENABLED
-	SCB_DisableDCache();
+	bool dcache_reenable = false;
+	bool dcache_enable = SCB->CCR & SCB_CCR_DC_Msk ? true : false;
+	if (dcache_enable) {
+		__DSB();
+		__ISB();
+		SCB_DisableDCache();
+		dcache_reenable = true;
+	}
 #endif
 
 	memset(&s_flash, 0, sizeof(s_flash));
@@ -184,12 +251,12 @@ uint32_t NorFlash_Init(void)
 		}
 	}
 	if (i8 == p_cfg_extend->p_xspi_command_set->length) {
-		LOG_W(__FUNCTION__, "Can't find a command table's protoal is 8D-8D-8D");
+		NF_LOGW("Can't find a command table's protoal is 8D-8D-8D");
 		s_flash.read_dummy_cycles_opi = 0x10;
 	}
 	else {
 		s_flash.read_dummy_cycles_opi = p_cmd_table[i8].read_dummy_cycles;
-		LOG_D(__FUNCTION__, "Set 8D-8D-8D read dummy cycles: %d", s_flash.read_dummy_cycles_opi);
+		NF_LOGD("Set 8D-8D-8D read dummy cycles: %" PRIu8, s_flash.read_dummy_cycles_opi);
 	}
 
 	cmd.address = 0x00;
@@ -205,7 +272,7 @@ uint32_t NorFlash_Init(void)
 	expect = (expect << 0x08) | JEDEC_MANUFACTURER_WINBOND;
 	expect = (expect << 0x08) | 0xFF;
 	if (cmd.data == expect) {
-		LOG_D(__FUNCTION__, "Chip: W35N01JW");
+		NF_LOGD("Chip: W35N01JW");
 		s_flash.chip = CHIP_W35N01JW;
 		s_flash.capacity = 1024 * 1024 * 128;
 		s_flash.cfg.erase_command_list_length = 0x01;
@@ -218,13 +285,13 @@ uint32_t NorFlash_Init(void)
 	expect = (expect << 0x08) | W35T51NW_MEMORY_TYPE;
 	expect = (expect << 0x08) | JEDEC_MANUFACTURER_WINBOND;
 	if (cmd.data == expect) {
-		LOG_D(__FUNCTION__, "Chip: W35T51NW");
+		NF_LOGD("Chip: W35T51NW");
 		s_flash.chip = CHIP_W35T51NW;
 		s_flash.capacity = 1024 * 1024 * 64;
 		goto CHECK_ADDR_MODE;
 	}
 
-	LOG_E(__FUNCTION__, "Unsupport NorFlash: 0x%lX", cmd.data);
+	NF_LOGE("Unsupport NorFlash: 0x%" PRIX32, cmd.data);
 	err = FSP_ERR_UNSUPPORTED;
 	goto EXIT;
 
@@ -246,23 +313,23 @@ CHECK_ADDR_MODE:
 		cmd.data_length = 0x01;
 		R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
 		if ((cmd.data & 0x01) == 0x00) {
-			LOG_W(__FUNCTION__, "Enter 4-byte address mode failed");
+			NF_LOGW("Enter 4-byte address mode failed");
 		}
 		else {
-			LOG_D(__FUNCTION__, "Enter 4-byte address mode");
+			NF_LOGD("Enter 4-byte address mode");
 		}
 	}
 
-	LOG_D(__FUNCTION__, "Cali address: %p", p8);
+	NF_LOGD("Cali address: %p", p8);
 	memcpy(cali, p8, 16);
-	LOG_D(__FUNCTION__, "cali[0]: 0x%08lX", cali[0]);
-	LOG_D(__FUNCTION__, "cali[1]: 0x%08lX", cali[1]);
-	LOG_D(__FUNCTION__, "cali[2]: 0x%08lX", cali[2]);
-	LOG_D(__FUNCTION__, "cali[3]: 0x%08lX", cali[3]);
+	NF_LOGD("cali[0]: 0x%08" PRIX32, cali[0]);
+	NF_LOGD("cali[1]: 0x%08" PRIX32, cali[1]);
+	NF_LOGD("cali[2]: 0x%08" PRIX32, cali[2]);
+	NF_LOGD("cali[3]: 0x%08" PRIX32, cali[3]);
 	memset(cali, 0, 16);
 
 	if (memcmp(p8, gc_autocalibration, sizeof(gc_autocalibration))) {
-		LOG_D(__FUNCTION__, "Write autocalibration");
+		NF_LOGD("Write autocalibration");
 		R_OSPI_B_Erase(g_nor_flash.p_ctrl, p8, 4096);
 		NorFlash_WaitOperation(200);
 		R_OSPI_B_Write(g_nor_flash.p_ctrl, (uint8_t *)gc_autocalibration, p8, sizeof(gc_autocalibration));
@@ -276,28 +343,28 @@ CHECK_ADDR_MODE:
 	cmd.data_length = 0x01;
 	cmd.dummy_cycles = 0x08;
 	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
-	LOG_D(__FUNCTION__, "VCR-IOC : 0x%lX", cmd.data);
+	NF_LOGD("VCR-IOC : 0x%" PRIX32, cmd.data);
 	cmd.address = 0x01;
 	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
-	LOG_D(__FUNCTION__, "VCR-DC  : 0x%lX", cmd.data);
+	NF_LOGD("VCR-DC  : 0x%" PRIX32, cmd.data);
 	cmd.address = 0x02;
 	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
-	LOG_D(__FUNCTION__, "VCR-VLB : 0x%lX", cmd.data);
+	NF_LOGD("VCR-VLB : 0x%" PRIX32, cmd.data);
 	cmd.address = 0x03;
 	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
-	LOG_D(__FUNCTION__, "VCR-DS  : 0x%lX", cmd.data);
+	NF_LOGD("VCR-DS  : 0x%" PRIX32, cmd.data);
 	cmd.address = 0x04;
 	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
-	LOG_D(__FUNCTION__, "VCR-CRC : 0x%lX", cmd.data);
+	NF_LOGD("VCR-CRC : 0x%" PRIX32, cmd.data);
 	cmd.address = 0x05;
 	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
-	LOG_D(__FUNCTION__, "VCR-AM  : 0x%lX", cmd.data);
+	NF_LOGD("VCR-AM  : 0x%" PRIX32, cmd.data);
 	cmd.address = 0x06;
 	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
-	LOG_D(__FUNCTION__, "VCR-XIP : 0x%lX", cmd.data);
+	NF_LOGD("VCR-XIP : 0x%" PRIX32, cmd.data);
 	cmd.address = 0x07;
 	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
-	LOG_D(__FUNCTION__, "VCR-Wrap: 0x%lX", cmd.data);
+	NF_LOGD("VCR-Wrap: 0x%" PRIX32, cmd.data);
 
 	/* 设置 Dummy cycle */
 	NorFlash_SetWriteEnable();
@@ -324,10 +391,10 @@ CHECK_ADDR_MODE:
 	R_BSP_OctaclkUpdate(&octaclk);
 	err = R_OSPI_B_SpiProtocolSet(g_nor_flash.p_ctrl, SPI_FLASH_PROTOCOL_8D_8D_8D);
 	if (err) {
-		LOG_E(__FUNCTION__, "R_OSPI_B_SpiProtocolSet failed: %lu", err);
+		NF_LOGE("R_OSPI_B_SpiProtocolSet failed: %" PRIu32, err);
 	}
 	else {
-		LOG_D(__FUNCTION__, "Enter ODDR mode");
+		NF_LOGD("Enter ODDR mode");
 	}
 	memset(cali, 0, 16);
 
@@ -339,32 +406,29 @@ CHECK_ADDR_MODE:
 	cmd.data_length = 0x02;
 	cmd.dummy_cycles = 0x1F;
 	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
-	LOG_D(__FUNCTION__, "VCR-IOC : 0x%lX", cmd.data);
+	NF_LOGD("VCR-IOC : 0x%" PRIX32, cmd.data);
 	cmd.address = 0x01;
 	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
-	LOG_D(__FUNCTION__, "VCR-DC  : 0x%lX", cmd.data);
+	NF_LOGD("VCR-DC  : 0x%" PRIX32, cmd.data);
 	cmd.address = 0x02;
 	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
-	LOG_D(__FUNCTION__, "VCR-VLB : 0x%lX", cmd.data);
+	NF_LOGD("VCR-VLB : 0x%" PRIX32, cmd.data);
 	cmd.address = 0x03;
 	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
-	LOG_D(__FUNCTION__, "VCR-DS  : 0x%lX", cmd.data);
+	NF_LOGD("VCR-DS  : 0x%" PRIX32, cmd.data);
 	cmd.address = 0x04;
 	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
-	LOG_D(__FUNCTION__, "VCR-CRC : 0x%lX", cmd.data);
+	NF_LOGD("VCR-CRC : 0x%" PRIX32, cmd.data);
 	cmd.address = 0x05;
 	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
-	LOG_D(__FUNCTION__, "VCR-AM  : 0x%lX", cmd.data);
+	NF_LOGD("VCR-AM  : 0x%" PRIX32, cmd.data);
 	cmd.address = 0x06;
 	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
-	LOG_D(__FUNCTION__, "VCR-XIP : 0x%lX", cmd.data);
+	NF_LOGD("VCR-XIP : 0x%" PRIX32, cmd.data);
 	cmd.address = 0x07;
 	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
-	LOG_D(__FUNCTION__, "VCR-Wrap: 0x%lX", cmd.data);
-	__DSB();
-	__ISB();
+	NF_LOGD("VCR-Wrap: 0x%" PRIX32, cmd.data);
 
-	SCB_InvalidateDCache();
 #if 0
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.address = (uint32_t)p8 - NORFLASH_MAP_START_ADDR;
@@ -387,10 +451,10 @@ CHECK_ADDR_MODE:
 #else
 	memcpy(cali, p8, 16);
 #endif
-	LOG_D(__FUNCTION__, "cali[0]: 0x%08lX", cali[0]);
-	LOG_D(__FUNCTION__, "cali[1]: 0x%08lX", cali[1]);
-	LOG_D(__FUNCTION__, "cali[2]: 0x%08lX", cali[2]);
-	LOG_D(__FUNCTION__, "cali[3]: 0x%08lX", cali[3]);
+	NF_LOGD("cali[0]: 0x%08" PRIX32, cali[0]);
+	NF_LOGD("cali[1]: 0x%08" PRIX32, cali[1]);
+	NF_LOGD("cali[2]: 0x%08" PRIX32, cali[2]);
+	NF_LOGD("cali[3]: 0x%08" PRIX32, cali[3]);
 
 #if 0
 	cmd.address = 0x2000;
@@ -406,15 +470,17 @@ CHECK_ADDR_MODE:
 	cmd.dummy_cycles = 0x08;
 	R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
 	if (cmd.data_u64 != 0x122355AA55BBCCDD) {
-		LOG_W(__FUNCTION__, "Read not equal to write");
+		NF_LOGW("Read not equal to write");
 	}
 #endif
 
 EXIT:
 #if BSP_CFG_DCACHE_ENABLED
-	__DSB();
-	__ISB();
-	SCB_EnableDCache();
+	if (dcache_reenable) {
+		__DSB();
+		__ISB();
+		SCB_EnableDCache();
+	}
 #endif
 
 	return err;
@@ -445,7 +511,7 @@ uint32_t NorFlash_Read(uint32_t address, void *data, uint32_t length)
 
 	for (i = 0; i < (length / 8); i++) {
 		err = R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
-		REPORT_ERR(1, err, "DirectTransfer failed: %lu, No.%lu", err, i);
+		UNLIKE_RETURN(err, 0, "DirectTransfer failed: %" PRIu32 ", No.%" PRIu32, err, i);
 		p64[i] = cmd.data_u64;
 		cmd.address += 8;
 	}
@@ -453,7 +519,7 @@ uint32_t NorFlash_Read(uint32_t address, void *data, uint32_t length)
 	if (remain) {
 		cmd.data_length = (uint8_t)remain;
 		err = R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
-		REPORT_ERR(1, err, "DirectTransfer failed: %lu while process remain", err);
+		UNLIKE_RETURN(err, 0, "DirectTransfer failed: %" PRIu32 " while process remain", err);
 		memcpy(&p64[i], &cmd.data, remain);
 	}
 
@@ -471,9 +537,14 @@ uint32_t NorFlash_SetWriteEnable(void)
 	uint32_t err = 0;
 
 #if BSP_CFG_DCACHE_ENABLED
-	__DSB();
-	__ISB();
-    SCB_DisableDCache();
+	bool dcache_reenable = false;
+	bool dcache_enable = SCB->CCR & SCB_CCR_DC_Msk ? true : false;
+	if (dcache_enable) {
+		__DSB();
+		__ISB();
+		SCB_DisableDCache();
+		dcache_reenable = true;
+	}
 #endif
 
 	memset(&cmd_we, 0, sizeof(spi_flash_direct_transfer_t));
@@ -504,7 +575,7 @@ uint32_t NorFlash_SetWriteEnable(void)
 		r_cnt--;
 	}
 	if (r_cnt == 0) {
-		LOG_E(__FUNCTION__, "Wait OSPI timeout");
+		NF_LOGE("Wait OSPI timeout");
 		return FSP_ERR_TIMEOUT;
 	}
 	r_cnt = 0;
@@ -528,9 +599,11 @@ uint32_t NorFlash_SetWriteEnable(void)
 	}
 
 #if BSP_CFG_DCACHE_ENABLED
-	__DSB();
-	__ISB();
-    SCB_EnableDCache();
+	if (dcache_reenable) {
+		__DSB();
+		__ISB();
+		SCB_EnableDCache();
+	}
 #endif
 
 	return err;
@@ -601,7 +674,7 @@ uint32_t NorFlash_WriteSector(uint32_t sector, void *data, uint32_t length)
 	uint64_t *p64 = (uint64_t *)data;
 
 	err = NorFlash_EraseSector(sector);
-	REPORT_ERR(1, err, "EraseSector failed");
+	UNLIKE_RETURN(err, 0, "EraseSector failed");
 	memset(&cmd, 0, sizeof(spi_flash_direct_transfer_t));
 	cmd.address = sector * NORFLASH_SECTOR_SIZE;
 	cmd.address_length = 0x04;
@@ -617,11 +690,11 @@ uint32_t NorFlash_WriteSector(uint32_t sector, void *data, uint32_t length)
 	for (i = 0; i < (length / 8); i++) {
 		cmd.data_u64 = p64[i];
 		err = NorFlash_SetWriteEnable();
-		REPORT_ERR(1, err, "SetWriteEnable failed");
+		UNLIKE_RETURN(err, 0, "SetWriteEnable failed");
 		err = R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_WRITE);
-		REPORT_ERR(1, err, "DirectTransfer failed");
+		UNLIKE_RETURN(err, 0, "DirectTransfer failed");
 		err = NorFlash_WaitOperation(20);
-		REPORT_ERR(1, err, "WaitOperation failed");
+		UNLIKE_RETURN(err, 0, "WaitOperation failed");
 		cmd.address += 8;
 	}
 
@@ -629,11 +702,11 @@ uint32_t NorFlash_WriteSector(uint32_t sector, void *data, uint32_t length)
 		cmd.data_length = (uint8_t)remain;
 		memcpy(&cmd.data, &p64[i], remain);
 		err = NorFlash_SetWriteEnable();
-		REPORT_ERR(1, err, "SetWriteEnable failed while process remain");
+		UNLIKE_RETURN(err, 0, "SetWriteEnable failed while process remain");
 		err = R_OSPI_B_DirectTransfer(g_nor_flash.p_ctrl, &cmd, SPI_FLASH_DIRECT_TRANSFER_DIR_WRITE);
-		REPORT_ERR(1, err, "DirectTransfer failed while process remain");
+		UNLIKE_RETURN(err, 0, "DirectTransfer failed while process remain");
 		err = NorFlash_WaitOperation(20);
-		REPORT_ERR(1, err, "WaitOperation failed while process remain");
+		UNLIKE_RETURN(err, 0, "WaitOperation failed while process remain");
 	}
 
 	return 0;
@@ -644,17 +717,17 @@ void NorFlash_DumpOSPIReg(void)
 	ospi_b_instance_ctrl_t *p_ctrl = (ospi_b_instance_ctrl_t *)OSPI_NAME.p_ctrl;
 
 	printf("============== %s ==============\r\n", __FUNCTION__);
-	printf("ABMCFG: 0x%08lX\r\n", p_ctrl->p_reg->ABMCFG);
-	printf(": 0x%08lX\r\n", p_ctrl->p_reg->BMCFGCH[0]);
-	printf(": 0x%08lX\r\n", p_ctrl->p_reg->BMCFGCH[1]);
-	printf(": 0x%08lX\r\n", p_ctrl->p_reg->BMCTL0);
-	printf(": 0x%08lX\r\n", p_ctrl->p_reg->BMCTL1);
-	printf(": 0x%08lX\r\n", p_ctrl->p_reg->CASTTCS[0]);
-	printf(": 0x%08lX\r\n", p_ctrl->p_reg->CASTTCS[1]);
-	printf(": 0x%08lX\r\n", p_ctrl->p_reg->CCCTLCS[0].CCCTL0);
-	printf(": 0x%08lX\r\n", p_ctrl->p_reg->CCCTLCS[0].CCCTL1);
-	printf(": 0x%08lX\r\n", p_ctrl->p_reg->CCCTLCS[0].CCCTL2);
-	printf(": 0x%08lX\r\n", p_ctrl->p_reg->CCCTLCS[0].CCCTL3);
-	printf(": 0x%08lX\r\n", p_ctrl->p_reg->CCCTLCS[0].CCCTL4);
-	printf(": 0x%08lX\r\n", p_ctrl->p_reg->CDCTL0);
+	printf("ABMCFG:     0x%08" PRIX32 "\r\n", p_ctrl->p_reg->ABMCFG);
+	printf("BMCFGCH[0]: 0x%08" PRIX32 "\r\n", p_ctrl->p_reg->BMCFGCH[0]);
+	printf("BMCFGCH[1]: 0x%08" PRIX32 "\r\n", p_ctrl->p_reg->BMCFGCH[1]);
+	printf("BMCTL0:     0x%08" PRIX32 "\r\n", p_ctrl->p_reg->BMCTL0);
+	printf("BMCTL1:     0x%08" PRIX32 "\r\n", p_ctrl->p_reg->BMCTL1);
+	printf("CASTTCS[0]: 0x%08" PRIX32 "\r\n", p_ctrl->p_reg->CASTTCS[0]);
+	printf("CASTTCS[1]: 0x%08" PRIX32 "\r\n", p_ctrl->p_reg->CASTTCS[1]);
+	printf("CCCTL0:     0x%08" PRIX32 "\r\n", p_ctrl->p_reg->CCCTLCS[0].CCCTL0);
+	printf("CCCTL1:     0x%08" PRIX32 "\r\n", p_ctrl->p_reg->CCCTLCS[0].CCCTL1);
+	printf("CCCTL2:     0x%08" PRIX32 "\r\n", p_ctrl->p_reg->CCCTLCS[0].CCCTL2);
+	printf("CCCTL3:     0x%08" PRIX32 "\r\n", p_ctrl->p_reg->CCCTLCS[0].CCCTL3);
+	printf("CCCTL4:     0x%08" PRIX32 "\r\n", p_ctrl->p_reg->CCCTLCS[0].CCCTL4);
+	printf("CDCTL0:     0x%08" PRIX32 "\r\n", p_ctrl->p_reg->CDCTL0);
 }
