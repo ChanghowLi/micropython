@@ -94,7 +94,7 @@
 								<inputType id="ilg.gnuarmeclipse.managedbuild.cross.tool.assembler.input.776797962" superClass="ilg.gnuarmeclipse.managedbuild.cross.tool.assembler.input"/>
 							</tool>
 							<tool commandLinePattern="${COMMAND} ${cross_toolchain_flags} ${FLAGS} -c ${OUTPUT_FLAG} ${OUTPUT_PREFIX}${OUTPUT} -x c ${INPUTS}" id="ilg.gnuarmeclipse.managedbuild.cross.tool.c.compiler.201354852" name="GNU Arm Cross C Compiler" superClass="ilg.gnuarmeclipse.managedbuild.cross.tool.c.compiler">
-								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.otherwarnings.1089082532" name="Other warning flags" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.otherwarnings" useByScannerDiscovery="true" value="-Wno-stringop-overflow -Wno-format-truncation -Wno-aggregate-return -Wno-unused-parameter -Wno-conversion -Wno-missing-declarations -Wno-float-equal -Wno-shadow" valueType="string"/>
+								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.otherwarnings.1089082532" name="Other warning flags" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.otherwarnings" useByScannerDiscovery="true" value="-Wno-stringop-overflow -Wno-format-truncation -Wno-aggregate-return -Wno-unused-parameter -Wno-conversion -Wno-missing-declarations -Wno-float-equal -Wno-shadow -Wno-implicit-fallthrough" valueType="string"/>
 								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.other.1771348326" name="Other compiler flags" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.other" useByScannerDiscovery="true" value="-flax-vector-conversions --param=min-pagesize=0" valueType="string"/>
 								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.std.555233431" name="Language standard" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.std" useByScannerDiscovery="true" value="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.std.gnu99" valueType="enumerated"/>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.defs.1223436163" name="Defined symbols (-D)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.defs" useByScannerDiscovery="true" valueType="definedSymbols">
@@ -309,7 +309,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="modselect.c|modframebuf.c|moddeflate.c|modasyncio.c|nimble" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="extmod"/>
+						<entry excluding="machine_spi.c|modselect.c|modframebuf.c|moddeflate.c|modasyncio.c|nimble" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="extmod"/>
 						<entry excluding="lfs1.c|lfs1_util.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="littlefs"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="oofatfs"/>
 						<entry excluding="modmachine.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="peripheral"/>
