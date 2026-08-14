@@ -24,54 +24,6 @@
 #define MACHINE_PIN_PINS_PER_PORT   16
 #define MACHINE_PIN_PORT_COUNT      16
 
-static void machine_pin_require_irq_inactive(const machine_pin_obj_t *pin)
-{
-    if (machine_pin_irq_is_active(pin)) {
-        mp_raise_OSError(MP_EBUSY);
-    }
-}
-
-bool machine_pin_take(bsp_io_port_pin_t pin_id)
-{
-    uint32_t port = (uint32_t)pin_id >> 8;    //取port
-    uint32_t bit = (uint32_t)pin_id & 0xffU;  //取pin
-
-    if (port >= MACHINE_PIN_PORT_COUNT || bit >= MACHINE_PIN_PINS_PER_PORT){
-        return false;
-    }
-
-    mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
-
-    uint16_t mask = (uint16_t)(1U << bit);
-
-    if ((machine_pin_states[port] & mask) != 0U){
-        MICROPY_END_ATOMIC_SECTION(atomic_state);
-        return false;
-    }
-
-    machine_pin_states[port] |= mask;
-    MICROPY_END_ATOMIC_SECTION(atomic_state);
-    return true;
-}
-
-void machine_pin_give(bsp_io_port_pin_t pin_id)
-{
-    uint32_t port = (uint32_t)pin_id >> 8;
-    uint32_t bit = (uint32_t)pin_id & 0xffU;
-
-    if (port >= MACHINE_PIN_PORT_COUNT || bit >= MACHINE_PIN_PINS_PER_PORT)
-    {
-        return;
-    }
-
-    mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
-
-    uint16_t mask = (uint16_t)(1U << bit);
-    machine_pin_states[port] &= (uint16_t)~mask;
-
-    MICROPY_END_ATOMIC_SECTION(atomic_state);
-}
-
 /**
  * @brief machine.Pin 支持的 GPIO 输出驱动能力。
  */
@@ -103,6 +55,13 @@ enum {
 };
 
 static uint16_t machine_pin_states[MACHINE_PIN_PORT_COUNT];
+
+static void machine_pin_require_irq_inactive(const machine_pin_obj_t *pin)
+{
+    if (machine_pin_irq_is_active(pin)) {
+        mp_raise_OSError(MP_EBUSY);
+    }
+}
 
 /**
  * @brief       将用户传入的引脚标识转换为 Pin 对象。支持已有的 Pin 对象和复用表中注册的引脚名称。

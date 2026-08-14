@@ -1091,24 +1091,6 @@
       <property id="module.driver.spi.tx_fifo_trigger" value="module.driver.spi.tx_fifo_trigger.0"/>
       <property id="module.driver.spi.rx_sampling_delay" value="module.driver.spi.rx_sampling_delay.0"/>
     </module>
-    <module id="module.driver.spi_on_sci_b_spi.1954076869">
-      <property id="module.driver.spi.name" value="g_sci_spi0"/>
-      <property id="module.driver.spi.channel" value="0"/>
-      <property id="module.driver.spi.operating_mode" value="module.driver.spi.operating_mode.mode_master"/>
-      <property id="module.driver.spi.clk_phase" value="module.driver.spi.clk_phase.clk_phase_edge_odd"/>
-      <property id="module.driver.spi.clk_polarity" value="module.driver.spi.clk_polarity.clk_polarity_low"/>
-      <property id="module.driver.spi.mode_fault" value="module.driver.spi.mode_fault.mode_fault_error_disable"/>
-      <property id="module.driver.spi.bit_order" value="module.driver.spi.bit_order.bit_order_msb_first"/>
-      <property id="module.driver.spi.clock_source" value="module.driver.spi.clock_source.pclk"/>
-      <property id="module.driver.spi.p_callback" value="sci_b_spi_callback"/>
-      <property id="module.driver.spi.rxi_ipl" value="_disabled"/>
-      <property id="module.driver.spi.txi_ipl" value="_disabled"/>
-      <property id="module.driver.spi.tei_ipl" value="board.icu.common.irq.priority12"/>
-      <property id="module.driver.spi.eri_ipl" value="board.icu.common.irq.priority12"/>
-      <property id="module.driver.spi.bitrate" value="8000000"/>
-      <property id="module.driver.spi.tx_fifo_trigger" value="module.driver.spi.tx_fifo_trigger.0"/>
-      <property id="module.driver.spi.rx_sampling_delay" value="module.driver.spi.rx_sampling_delay.0"/>
-    </module>
     <context id="_hal.0">
       <stack module="module.driver.ioport_on_ioport.0"/>
       <stack module="module.middleware.rm_freertos_port.0"/>
@@ -1160,7 +1142,6 @@
       <stack module="module.driver.spi_on_sci_b_spi.516001862"/>
       <stack module="module.driver.spi_on_sci_b_spi.315711928"/>
       <stack module="module.driver.spi_on_sci_b_spi.1927049291"/>
-      <stack module="module.driver.spi_on_sci_b_spi.1954076869"/>
     </context>
     <context id="rtos.awsfreertos.thread.0">
       <property id="_symbol" value="repl_thread"/>
