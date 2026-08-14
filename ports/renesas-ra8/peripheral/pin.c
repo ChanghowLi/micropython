@@ -4,10 +4,25 @@
 
 #include "pin.h"
 
-#define MACHINE_PIN_PINS_PER_PORT (16)
-#define MACHINE_PIN_PORT_COUNT (16)
+#ifndef __PIN_DEBUG
+#define __PIN_DEBUG 1
+#endif
 
-static uint16_t machine_pin_states[MACHINE_PIN_PORT_COUNT];
+#if __PIN_DEBUG
+#include "utils/log.h"
+#define PIN_LOGD(msg, ...)  LOG_D(__FUNCTION__, msg, ##__VA_ARGS__)
+#define PIN_LOGI(msg, ...)  LOG_I(__FUNCTION__, msg, ##__VA_ARGS__)
+#define PIN_LOGW(msg, ...)  LOG_W(__FUNCTION__, msg, ##__VA_ARGS__)
+#define PIN_LOGE(msg, ...)  LOG_E(__FUNCTION__, msg, ##__VA_ARGS__)
+#else
+#define PIN_LOGD(msg, ...)
+#define PIN_LOGI(msg, ...)
+#define PIN_LOGW(msg, ...)
+#define PIN_LOGE(msg, ...)
+#endif
+
+#define MACHINE_PIN_PINS_PER_PORT   16
+#define MACHINE_PIN_PORT_COUNT      16
 
 static void machine_pin_require_irq_inactive(const machine_pin_obj_t *pin)
 {
@@ -87,6 +102,8 @@ enum {
     MACHINE_PIN_PULL_UP,
 };
 
+static uint16_t machine_pin_states[MACHINE_PIN_PORT_COUNT];
+
 /**
  * @brief       将用户传入的引脚标识转换为 Pin 对象。支持已有的 Pin 对象和复用表中注册的引脚名称。
  * @param       user_obj 用户传入的 Pin 对象或引脚名称。
@@ -114,6 +131,46 @@ const machine_pin_obj_t *machine_pin_find(mp_obj_t user_obj)
     mp_raise_ValueError(MP_ERROR_TEXT("invalid pin"));
 }
 
+void machine_pin_give(bsp_io_port_pin_t pin_id)
+{
+    uint32_t port = (uint32_t)pin_id >> 8;
+    uint32_t bit = (uint32_t)pin_id & 0xffU;
+
+    if (port >= MACHINE_PIN_PORT_COUNT || bit >= MACHINE_PIN_PINS_PER_PORT) {
+        return;
+    }
+
+    mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
+
+    uint16_t mask = (uint16_t)(1U << bit);
+    machine_pin_states[port] &= (uint16_t)~mask;
+
+    MICROPY_END_ATOMIC_SECTION(atomic_state);
+}
+
+bool machine_pin_take(bsp_io_port_pin_t pin_id)
+{
+    uint32_t port = (uint32_t)pin_id >> 8;    //取port
+    uint32_t bit = (uint32_t)pin_id & 0xffU;  //取pin
+
+    if (port >= MACHINE_PIN_PORT_COUNT || bit >= MACHINE_PIN_PINS_PER_PORT) {
+        return false;
+    }
+
+    mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
+
+    uint16_t mask = (uint16_t)(1U << bit);
+
+    if ((machine_pin_states[port] & mask) != 0U) {
+        MICROPY_END_ATOMIC_SECTION(atomic_state);
+        return false;
+    }
+
+    machine_pin_states[port] |= mask;
+    MICROPY_END_ATOMIC_SECTION(atomic_state);
+    return true;
+}
+
 /**
  * @brief       根据 MicroPython 模式配置 GPIO 引脚。
  *
@@ -134,87 +191,74 @@ static void machine_pin_configure(const machine_pin_obj_t *pin, mp_int_t mode, m
         alt_value = mp_obj_get_int(alt);
     }
 
-    if (mode == MACHINE_PIN_MODE_ALT ||
-        mode == MACHINE_PIN_MODE_ALT_OPEN_DRAIN) {
+    if (mode == MACHINE_PIN_MODE_ALT || mode == MACHINE_PIN_MODE_ALT_OPEN_DRAIN) {
         if (alt_value < 1 || alt_value > 31) {
-            mp_raise_ValueError(
-                MP_ERROR_TEXT("ALT mode requires alt from 1 to 31"));
+            mp_raise_ValueError(MP_ERROR_TEXT("ALT mode requires alt from 1 to 31"));
         }
 
-        uint32_t alt_bit = (uint32_t) 1U << (uint32_t) alt_value;
+        uint32_t alt_bit = 1U << (uint32_t)alt_value;
         if ((pin->alt_mask & alt_bit) == 0U) {
-            mp_raise_ValueError(
-                MP_ERROR_TEXT("invalid alternate function for pin"));
+            mp_raise_ValueError(MP_ERROR_TEXT("invalid alternate function for pin"));
         }
-    } else if (alt_value != -1) {
-        mp_raise_ValueError(
-            MP_ERROR_TEXT("alt is only valid for ALT mode"));
+    }
+    else if (alt_value != -1) {
+        mp_raise_ValueError(MP_ERROR_TEXT("alt is only valid for ALT mode"));
     }
 
     switch (mode) {
-        case MACHINE_PIN_MODE_ANALOG:
-            if (value != MP_OBJ_NULL && value != mp_const_none) {
-                mp_raise_ValueError(
-                    MP_ERROR_TEXT("value is not valid for analog mode"));
+    case MACHINE_PIN_MODE_ANALOG:
+        if (value != MP_OBJ_NULL && value != mp_const_none) {
+            mp_raise_ValueError(MP_ERROR_TEXT("value is not valid for analog mode"));
+        }
+        cfg = IOPORT_CFG_ANALOG_ENABLE;
+        break;
+    case MACHINE_PIN_MODE_IN:
+        if (value != MP_OBJ_NULL && value != mp_const_none) {
+            mp_raise_ValueError(MP_ERROR_TEXT("value is only valid for output mode"));
+        }
+        cfg = IOPORT_CFG_PORT_DIRECTION_INPUT;
+        break;
+    case MACHINE_PIN_MODE_ALT:
+    case MACHINE_PIN_MODE_ALT_OPEN_DRAIN:
+        if (value != MP_OBJ_NULL && value != mp_const_none) {
+            mp_raise_ValueError(MP_ERROR_TEXT("value is not valid for ALT mode"));
+        }
+        cfg = (((uint32_t) alt_value << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) & R_PFS_PORT_PIN_PmnPFS_PSEL_Msk) | IOPORT_CFG_PERIPHERAL_PIN;
+        if (mode == MACHINE_PIN_MODE_ALT_OPEN_DRAIN) {
+            cfg |= IOPORT_CFG_NMOS_ENABLE;
+        }
+        break;
+    case MACHINE_PIN_MODE_OPEN_DRAIN:
+    case MACHINE_PIN_MODE_OUT:
+        cfg = IOPORT_CFG_PORT_DIRECTION_OUTPUT;
+        if (mode == MACHINE_PIN_MODE_OPEN_DRAIN) {
+            cfg |= IOPORT_CFG_NMOS_ENABLE;
+        }
+        if (value != MP_OBJ_NULL && value != mp_const_none) {
+            if (mp_obj_is_true(value)) {
+                cfg |= IOPORT_CFG_PORT_OUTPUT_HIGH;
             }
-
-            cfg = IOPORT_CFG_ANALOG_ENABLE;
-            break;
-
-        case MACHINE_PIN_MODE_IN:
-            if (value != MP_OBJ_NULL && value != mp_const_none) {
-                mp_raise_ValueError(MP_ERROR_TEXT("value is only valid for output mode"));
+            else {
+                cfg |= IOPORT_CFG_PORT_OUTPUT_LOW;
             }
-            cfg = IOPORT_CFG_PORT_DIRECTION_INPUT;
-            break;
-
-        case MACHINE_PIN_MODE_ALT:
-        case MACHINE_PIN_MODE_ALT_OPEN_DRAIN:
-            if (value != MP_OBJ_NULL && value != mp_const_none) {
-                mp_raise_ValueError(
-                    MP_ERROR_TEXT("value is not valid for ALT mode"));
-            }
-
-            cfg = (((uint32_t) alt_value << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) & R_PFS_PORT_PIN_PmnPFS_PSEL_Msk) | IOPORT_CFG_PERIPHERAL_PIN;
-
-            if (mode == MACHINE_PIN_MODE_ALT_OPEN_DRAIN) {
-                cfg |= IOPORT_CFG_NMOS_ENABLE;
-            }
-            break;
-
-        case MACHINE_PIN_MODE_OPEN_DRAIN:
-        case MACHINE_PIN_MODE_OUT:
-            cfg = IOPORT_CFG_PORT_DIRECTION_OUTPUT;
-
-            if (mode == MACHINE_PIN_MODE_OPEN_DRAIN) {
-                cfg |= IOPORT_CFG_NMOS_ENABLE;
-            }
-            if (value != MP_OBJ_NULL && value != mp_const_none) {
-                if (mp_obj_is_true(value)) {
-                    cfg |= IOPORT_CFG_PORT_OUTPUT_HIGH;
-                } else {
-                    cfg |= IOPORT_CFG_PORT_OUTPUT_LOW;
-                }
-            }
-            break;
-        default:
-            mp_raise_ValueError(MP_ERROR_TEXT("invalid pin mode"));
+        }
+        break;
+    default:
+        mp_raise_ValueError(MP_ERROR_TEXT("invalid pin mode"));
     }
 
     if (pull != MP_OBJ_NULL && pull != mp_const_none) {
         switch (mp_obj_get_int(pull)) {
-            case MACHINE_PIN_PULL_NONE:
-                break;
-            case MACHINE_PIN_PULL_UP:
-                if (mode == MACHINE_PIN_MODE_ANALOG) {
-                    mp_raise_ValueError(
-                        MP_ERROR_TEXT("pull is not valid for analog mode"));
-                }
-
-                cfg |= IOPORT_CFG_PULLUP_ENABLE;
-                break;
-            default:
-                mp_raise_ValueError(MP_ERROR_TEXT("invalid pin pull"));
+        case MACHINE_PIN_PULL_NONE:
+            break;
+        case MACHINE_PIN_PULL_UP:
+            if (mode == MACHINE_PIN_MODE_ANALOG) {
+                mp_raise_ValueError(MP_ERROR_TEXT("pull is not valid for analog mode"));
+            }
+            cfg |= IOPORT_CFG_PULLUP_ENABLE;
+            break;
+        default:
+            mp_raise_ValueError(MP_ERROR_TEXT("invalid pin pull"));
         }
     }
 
@@ -223,31 +267,27 @@ static void machine_pin_configure(const machine_pin_obj_t *pin, mp_int_t mode, m
             mode != MACHINE_PIN_MODE_ALT_OPEN_DRAIN &&
             mode != MACHINE_PIN_MODE_OPEN_DRAIN &&
             mode != MACHINE_PIN_MODE_OUT) {
-            mp_raise_ValueError(
-                MP_ERROR_TEXT("drive is only valid for output or ALT mode"));
+            mp_raise_ValueError(MP_ERROR_TEXT("drive is only valid for output or ALT mode"));
         }
 
         switch (mp_obj_get_int(drive)) {
-            case MACHINE_PIN_DRIVE_0:
-                break;
-            case MACHINE_PIN_DRIVE_1:
-                cfg |= IOPORT_CFG_DRIVE_MID;
-                break;
-            case MACHINE_PIN_DRIVE_2:
-                cfg |= IOPORT_CFG_DRIVE_HS_HIGH;
-                break;
-            case MACHINE_PIN_DRIVE_3:
-                cfg |= IOPORT_CFG_DRIVE_HIGH;
-                break;
-            default:
-                mp_raise_ValueError(MP_ERROR_TEXT("invalid pin drive"));
+        case MACHINE_PIN_DRIVE_0:
+            break;
+        case MACHINE_PIN_DRIVE_1:
+            cfg |= IOPORT_CFG_DRIVE_MID;
+            break;
+        case MACHINE_PIN_DRIVE_2:
+            cfg |= IOPORT_CFG_DRIVE_HS_HIGH;
+            break;
+        case MACHINE_PIN_DRIVE_3:
+            cfg |= IOPORT_CFG_DRIVE_HIGH;
+            break;
+        default:
+            mp_raise_ValueError(MP_ERROR_TEXT("invalid pin drive"));
         }
     }
 
-    fsp_err_t err = R_IOPORT_PinCfg(g_ioport.p_ctrl, pin->pin, cfg);
-    if (err != FSP_SUCCESS) {
-        mp_raise_OSError(MP_EIO);
-    }
+    R_IOPORT_PinCfg(g_ioport.p_ctrl, pin->pin, cfg);
 }
 
 static void machine_pin_take_and_configure(const machine_pin_obj_t *pin, mp_int_t mode, mp_obj_t pull, mp_obj_t value, mp_obj_t drive, mp_obj_t alt)
@@ -256,6 +296,16 @@ static void machine_pin_take_and_configure(const machine_pin_obj_t *pin, mp_int_
         mp_raise_OSError(MP_EBUSY);
     }
 
+    /* A temporary exception catch point, like try/catch in C++
+     * It will catch all exception thrown by machine_pin_configure() through mp_raise_*() then throw exception again
+     * In C++, it like:
+     * try {
+     *  machine_pin_configure(pin, mode, pull, value, drive, alt);
+     * }
+     * catch (...) {
+     *  machine_pin_give();
+     *  throw;
+     * } */
     nlr_buf_t nlr;
     if (nlr_push(&nlr) == 0) {
         machine_pin_configure(pin, mode, pull, value, drive, alt);

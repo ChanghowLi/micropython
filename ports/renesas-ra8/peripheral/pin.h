@@ -29,8 +29,8 @@ extern const mp_obj_type_t machine_pin_board_pins_obj_type;
 extern const mp_obj_type_t machine_pin_cpu_pins_obj_type;
 extern const mp_obj_type_t machine_pin_type;
 
-const machine_pin_obj_t *machine_pin_find(mp_obj_t user_obj);
 void machine_pin_deinit_all(void);
+const machine_pin_obj_t *machine_pin_find(mp_obj_t user_obj);
 void machine_pin_give(bsp_io_port_pin_t pin_id);
 void machine_pin_irq_deinit(void);
 bool machine_pin_irq_is_active(const machine_pin_obj_t *pin);
