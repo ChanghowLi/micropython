@@ -22,6 +22,8 @@
 #define IS_VALID_PHASE(value)    (((value) == 0) || ((value) == 1))
 #define IS_VALID_POLARITY(value) (((value) == 0) || ((value) == 1))
 
+MP_REGISTER_ROOT_POINTER(void *ra8_sci_spi_states[RA8_SCI_SPI_COUNT]);
+
 typedef struct _machine_hard_spi_obj_t 
 {
     mp_obj_base_t base;
@@ -52,6 +54,7 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
         .miso = MICROPY_HW_SPI0_MISO,
     },
     #endif
+
     #if defined(MICROPY_HW_SPI1_SCK)
     {
         .base = {&machine_spi_type},
@@ -64,6 +67,126 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
         .sck = MICROPY_HW_SPI1_SCK,
         .mosi = MICROPY_HW_SPI1_MOSI,
         .miso = MICROPY_HW_SPI1_MISO,
+    },
+    #endif
+
+    #if defined(MICROPY_HW_SCI1_SCK)
+    {
+        .base = {&machine_spi_type},
+        .spi_id = 11,
+        .polarity = DEFAULT_SPI_POLARITY,
+        .phase = DEFAULT_SPI_PHASE,
+        .bits = DEFAULT_SPI_BITS,
+        .firstbit = DEFAULT_SPI_FIRSTBIT,
+        .baudrate = DEFAULT_SPI_BAUDRATE,
+        .sck = MICROPY_HW_SCI1_SCK,
+        .mosi = MICROPY_HW_SCI1_TXD,
+        .miso = MICROPY_HW_SCI1_RXD,
+    },
+    #endif
+
+    #if defined(MICROPY_HW_SCI2_SCK)
+    {
+        .base = {&machine_spi_type},
+        .spi_id = 12,
+        .polarity = DEFAULT_SPI_POLARITY,
+        .phase = DEFAULT_SPI_PHASE,
+        .bits = DEFAULT_SPI_BITS,
+        .firstbit = DEFAULT_SPI_FIRSTBIT,
+        .baudrate = DEFAULT_SPI_BAUDRATE,
+        .sck = MICROPY_HW_SCI2_SCK,
+        .mosi = MICROPY_HW_SCI2_TXD,
+        .miso = MICROPY_HW_SCI2_RXD,
+    },
+    #endif
+
+    #if defined(MICROPY_HW_SCI3_SCK)
+    {
+        .base = {&machine_spi_type},
+        .spi_id = 13,
+        .polarity = DEFAULT_SPI_POLARITY,
+        .phase = DEFAULT_SPI_PHASE,
+        .bits = DEFAULT_SPI_BITS,
+        .firstbit = DEFAULT_SPI_FIRSTBIT,
+        .baudrate = DEFAULT_SPI_BAUDRATE,
+        .sck = MICROPY_HW_SCI3_SCK,
+        .mosi = MICROPY_HW_SCI3_TXD,
+        .miso = MICROPY_HW_SCI3_RXD,
+    },
+    #endif
+
+    #if defined(MICROPY_HW_SCI4_SCK)
+    {
+        .base = {&machine_spi_type},
+        .spi_id = 14,
+        .polarity = DEFAULT_SPI_POLARITY,
+        .phase = DEFAULT_SPI_PHASE,
+        .bits = DEFAULT_SPI_BITS,
+        .firstbit = DEFAULT_SPI_FIRSTBIT,
+        .baudrate = DEFAULT_SPI_BAUDRATE,
+        .sck = MICROPY_HW_SCI4_SCK,
+        .mosi = MICROPY_HW_SCI4_TXD,
+        .miso = MICROPY_HW_SCI4_RXD,
+    },
+    #endif
+
+    #if defined(MICROPY_HW_SCI5_SCK)
+    {
+        .base = {&machine_spi_type},
+        .spi_id = 15,
+        .polarity = DEFAULT_SPI_POLARITY,
+        .phase = DEFAULT_SPI_PHASE,
+        .bits = DEFAULT_SPI_BITS,
+        .firstbit = DEFAULT_SPI_FIRSTBIT,
+        .baudrate = DEFAULT_SPI_BAUDRATE,
+        .sck = MICROPY_HW_SCI5_SCK,
+        .mosi = MICROPY_HW_SCI5_TXD,
+        .miso = MICROPY_HW_SCI5_RXD,
+    },
+    #endif
+
+    #if defined(MICROPY_HW_SCI6_SCK)
+    {
+        .base = {&machine_spi_type},
+        .spi_id = 16,
+        .polarity = DEFAULT_SPI_POLARITY,
+        .phase = DEFAULT_SPI_PHASE,
+        .bits = DEFAULT_SPI_BITS,
+        .firstbit = DEFAULT_SPI_FIRSTBIT,
+        .baudrate = DEFAULT_SPI_BAUDRATE,
+        .sck = MICROPY_HW_SCI6_SCK,
+        .mosi = MICROPY_HW_SCI6_TXD,
+        .miso = MICROPY_HW_SCI6_RXD,
+    },
+    #endif
+
+    #if defined(MICROPY_HW_SCI7_SCK)
+    {
+        .base = {&machine_spi_type},
+        .spi_id = 17,
+        .polarity = DEFAULT_SPI_POLARITY,
+        .phase = DEFAULT_SPI_PHASE,
+        .bits = DEFAULT_SPI_BITS,
+        .firstbit = DEFAULT_SPI_FIRSTBIT,
+        .baudrate = DEFAULT_SPI_BAUDRATE,
+        .sck = MICROPY_HW_SCI7_SCK,
+        .mosi = MICROPY_HW_SCI7_TXD,
+        .miso = MICROPY_HW_SCI7_RXD,
+    },
+    #endif
+
+    #if defined(MICROPY_HW_SCI8_SCK)
+    {
+        .base = {&machine_spi_type},
+        .spi_id = 18,
+        .polarity = DEFAULT_SPI_POLARITY,
+        .phase = DEFAULT_SPI_PHASE,
+        .bits = DEFAULT_SPI_BITS,
+        .firstbit = DEFAULT_SPI_FIRSTBIT,
+        .baudrate = DEFAULT_SPI_BAUDRATE,
+        .sck = MICROPY_HW_SCI8_SCK,
+        .mosi = MICROPY_HW_SCI8_TXD,
+        .miso = MICROPY_HW_SCI8_RXD,
     },
     #endif
 };
