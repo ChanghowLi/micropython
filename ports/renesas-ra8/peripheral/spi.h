@@ -17,8 +17,6 @@ int spi_init(
     uint8_t firstbit
     );
 
-void spi_init0(void);
-
 int spi_transfer(
     uint32_t id,
     size_t len,

@@ -9,6 +9,13 @@
 
 static uint16_t machine_pin_states[MACHINE_PIN_PORT_COUNT];
 
+static void machine_pin_require_irq_inactive(const machine_pin_obj_t *pin)
+{
+    if (machine_pin_irq_is_active(pin)) {
+        mp_raise_OSError(MP_EBUSY);
+    }
+}
+
 bool machine_pin_take(bsp_io_port_pin_t pin_id)
 {
     uint32_t port = (uint32_t)pin_id >> 8;    //取port
@@ -81,7 +88,7 @@ enum {
 };
 
 /**
- * @brief       将用户传入的引脚标识转换为 Pin 对象。支持已有的 Pin 对象和 pins.csv 中注册的安全引脚名称。
+ * @brief       将用户传入的引脚标识转换为 Pin 对象。支持已有的 Pin 对象和复用表中注册的引脚名称。
  * @param       user_obj 用户传入的 Pin 对象或引脚名称。
  * @return      对应的 Pin 对象。
  * @exception   ValueError 引脚名称无效或尚未注册。
@@ -307,8 +314,7 @@ static mp_obj_t machine_pin_make_new(const mp_obj_type_t *type, size_t n_args, s
          parsed_args[ARG_drive].u_obj != mp_const_none) ||
         (parsed_args[ARG_alt].u_obj != MP_OBJ_NULL &&
          parsed_args[ARG_alt].u_obj != mp_const_none)) {
-        mp_raise_ValueError(
-            MP_ERROR_TEXT("pull, value, drive and alt require mode"));
+        mp_raise_ValueError(MP_ERROR_TEXT("pull, value, drive and alt require mode"));
     }
 
     return MP_OBJ_FROM_PTR(pin);
@@ -340,14 +346,7 @@ static mp_obj_t machine_pin_init(size_t n_args, const mp_obj_t *pos_args, mp_map
     };
 
     mp_arg_val_t parsed_args[MP_ARRAY_SIZE(allowed_args)];
-    mp_arg_parse_all(
-        n_args - 1,
-        pos_args + 1,
-        kw_args,
-        MP_ARRAY_SIZE(allowed_args),
-        allowed_args,
-        parsed_args
-        );
+    mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, parsed_args);
 
     const machine_pin_obj_t *self = MP_OBJ_TO_PTR(pos_args[0]);
 
@@ -364,8 +363,7 @@ static mp_obj_t machine_pin_init(size_t n_args, const mp_obj_t *pos_args, mp_map
          parsed_args[ARG_drive].u_obj != mp_const_none) ||
         (parsed_args[ARG_alt].u_obj != MP_OBJ_NULL &&
          parsed_args[ARG_alt].u_obj != mp_const_none)) {
-        mp_raise_ValueError(
-            MP_ERROR_TEXT("pull, value, drive and alt require mode"));
+        mp_raise_ValueError(MP_ERROR_TEXT("pull, value, drive and alt require mode"));
     }
 
     return mp_const_none;
@@ -375,28 +373,14 @@ static mp_obj_t machine_pin_deinit(mp_obj_t self_in)
 {
     const machine_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
 
-    machine_pin_configure(
-        self,
-        MACHINE_PIN_MODE_IN,
-        MP_OBJ_NULL,
-        MP_OBJ_NULL,
-        MP_OBJ_NULL,
-        MP_OBJ_NULL
-        );
+    machine_pin_require_irq_inactive(self);
+
+    machine_pin_configure(self, MACHINE_PIN_MODE_IN, MP_OBJ_NULL, MP_OBJ_NULL, MP_OBJ_NULL, MP_OBJ_NULL);
     machine_pin_give(self->pin);
 
     return mp_const_none;
 }
 
-/**
- * @brief Read or set the pin direction mode.
- *
- * @param n_args Number of arguments including self.
- * @param args Arguments containing self and an optional mode.
- * @return Current mode when reading, otherwise None.
- * @exception ValueError The requested mode is not supported.
- * @exception OSError FSP failed to change the pin direction.
- */
 static mp_obj_t machine_pin_mode(size_t n_args, const mp_obj_t *args)
 {
     const machine_pin_obj_t *self = MP_OBJ_TO_PTR(args[0]);
@@ -418,30 +402,22 @@ static mp_obj_t machine_pin_mode(size_t n_args, const mp_obj_t *args)
         }
 
         if (peripheral != 0U) {
-            return MP_OBJ_NEW_SMALL_INT(
-                open_drain == 0U
-                    ? MACHINE_PIN_MODE_ALT
-                    : MACHINE_PIN_MODE_ALT_OPEN_DRAIN
-            );
+            return MP_OBJ_NEW_SMALL_INT(open_drain == 0U ? MACHINE_PIN_MODE_ALT : MACHINE_PIN_MODE_ALT_OPEN_DRAIN);
         }
 
         if (direction == 0U) {
             return MP_OBJ_NEW_SMALL_INT(MACHINE_PIN_MODE_IN);
         }
 
-        return MP_OBJ_NEW_SMALL_INT(
-            open_drain == 0U
-                ? MACHINE_PIN_MODE_OUT
-                : MACHINE_PIN_MODE_OPEN_DRAIN
-        );
+        return MP_OBJ_NEW_SMALL_INT(open_drain == 0U ? MACHINE_PIN_MODE_OUT : MACHINE_PIN_MODE_OPEN_DRAIN);
     }
+
+    machine_pin_require_irq_inactive(self);
 
     mp_int_t mode = mp_obj_get_int(args[1]);
 
-    if (mode == MACHINE_PIN_MODE_ALT ||
-        mode == MACHINE_PIN_MODE_ALT_OPEN_DRAIN) {
-        mp_raise_ValueError(
-            MP_ERROR_TEXT("use init(..., alt=...) for ALT mode"));
+    if (mode == MACHINE_PIN_MODE_ALT || mode == MACHINE_PIN_MODE_ALT_OPEN_DRAIN) {
+        mp_raise_ValueError(MP_ERROR_TEXT("use init(..., alt=...) for ALT mode"));
     }
 
     if (mode != MACHINE_PIN_MODE_ANALOG &&
@@ -480,11 +456,7 @@ static mp_obj_t machine_pin_mode(size_t n_args, const mp_obj_t *args)
             break;
     }
 
-    fsp_err_t err = R_IOPORT_PinCfg(
-        g_ioport.p_ctrl,
-        self->pin,
-        cfg
-        );
+    fsp_err_t err = R_IOPORT_PinCfg(g_ioport.p_ctrl, self->pin, cfg);
     if (err != FSP_SUCCESS) {
         mp_raise_OSError(MP_EIO);
     }
@@ -492,15 +464,6 @@ static mp_obj_t machine_pin_mode(size_t n_args, const mp_obj_t *args)
     return mp_const_none;
 }
 
-/**
- * @brief Read or set the pin pull-up configuration.
- *
- * @param n_args Number of arguments including self.
- * @param args Arguments containing self and an optional pull setting.
- * @return Current pull setting when reading, otherwise None.
- * @exception ValueError The requested pull setting is not supported.
- * @exception OSError FSP failed to configure the pin.
- */
 static mp_obj_t machine_pin_pull(size_t n_args, const mp_obj_t *args)
 {
     const machine_pin_obj_t *self = MP_OBJ_TO_PTR(args[0]);
@@ -510,12 +473,10 @@ static mp_obj_t machine_pin_pull(size_t n_args, const mp_obj_t *args)
     uint32_t cfg = R_PFS->PORT[port].PIN[bit].PmnPFS;
 
     if (n_args == 1) {
-        return MP_OBJ_NEW_SMALL_INT(
-            (cfg & IOPORT_CFG_PULLUP_ENABLE) != 0U
-                ? MACHINE_PIN_PULL_UP
-                : MACHINE_PIN_PULL_NONE
-            );
+        return MP_OBJ_NEW_SMALL_INT((cfg & IOPORT_CFG_PULLUP_ENABLE) != 0U ? MACHINE_PIN_PULL_UP : MACHINE_PIN_PULL_NONE);
     }
+
+    machine_pin_require_irq_inactive(self);
 
     if (args[1] == mp_const_none) {
         cfg &= ~((uint32_t) IOPORT_CFG_PULLUP_ENABLE);
@@ -536,11 +497,7 @@ static mp_obj_t machine_pin_pull(size_t n_args, const mp_obj_t *args)
         }
     }
 
-    fsp_err_t err = R_IOPORT_PinCfg(
-        g_ioport.p_ctrl,
-        self->pin,
-        cfg
-        );
+    fsp_err_t err = R_IOPORT_PinCfg(g_ioport.p_ctrl, self->pin, cfg);
     if (err != FSP_SUCCESS) {
         mp_raise_OSError(MP_EIO);
     }
@@ -548,15 +505,6 @@ static mp_obj_t machine_pin_pull(size_t n_args, const mp_obj_t *args)
     return mp_const_none;
 }
 
-/**
- * @brief Read or set the pin output drive capability.
- *
- * @param n_args Number of arguments including self.
- * @param args Arguments containing self and an optional drive setting.
- * @return Current drive setting when reading, otherwise None.
- * @exception ValueError The pin is not an output or drive is invalid.
- * @exception OSError FSP failed to configure the pin.
- */
 static mp_obj_t machine_pin_drive(size_t n_args, const mp_obj_t *args)
 {
     const machine_pin_obj_t *self = MP_OBJ_TO_PTR(args[0]);
@@ -564,15 +512,15 @@ static mp_obj_t machine_pin_drive(size_t n_args, const mp_obj_t *args)
     uint32_t bit = (uint32_t) self->pin & 0xffU;
 
     if (n_args == 1) {
-        uint32_t drive =
-            R_PFS->PORT[port].PIN[bit].PmnPFS_b.DSCR;
+        uint32_t drive = R_PFS->PORT[port].PIN[bit].PmnPFS_b.DSCR;
 
         return MP_OBJ_NEW_SMALL_INT(drive);
     }
 
+    machine_pin_require_irq_inactive(self);
+
     if (R_PFS->PORT[port].PIN[bit].PmnPFS_b.PDR == 0U) {
-        mp_raise_ValueError(
-            MP_ERROR_TEXT("drive is only valid for output mode"));
+        mp_raise_ValueError(MP_ERROR_TEXT("drive is only valid for output mode"));
     }
 
     mp_int_t drive = mp_obj_get_int(args[1]);
@@ -604,11 +552,7 @@ static mp_obj_t machine_pin_drive(size_t n_args, const mp_obj_t *args)
     cfg &= ~((uint32_t) R_PFS_PORT_PIN_PmnPFS_DSCR_Msk);
     cfg |= drive_cfg;
 
-    fsp_err_t err = R_IOPORT_PinCfg(
-        g_ioport.p_ctrl,
-        self->pin,
-        cfg
-        );
+    fsp_err_t err = R_IOPORT_PinCfg(g_ioport.p_ctrl, self->pin, cfg);
     if (err != FSP_SUCCESS) {
         mp_raise_OSError(MP_EIO);
     }
@@ -642,6 +586,8 @@ static mp_obj_t machine_pin_value(size_t n_args, const mp_obj_t *args)
 
         return MP_OBJ_NEW_SMALL_INT(level == BSP_IO_LEVEL_HIGH);
     }
+
+    machine_pin_require_irq_inactive(self);
 
     bsp_io_level_t level = mp_obj_is_true(args[1]) ? BSP_IO_LEVEL_HIGH : BSP_IO_LEVEL_LOW;
 
@@ -718,6 +664,8 @@ static mp_obj_t machine_pin_toggle(mp_obj_t self_in)
 {
     const machine_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
     bsp_io_level_t level;
+
+    machine_pin_require_irq_inactive(self);
 
     fsp_err_t err = R_IOPORT_PinRead(g_ioport.p_ctrl, self->pin, &level);
     if (err != FSP_SUCCESS) {

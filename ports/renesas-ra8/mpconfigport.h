@@ -142,6 +142,10 @@
 #define MICROPY_PY_MACHINE_SPI                      1
 #endif
 
+#ifndef MICROPY_PY_MACHINE_SPI_LSB
+#define MICROPY_PY_MACHINE_SPI_LSB                  1
+#endif
+
 #ifndef MICROPY_PY_MACHINE_SPI_MSB
 #define MICROPY_PY_MACHINE_SPI_MSB                  0
 #endif

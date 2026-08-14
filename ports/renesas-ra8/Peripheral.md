@@ -154,7 +154,7 @@ API 完成情况。函数说明写在上方每个函数的标题下
 
 当前 RA8P1 实现状态：
 
-- 当前仅注册 `P000`，尚未接入 `pins.csv` 自动生成流程
+- Pin 对象根据板级引脚复用表的 `CPU_PIN` 列自动生成，同时生成对应的 IRQ 和复用功能掩码
 - 支持 `Pin.IN`、`Pin.OUT`
 - 支持 `Pin.PULL_NONE`、`Pin.PULL_UP`；RA8P1 的 PFS/FSP 未提供内部下拉配置
 - 支持仅限关键字传入的 `value=` 和 `drive=`
@@ -357,13 +357,25 @@ API 完成情况。函数说明写在上方每个函数的标题下
 | machine.SoftSPI()          | ❌    |
 | SPI.init()                 | ✅    |
 | SPI.deinit()               | ✅    |
-| SPI.read()                 | ❌    |
-| SPI.readinto()             | ❌    |
+| SPI.read()                 | ✅    |
+| SPI.readinto()             | ✅    |
 | SPI.write()                | ✅    |
 | SPI.write_readinto()       | ✅    |
 | SPI.MSB                    | ✅    |
 | SPI.LSB                    | ❌    |
 | SPI.CONTROLLER             | ❌    |
+
+### SCI0 复用 SPI 板级可用性
+
+RA8P1 芯片支持将 SCI0 复用为 SPI，但 CPKCOR-RA8P1 当前的三组 SCI0 SPI 候选引脚均与板载存储器功能冲突：
+
+| 方案 | MOSI0 | MISO0 | SCK0 | 当前板级功能 | 结论 |
+| ---- | ----- | ----- | ---- | ------------ | ---- |
+| A | P112 | P113 | P300 | SDRAM DQ3 / DQ4 / DQ2 | 与 SDRAM 冲突 |
+| B | P603 | P602 | P601 | P603 和 P602 用于 OSPI1 SCLK / SCLKN | 与 OSPI1 冲突 |
+| C | P609 | P610 | P611 | SDRAM DQ7 / DQ12 / DQ13 | 与 SDRAM 冲突 |
+
+因此，SCI0 并非芯片层面不支持 SPI，而是在保留当前板载 SDRAM 和 OSPI1 功能的前提下，没有可安全使用的完整 SPI 引脚组，所以不向 Python 开放 SCI0 SPI。如果禁用相应的 SDRAM 或 OSPI1 功能，可以重新评估对应引脚组。
 
 ## class I2C
 

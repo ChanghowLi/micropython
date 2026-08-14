@@ -21,42 +21,14 @@ def parse_pin_name(pin_name):
     return port, bit
 
 
-def read_board_pins(filename):
-    """Read and validate safe board pins from pins.csv."""
+def read_pins(filename):
+    """Read Pin objects, IRQs, and alternate functions from the AF table."""
 
     pins = []
-
-    with open(filename, newline="", encoding="utf-8") as csv_file:
-        for row_number, row in enumerate(csv.reader(csv_file), start=1):
-            if not row:
-                continue
-
-            if len(row) != 2:
-                raise ValueError(
-                    f"{filename}:{row_number}: expected 2 columns"
-                )
-
-            board_name = row[0].strip()
-            cpu_name = row[1].strip()
-            port, bit = parse_pin_name(cpu_name)
-
-            pins.append((board_name, cpu_name, port, bit))
-
-    return pins
-
-
-def read_pin_functions(filename, pins):
-    """Read IRQ and alternate-function data for each safe pin."""
-
-    af_masks = {cpu_name: 0 for _board_name, cpu_name, _port, _bit in pins}
-    irq_channels = {cpu_name: -1 for _board_name, cpu_name, _port, _bit in pins}
-    irq_deep_standby = {
-        cpu_name: False for _board_name, cpu_name, _port, _bit in pins
-    }
+    af_masks = {}
+    irq_channels = {}
+    irq_deep_standby = {}
     seen = set()
-
-    if filename is None:
-        return af_masks, irq_channels, irq_deep_standby
 
     with open(filename, newline="", encoding="utf-8-sig") as csv_file:
         reader = csv.DictReader(csv_file)
@@ -72,13 +44,7 @@ def read_pin_functions(filename, pins):
         for row_number, row in enumerate(reader, start=2):
             cpu_name = row["CPU_PIN"].strip()
 
-            parse_pin_name(cpu_name)
-
-            if cpu_name not in af_masks:
-                raise ValueError(
-                    f"{filename}:{row_number}: alternate function for "
-                    f"non-safe pin: {cpu_name}"
-                )
+            port, bit = parse_pin_name(cpu_name)
 
             if cpu_name in seen:
                 raise ValueError(
@@ -86,6 +52,10 @@ def read_pin_functions(filename, pins):
                 )
 
             seen.add(cpu_name)
+            pins.append((cpu_name, cpu_name, port, bit))
+            af_masks[cpu_name] = 0
+            irq_channels[cpu_name] = -1
+            irq_deep_standby[cpu_name] = False
             irq = row["IRQ"].strip()
             if irq:
                 match = re.fullmatch(r"IRQ([0-9]|[12][0-9]|3[01])(-DS)?", irq)
@@ -101,7 +71,7 @@ def read_pin_functions(filename, pins):
                 if row[f"AF{psel}"].strip():
                     af_masks[cpu_name] |= 1 << psel
 
-    return af_masks, irq_channels, irq_deep_standby
+    return pins, af_masks, irq_channels, irq_deep_standby
 
 
 def write_header(filename):
@@ -187,16 +157,12 @@ def write_source(filename, pins, af_masks, irq_channels, irq_deep_standby):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--af-csv")
-    parser.add_argument("--board-csv", required=True)
+    parser.add_argument("--af-csv", required=True)
     parser.add_argument("--output-header", required=True)
     parser.add_argument("--output-source", required=True)
     args = parser.parse_args()
 
-    pins = read_board_pins(args.board_csv)
-    af_masks, irq_channels, irq_deep_standby = read_pin_functions(
-        args.af_csv, pins
-    )
+    pins, af_masks, irq_channels, irq_deep_standby = read_pins(args.af_csv)
     write_header(args.output_header)
     write_source(
         args.output_source,

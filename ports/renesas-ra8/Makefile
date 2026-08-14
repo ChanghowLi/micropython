@@ -38,16 +38,10 @@ BUILD = build-$(BOARD)
 include boards/$(BOARD)/mpconfigboard.mk
 
 # Generated Pin files
-BOARD_PINS = $(BOARD_DIR)/pins.csv
 GEN_PINS_HDR = $(HEADER_BUILD)/pins.h
 GEN_PINS_SRC = $(FSP_PROJECT_DIR)/src/pins_$(BOARD).c
 MAKE_PINS = boards/make-pins.py
-MAKE_PINS_DEPS = $(BOARD_PINS) $(MAKE_PINS)
-
-ifneq ($(strip $(BOARD_AF)),)
-MAKE_PINS_AF_ARG = --af-csv $(BOARD_AF)
-MAKE_PINS_DEPS += $(BOARD_AF)
-endif
+MAKE_PINS_DEPS = $(BOARD_AF) $(MAKE_PINS)
 
 # qstr definitions
 QSTR_DEFS = boards/$(BOARD)/qstrdefsport.h
@@ -364,13 +358,13 @@ info:
 	@echo "  GEN_PINS_SRC = $(GEN_PINS_SRC)"
 	@echo "  HEADER_BUILD = $(HEADER_BUILD)"
 
-# Generate safe Pin objects from the board pins.csv.
+# Generate Pin objects and alternate-function metadata from the board AF table.
 $(OBJ): | $(GEN_PINS_HDR)
 
 .PRECIOUS: $(GEN_PINS_HDR) $(GEN_PINS_SRC)
 $(GEN_PINS_HDR) $(GEN_PINS_SRC) &: $(MAKE_PINS_DEPS) | $(HEADER_BUILD)
 	$(ECHO) "GEN $(GEN_PINS_SRC)"
-	$(Q)$(PYTHON) $(MAKE_PINS) $(MAKE_PINS_AF_ARG) --board-csv $(BOARD_PINS) --output-header $(GEN_PINS_HDR) --output-source $(GEN_PINS_SRC)
+	$(Q)$(PYTHON) $(MAKE_PINS) --af-csv $(BOARD_AF) --output-header $(GEN_PINS_HDR) --output-source $(GEN_PINS_SRC)
 
 # Include MicroPython standard rules
 include $(TOP)/py/mkrules.mk
