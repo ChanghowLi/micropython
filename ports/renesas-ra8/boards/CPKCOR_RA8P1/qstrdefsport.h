@@ -1,7 +1,9 @@
-// qstrs specific to this port — none needed for minimal REPL
+// qstrs specific to this port
 // *FORMAT-OFF*
 
 Q(/flash)
+Q(/mram)
+Q(MRAM)
 Q(NorFlash)
 Q(PIN_WAKE)
 Q(RTC_WAKE)

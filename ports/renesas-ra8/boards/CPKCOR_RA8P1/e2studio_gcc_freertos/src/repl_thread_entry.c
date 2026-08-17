@@ -3,6 +3,7 @@
 
 #include "console.h"
 #include "modmachine.h"
+#include "mram_dev.h"
 #include "nor_flash.h"
 #include "nor_flash_dev.h"
 #include "repl_thread.h"
@@ -26,12 +27,16 @@
 
 #define TAG __FUNCTION__
 
+static bool s_load_script_failed = false;
 static char s_head[MICROPY_HEAP_SIZE];
+
+static int load_auto_exec_script(void);
 
 void repl_thread_entry(void *pvParameters)
 {
+    bool mram_mounted;
     bool nor_flash_mounted;
-    int ret;
+    int result;
     uint32_t nor_flash_result;
 
     FSP_PARAMETER_NOT_USED(pvParameters);
@@ -68,10 +73,12 @@ void repl_thread_entry(void *pvParameters)
     }
 #endif
 
+    /* WARN: This test will erase /mram. Don't enable it unless there's some problems */
 #if TEST_EN_MRAM
     TestMRAM(0x020F0000, 0x10000);
 #endif
 
+    /* WARN: This test will erase SD Card file system info. Don't enable it unless there's some problems */
 #if TEST_EN_SD
     SD_Init();
     R_BSP_SoftwareDelay(500, BSP_DELAY_UNITS_MILLISECONDS);
@@ -100,21 +107,44 @@ soft_reset:
 
     nor_flash_mounted = false;
     if (nor_flash_result == 0) {
-        int mount_result = NorFlashDev_Mount();
-        if (mount_result == 0) {
+        result = NorFlashDev_Mount();
+        if (result == 0) {
             nor_flash_mounted = true;
             printf("MPY: NOR LittleFS mounted at /flash.\r\n");
         }
         else {
-            printf("MPY: failed to mount NOR LittleFS at /flash (error %d).\r\n", mount_result);
+            printf("MPY: failed to mount NOR LittleFS at /flash (error %d).\r\n", result);
         }
     }
 
+    result = MRAM_DEV_Mount();
+    if (result == 0) {
+        mram_mounted = true;
+        printf("MRAM LittleFS mounted at /mram\r\n");
+    }
+    else {
+        mram_mounted = false;
+        printf("MRAM LittleFS mounted failed: %d\r\n", result);
+    }
+
 #if MICROPY_ENABLE_COMPILER
+    if (mram_mounted) {
+        if (s_load_script_failed) {
+            s_load_script_failed = false;
+            printf("Auto skip loading script due to previous error\r\n");
+        }
+        else {
+            result = load_auto_exec_script();
+            if (result) {
+                goto handle_auto_exec_err;
+            }
+        }
+    }
+
     while (1) {
         if (pyexec_mode_kind == PYEXEC_MODE_RAW_REPL) {
-            ret = pyexec_raw_repl();
-            switch (ret) {
+            result = pyexec_raw_repl();
+            switch (result) {
             case 0:
                 LOG_I(TAG, "Raw REPL normal exit, change to Friendly REPL");
                 break;
@@ -122,13 +152,13 @@ soft_reset:
                 LOG_W(TAG, "Raw REPL forced exit");
                 break;
             default:
-                LOG_W(TAG, "Raw REPL unexpect exit, code: 0x%X", ret);
+                LOG_W(TAG, "Raw REPL unexpect exit, code: 0x%X", result);
                 break;
             }
         }
         else {
-            ret = pyexec_friendly_repl();
-            switch (ret) {
+            result = pyexec_friendly_repl();
+            switch (result) {
             case 0:
                 LOG_I(TAG, "Friendly REPL normal exit, change to Raw REPL");
                 break;
@@ -136,12 +166,12 @@ soft_reset:
                 LOG_W(TAG, "Friendly REPL forced exit");
                 break;
             default:
-                LOG_W(TAG, "Friendly REPL unexpect exit, code: 0x%X", ret);
+                LOG_W(TAG, "Friendly REPL unexpect exit, code: 0x%X", result);
                 break;
             }
         }
         
-        if (ret != 0) {
+        if (result != 0) {
             break;
         }
     }
@@ -149,11 +179,18 @@ soft_reset:
     pyexec_frozen_module("frozentest.py", false);
 #endif
 
+handle_auto_exec_err:
     mp_printf(&mp_plat_print, "MPY: soft reboot\n");
     if (nor_flash_mounted) {
-        int unmount_result = NorFlashDev_Unmount();
-        if (unmount_result != 0) {
-            printf("MPY: failed to unmount NOR LittleFS at /flash (error %d).\r\n", unmount_result);
+        result = NorFlashDev_Unmount();
+        if (result != 0) {
+            printf("MPY: failed to unmount NOR LittleFS at /flash (error %d).\r\n", result);
+        }
+    }
+    if (mram_mounted) {
+        result = MRAM_DEV_Unmount();
+        if (result) {
+            printf("MRAM unmount failed: %d\r\n", result);
         }
     }
     mp_deinit();
@@ -235,3 +272,24 @@ void gc_collect(void)
     gc_collect_end();
 }
 #endif
+
+static int load_auto_exec_script(void)
+{
+    int result = pyexec_file_if_exists("/mram/boot.py");
+    if (result & PYEXEC_FORCED_EXIT) {
+        s_load_script_failed = true;
+        return result;
+    }
+
+    if ((result != 0) && (pyexec_mode_kind == PYEXEC_MODE_FRIENDLY_REPL)) {
+        result = pyexec_file_if_exists("/mram/main.py");
+        if (result & PYEXEC_FORCED_EXIT) {
+            s_load_script_failed = true;
+            return result;
+        }
+    }
+
+    s_load_script_failed = false;
+
+    return 0;
+}
