@@ -27,7 +27,10 @@
 
 #define TAG __FUNCTION__
 
+static bool s_load_script_failed = false;
 static char s_head[MICROPY_HEAP_SIZE];
+
+static int load_auto_exec_script(void);
 
 void repl_thread_entry(void *pvParameters)
 {
@@ -125,6 +128,19 @@ soft_reset:
     }
 
 #if MICROPY_ENABLE_COMPILER
+    if (mram_mounted) {
+        if (s_load_script_failed) {
+            s_load_script_failed = false;
+            printf("Auto skip loading script due to previous error\r\n");
+        }
+        else {
+            result = load_auto_exec_script();
+            if (result) {
+                goto handle_auto_exec_err;
+            }
+        }
+    }
+
     while (1) {
         if (pyexec_mode_kind == PYEXEC_MODE_RAW_REPL) {
             result = pyexec_raw_repl();
@@ -163,6 +179,7 @@ soft_reset:
     pyexec_frozen_module("frozentest.py", false);
 #endif
 
+handle_auto_exec_err:
     mp_printf(&mp_plat_print, "MPY: soft reboot\n");
     if (nor_flash_mounted) {
         result = NorFlashDev_Unmount();
@@ -255,3 +272,24 @@ void gc_collect(void)
     gc_collect_end();
 }
 #endif
+
+static int load_auto_exec_script(void)
+{
+    int result = pyexec_file_if_exists("/mram/boot.py");
+    if (result & PYEXEC_FORCED_EXIT) {
+        s_load_script_failed = true;
+        return result;
+    }
+
+    if ((result != 0) && (pyexec_mode_kind == PYEXEC_MODE_FRIENDLY_REPL)) {
+        result = pyexec_file_if_exists("/mram/main.py");
+        if (result & PYEXEC_FORCED_EXIT) {
+            s_load_script_failed = true;
+            return result;
+        }
+    }
+
+    s_load_script_failed = false;
+
+    return 0;
+}

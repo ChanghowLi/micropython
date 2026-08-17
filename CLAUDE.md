@@ -13,4 +13,4 @@ The repository of this warehouse is to port Micropython to Renesas RA8. Board di
 
 ## Build
 
-Reference: `ports/renesas-ra8/Build.md`. However, there is no need to reinstall the environment every time, because for developers, the corresponding environment should already be set up locally. If any problems occur during the construction process, you should first report to the developers instead of installing any software by yourself. For the construction of e2studio, instruct the developers on how to operate in the IDE rather than attempting to do it through the command line. Unless explicitly requested by the developer.
+Reference: `ports/renesas-ra8/Readme.md`. However, there is no need to reinstall the environment every time, because for developers, the corresponding environment should already be set up locally. If any problems occur during the construction process, you should first report to the developers instead of installing any software by yourself. For the construction of e2studio, instruct the developers on how to operate in the IDE rather than attempting to do it through the command line. Unless explicitly requested by the developer.
