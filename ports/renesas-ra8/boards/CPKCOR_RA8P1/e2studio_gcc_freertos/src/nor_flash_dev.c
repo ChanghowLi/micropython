@@ -76,13 +76,14 @@ static bool nor_flash_dev_resolve_address(mp_obj_t block_in, mp_int_t offset, si
 
 static uint32_t nor_flash_dev_read(uint32_t relative_address, void *data, size_t length)
 {
+    /* TODO 读取时没有一次只能读 64 字节的限制，且不要使用 NorFlash_Read()，这是早期调试 NorFlash 时写的用指令读取的 API，效率很低
+     * 参考 test_nor_flash.c 中直接使用内存映射模式读 */
     uint8_t *destination = data;
     uint64_t aligned_buffer[8];
 
     while (length != 0) {
         size_t chunk = length > sizeof(aligned_buffer) ? sizeof(aligned_buffer) : length;
-        uint32_t result = NorFlash_Read(NORFLASH_FS_OFFSET + relative_address,
-            aligned_buffer, chunk);
+        uint32_t result = NorFlash_Read(NORFLASH_FS_OFFSET + relative_address, aligned_buffer, chunk);
         if (result != 0) {
             return result;
         }

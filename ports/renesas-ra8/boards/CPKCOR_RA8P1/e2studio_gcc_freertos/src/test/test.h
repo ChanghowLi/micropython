@@ -20,7 +20,7 @@ extern "C" {
 #endif
 
 #ifndef TEST_EN_MRAM
-#define TEST_EN_MRAM		1
+#define TEST_EN_MRAM		0
 #endif
 
 #ifndef TEST_EN_NOR_FLASH

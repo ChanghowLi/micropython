@@ -14,7 +14,7 @@
 #define W35T51NW_EXTENSION			0x02
 
 #ifndef __NOR_FLASH_DEBUG
-#define __NOR_FLASH_DEBUG 1
+#define __NOR_FLASH_DEBUG 0
 #endif
 
 #define TAG __FUNCTION__
@@ -256,7 +256,7 @@ uint32_t NorFlash_Init(void)
 	}
 	else {
 		s_flash.read_dummy_cycles_opi = p_cmd_table[i8].read_dummy_cycles;
-		NF_LOGD("Set 8D-8D-8D read dummy cycles: %" PRIu8, s_flash.read_dummy_cycles_opi);
+		NF_LOGD("Set 8D-8D-8D read dummy cycles: %d", s_flash.read_dummy_cycles_opi);
 	}
 
 	cmd.address = 0x00;
