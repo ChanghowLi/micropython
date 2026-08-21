@@ -73,6 +73,7 @@ SRC_C += peripheral/machine_spi.c
 SRC_C += peripheral/pin.c
 SRC_C += peripheral/pin_irq.c
 SRC_C += peripheral/rtc.c
+SRC_C += peripheral/sci.c
 SRC_C += peripheral/sdcard.c
 SRC_C += peripheral/spi.c
 

@@ -1,6 +1,7 @@
 #ifndef MICROPY_INCLUDED_RENESAS_RA8_PERIPHERAL_PIN_H
 #define MICROPY_INCLUDED_RENESAS_RA8_PERIPHERAL_PIN_H
 
+#include "genhdr/pins.h"
 #include "hal_data.h"
 #include "py/obj.h"
 
@@ -20,17 +21,33 @@ typedef struct _machine_pin_obj_t {
     bool irq_deep_standby;
 } machine_pin_obj_t;
 
-#include "genhdr/pins.h"
+typedef enum {
+    MACHINE_PIN_AF_SCI_MISO,
+    MACHINE_PIN_AF_SCI_MOSI,
+    MACHINE_PIN_AF_SCI_SCK,
+} machine_pin_af_signal_t;
+
+typedef struct {
+    bsp_io_port_pin_t pin;
+    uint8_t channel;
+    uint8_t group;
+    machine_pin_af_signal_t signal;
+} machine_pin_af_obj_t;
 
 extern const mp_obj_dict_t machine_pin_board_pins_locals_dict;
 extern const mp_obj_dict_t machine_pin_cpu_pins_locals_dict;
 extern const mp_obj_fun_builtin_var_t machine_pin_irq_obj;
+extern const machine_pin_af_obj_t machine_pin_sci_spi_afs[];
 extern const mp_obj_type_t machine_pin_board_pins_obj_type;
 extern const mp_obj_type_t machine_pin_cpu_pins_obj_type;
 extern const mp_obj_type_t machine_pin_type;
+extern const size_t machine_pin_sci_spi_afs_count;
 
 void machine_pin_deinit_all(void);
 const machine_pin_obj_t *machine_pin_find(mp_obj_t user_obj);
+void machine_pin_configure_alt(bsp_io_port_pin_t pin_id, ioport_peripheral_t peripheral);
+void machine_pin_configure_output(const machine_pin_obj_t *pin, bool value);
+void machine_pin_write(const machine_pin_obj_t *pin, bool value);
 void machine_pin_give(bsp_io_port_pin_t pin_id);
 void machine_pin_irq_deinit(void);
 bool machine_pin_irq_is_active(const machine_pin_obj_t *pin);

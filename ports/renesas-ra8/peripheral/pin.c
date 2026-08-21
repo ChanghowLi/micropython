@@ -56,6 +56,7 @@ enum {
 
 static uint16_t machine_pin_states[MACHINE_PIN_PORT_COUNT];
 
+//3检查这个引脚上有没有正在工作的中断
 static void machine_pin_require_irq_inactive(const machine_pin_obj_t *pin)
 {
     if (machine_pin_irq_is_active(pin)) {
@@ -249,6 +250,34 @@ static void machine_pin_configure(const machine_pin_obj_t *pin, mp_int_t mode, m
     R_IOPORT_PinCfg(g_ioport.p_ctrl, pin->pin, cfg);
 }
 
+//把引脚配置为外设功能
+void machine_pin_configure_alt(bsp_io_port_pin_t pin_id, ioport_peripheral_t peripheral)
+{
+    uint32_t cfg = (uint32_t)IOPORT_CFG_PERIPHERAL_PIN | (uint32_t)peripheral;
+
+    fsp_err_t err = R_IOPORT_PinCfg(g_ioport.p_ctrl, pin_id, cfg);
+
+    if (err != FSP_SUCCESS) {
+        mp_raise_OSError(MP_EIO);
+    }
+}
+
+//把 CS 配置为 GPIO 输出
+void machine_pin_configure_output(const machine_pin_obj_t *pin, bool value)
+{
+    machine_pin_configure(pin, MACHINE_PIN_MODE_OUT, MP_OBJ_NULL, value ? mp_const_true : mp_const_false, MP_OBJ_NULL, MP_OBJ_NULL);
+}
+
+//把 CS 拉高或拉低
+void machine_pin_write(const machine_pin_obj_t *pin, bool value)
+{
+    fsp_err_t err = R_IOPORT_PinWrite(g_ioport.p_ctrl, pin->pin, value ? BSP_IO_LEVEL_HIGH : BSP_IO_LEVEL_LOW);
+
+    if (err != FSP_SUCCESS) {
+        mp_raise_OSError(MP_EIO);
+    }
+}
+
 static void machine_pin_take_and_configure(const machine_pin_obj_t *pin, mp_int_t mode, mp_obj_t pull, mp_obj_t value, mp_obj_t drive, mp_obj_t alt)
 {
     if (!machine_pin_take(pin->pin)) {
@@ -361,6 +390,7 @@ static mp_obj_t machine_pin_init(size_t n_args, const mp_obj_t *pos_args, mp_map
 
     if (parsed_args[ARG_mode].u_obj != MP_OBJ_NULL) {
         mp_int_t mode = mp_obj_get_int(parsed_args[ARG_mode].u_obj);
+        machine_pin_require_irq_inactive(self);
         machine_pin_take_and_configure(self, mode, parsed_args[ARG_pull].u_obj, parsed_args[ARG_value].u_obj, parsed_args[ARG_drive].u_obj, parsed_args[ARG_alt].u_obj);
     }
     else if (

@@ -280,7 +280,7 @@ API 完成情况。函数说明写在上方每个函数的标题下
 
 参考：[MicroPython class SPI](https://docs.micropython.org/en/latest/library/machine.SPI.html)
 
-SPI 是由控制器驱动的同步串行通信协议。总线通常包含 `SCK`、`MOSI` 和 `MISO` 三根信号线。多个设备可以共用同一总线，但每个设备需要独立的 `CS` 片选信号，片选信号由用户通过 `machine.Pin` 控制。
+SPI 是由控制器驱动的同步串行通信协议。总线通常包含 `SCK`、`MOSI` 和 `MISO` 三根信号线。多个设备可以共用同一总线，但每个设备需要独立的 `CS` 片选信号。片选信号可以由用户通过 `machine.Pin` 手动控制，也可以通过硬件 SPI 的可选 `cs` 参数自动控制。
 
 RA8P1 有 2 个 SPI 和 9 个 SCI（SCI9 已被 REPL 占用），对 Python 代码来说，先从专用的 SPI 开始分配资源，然后再到 SCI。需要注意看原理图，不要影响到其它板子已经连接的器件，如果某个外设会影响到现有连接，则对应的外设不允许 Python 调用。对 SCI 来说还需要注意与 IIC、UART 的共享。
 
@@ -303,7 +303,7 @@ RA8P1 有 2 个 SPI 和 9 个 SCI（SCI9 已被 REPL 占用），对 Python 代�
 
 参数含义与 `SPI.init()` 相同，通常至少需要指定 `sck`、`mosi` 和 `miso`。
 
-### SPI.init(baudrate=1000000,*,polarity=0,phase=0,bits=8,firstbit=SPI.MSB,sck=None,mosi=None,miso=None,pins=(SCK,MOSI,MISO))
+### SPI.init(baudrate=1000000,*,polarity=0,phase=0,bits=8,firstbit=SPI.MSB,sck=None,mosi=None,miso=None,cs=None,pins=(SCK,MOSI,MISO))
 
 使用指定参数初始化 SPI 总线。
 
@@ -317,6 +317,7 @@ RA8P1 有 2 个 SPI 和 9 个 SCI（SCI9 已被 REPL 占用），对 Python 代�
 - sck: 用作 SPI 时钟信号的 `machine.Pin` 对象
 - mosi: 用作控制器输出、外设输入信号的 `machine.Pin` 对象
 - miso: 用作控制器输入、外设输出信号的 `machine.Pin` 对象
+- cs: 可选的低电平有效片选引脚。传入 `machine.Pin` 时，每次 SPI 传输前自动拉低 CS，传输完成或出错后自动拉高 CS；显式传入 `None` 时关闭自动 CS；在 `init()` 中省略该参数时保留当前 CS 配置
 - pins: WiPy 端口使用的 `(SCK, MOSI, MISO)` 引脚元组，用于替代 `sck`、`mosi` 和 `miso` 参数
 
 硬件 SPI 可使用的引脚通常由外设固定，部分硬件可能提供几组可选引脚；软件 SPI 可以使用任意合适的引脚。
@@ -362,25 +363,9 @@ API 完成情况。函数说明写在上方每个函数的标题下
 | SPI.write()                | ✅    |
 | SPI.write_readinto()       | ✅    |
 | SPI.MSB                    | ✅    |
-| SPI.LSB                    | ❌    |
+| SPI.LSB                    | ✅    |
 | SPI.CONTROLLER             | ❌    |
 
-
-### 最终正确的推荐组合
-
-如果目标是给 CPKCOR_RA8P1 核心板做 SCI Simple SPI 支持，建议实际采用以下组合。SCI1～SCI8 全部具备完整的 SCK、MOSI、MISO，因此全部可以复用为 SPI。
-
-| SCI | SCK | MOSI | MISO | 球位 SCK/MOSI/MISO | 外部位置 | 结论 |
-| --- | --- | ---- | ---- | ------------------ | -------- | ---- |
-| SCI0 | — | — | — | — | — | 不可使用：可选引脚组与 SDRAM 或 OSPI1 冲突 |
-| SCI1_A | P402 | P400 | P401 | L14 / P17 / N17 | J201-2 / 4 / 3 | 可直接使用 |
-| SCI2_A | P803 | P801 | P802 | P7 / P6 / R6 | J2-42 / 48 / 44 | 可直接使用 |
-| SCI3_B | P311 | P310 | P905 | B12 / E10 / A14 | J3 | 可直接使用 |
-| SCI4_B | P708 | P415 | P414 | N12 / R15 / L13 | J2-14 / 12 / 10 | 可直接使用 |
-| SCI5_C | PB04 | PB03 | PB02 | D13 / D16 / E13 | J3-74 / 72 / 70 | 可直接使用 |
-| SCI6_C | PC12 | PC14 | PC13 | G5 / F5 / J5 | J1-10 / 40 / 38 | 可直接使用 |
-| SCI7_B | P810 | P809 | P808 | M9 / T5 / U5 | J2-37 / 47 / 49 | 可直接使用 |
-| SCI8_A | P513 | P805 | P806 | R13 / P12 / T14 | J2-18 / J1-46 / J1-48 | 可直接使用 |
 
 ## class I2C
 

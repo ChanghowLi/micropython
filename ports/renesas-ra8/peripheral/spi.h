@@ -5,8 +5,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define RA8_SCI_SPI_COUNT (8)
-
 void machine_spi_deinit_all(void);
 bool spi_deinit(uint32_t id);
 
