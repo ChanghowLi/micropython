@@ -56,7 +56,6 @@ void repl_thread_entry(void *pvParameters)
 #if LOG_CFG_EN_SEGGER_RTT
     printf("_SEGGER_RTT address: 0x%p\r\n", &_SEGGER_RTT);
 #endif
-
     RTC_Init();
     R_RSIP_Open(g_rsip.p_ctrl, g_rsip.p_cfg);
     R_MRAM_Open(g_mram0.p_ctrl, g_mram0.p_cfg);

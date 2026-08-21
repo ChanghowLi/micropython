@@ -1321,3 +1321,207 @@ const machine_pin_obj_t *const machine_pin_generated_pins[] = {
 
 const size_t machine_pin_generated_pins_count =
     MP_ARRAY_SIZE(machine_pin_generated_pins);
+
+const machine_pin_af_obj_t machine_pin_sci_spi_afs[] = {
+    {
+        .pin = BSP_IO_PORT_01_PIN_00,
+        .channel = 9,
+        .group = 'A',
+        .signal = MACHINE_PIN_AF_SCI_SCK,
+    },
+    {
+        .pin = BSP_IO_PORT_01_PIN_01,
+        .channel = 9,
+        .group = 'A',
+        .signal = MACHINE_PIN_AF_SCI_MISO,
+    },
+    {
+        .pin = BSP_IO_PORT_01_PIN_02,
+        .channel = 9,
+        .group = 'A',
+        .signal = MACHINE_PIN_AF_SCI_MOSI,
+    },
+    {
+        .pin = BSP_IO_PORT_03_PIN_11,
+        .channel = 3,
+        .group = 'B',
+        .signal = MACHINE_PIN_AF_SCI_SCK,
+    },
+    {
+        .pin = BSP_IO_PORT_04_PIN_00,
+        .channel = 1,
+        .group = 'A',
+        .signal = MACHINE_PIN_AF_SCI_MOSI,
+    },
+    {
+        .pin = BSP_IO_PORT_04_PIN_01,
+        .channel = 1,
+        .group = 'A',
+        .signal = MACHINE_PIN_AF_SCI_MISO,
+    },
+    {
+        .pin = BSP_IO_PORT_04_PIN_02,
+        .channel = 1,
+        .group = 'A',
+        .signal = MACHINE_PIN_AF_SCI_SCK,
+    },
+    {
+        .pin = BSP_IO_PORT_04_PIN_05,
+        .channel = 2,
+        .group = 'B',
+        .signal = MACHINE_PIN_AF_SCI_SCK,
+    },
+    {
+        .pin = BSP_IO_PORT_04_PIN_06,
+        .channel = 2,
+        .group = 'B',
+        .signal = MACHINE_PIN_AF_SCI_MOSI,
+    },
+    {
+        .pin = BSP_IO_PORT_04_PIN_14,
+        .channel = 4,
+        .group = 'B',
+        .signal = MACHINE_PIN_AF_SCI_MISO,
+    },
+    {
+        .pin = BSP_IO_PORT_04_PIN_15,
+        .channel = 4,
+        .group = 'B',
+        .signal = MACHINE_PIN_AF_SCI_MOSI,
+    },
+    {
+        .pin = BSP_IO_PORT_05_PIN_13,
+        .channel = 8,
+        .group = 'A',
+        .signal = MACHINE_PIN_AF_SCI_SCK,
+    },
+    {
+        .pin = BSP_IO_PORT_05_PIN_14,
+        .channel = 4,
+        .group = 'C',
+        .signal = MACHINE_PIN_AF_SCI_SCK,
+    },
+    {
+        .pin = BSP_IO_PORT_06_PIN_01,
+        .channel = 0,
+        .group = 'B',
+        .signal = MACHINE_PIN_AF_SCI_SCK,
+    },
+    {
+        .pin = BSP_IO_PORT_07_PIN_00,
+        .channel = 2,
+        .group = 'B',
+        .signal = MACHINE_PIN_AF_SCI_MISO,
+    },
+    {
+        .pin = BSP_IO_PORT_07_PIN_06,
+        .channel = 1,
+        .group = 'B',
+        .signal = MACHINE_PIN_AF_SCI_MISO,
+    },
+    {
+        .pin = BSP_IO_PORT_07_PIN_07,
+        .channel = 1,
+        .group = 'B',
+        .signal = MACHINE_PIN_AF_SCI_MOSI,
+    },
+    {
+        .pin = BSP_IO_PORT_07_PIN_08,
+        .channel = 4,
+        .group = 'B',
+        .signal = MACHINE_PIN_AF_SCI_SCK,
+    },
+    {
+        .pin = BSP_IO_PORT_07_PIN_14,
+        .channel = 4,
+        .group = 'C',
+        .signal = MACHINE_PIN_AF_SCI_MOSI,
+    },
+    {
+        .pin = BSP_IO_PORT_07_PIN_15,
+        .channel = 4,
+        .group = 'C',
+        .signal = MACHINE_PIN_AF_SCI_MISO,
+    },
+    {
+        .pin = BSP_IO_PORT_08_PIN_01,
+        .channel = 2,
+        .group = 'A',
+        .signal = MACHINE_PIN_AF_SCI_MOSI,
+    },
+    {
+        .pin = BSP_IO_PORT_08_PIN_02,
+        .channel = 2,
+        .group = 'A',
+        .signal = MACHINE_PIN_AF_SCI_MISO,
+    },
+    {
+        .pin = BSP_IO_PORT_08_PIN_03,
+        .channel = 2,
+        .group = 'A',
+        .signal = MACHINE_PIN_AF_SCI_SCK,
+    },
+    {
+        .pin = BSP_IO_PORT_08_PIN_05,
+        .channel = 8,
+        .group = 'A',
+        .signal = MACHINE_PIN_AF_SCI_MOSI,
+    },
+    {
+        .pin = BSP_IO_PORT_08_PIN_06,
+        .channel = 8,
+        .group = 'A',
+        .signal = MACHINE_PIN_AF_SCI_MISO,
+    },
+    {
+        .pin = BSP_IO_PORT_08_PIN_10,
+        .channel = 7,
+        .group = 'B',
+        .signal = MACHINE_PIN_AF_SCI_SCK,
+    },
+    {
+        .pin = BSP_IO_PORT_11_PIN_00,
+        .channel = 1,
+        .group = 'B',
+        .signal = MACHINE_PIN_AF_SCI_SCK,
+    },
+    {
+        .pin = BSP_IO_PORT_11_PIN_02,
+        .channel = 5,
+        .group = 'C',
+        .signal = MACHINE_PIN_AF_SCI_MISO,
+    },
+    {
+        .pin = BSP_IO_PORT_11_PIN_03,
+        .channel = 5,
+        .group = 'C',
+        .signal = MACHINE_PIN_AF_SCI_MOSI,
+    },
+    {
+        .pin = BSP_IO_PORT_11_PIN_04,
+        .channel = 5,
+        .group = 'C',
+        .signal = MACHINE_PIN_AF_SCI_SCK,
+    },
+    {
+        .pin = BSP_IO_PORT_12_PIN_12,
+        .channel = 6,
+        .group = 'C',
+        .signal = MACHINE_PIN_AF_SCI_SCK,
+    },
+    {
+        .pin = BSP_IO_PORT_12_PIN_13,
+        .channel = 6,
+        .group = 'C',
+        .signal = MACHINE_PIN_AF_SCI_MISO,
+    },
+    {
+        .pin = BSP_IO_PORT_12_PIN_14,
+        .channel = 6,
+        .group = 'C',
+        .signal = MACHINE_PIN_AF_SCI_MOSI,
+    },
+};
+
+const size_t machine_pin_sci_spi_afs_count =
+    MP_ARRAY_SIZE(machine_pin_sci_spi_afs);

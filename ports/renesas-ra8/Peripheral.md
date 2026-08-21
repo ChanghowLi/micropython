@@ -280,7 +280,7 @@ API 完成情况。函数说明写在上方每个函数的标题下
 
 参考：[MicroPython class SPI](https://docs.micropython.org/en/latest/library/machine.SPI.html)
 
-SPI 是由控制器驱动的同步串行通信协议。总线通常包含 `SCK`、`MOSI` 和 `MISO` 三根信号线。多个设备可以共用同一总线，但每个设备需要独立的 `CS` 片选信号，片选信号由用户通过 `machine.Pin` 控制。
+SPI 是由控制器驱动的同步串行通信协议。总线通常包含 `SCK`、`MOSI` 和 `MISO` 三根信号线。多个设备可以共用同一总线，但每个设备需要独立的 `CS` 片选信号。片选信号可以由用户通过 `machine.Pin` 手动控制，也可以通过硬件 SPI 的可选 `cs` 参数自动控制。
 
 RA8P1 有 2 个 SPI 和 9 个 SCI（SCI9 已被 REPL 占用），对 Python 代码来说，先从专用的 SPI 开始分配资源，然后再到 SCI。需要注意看原理图，不要影响到其它板子已经连接的器件，如果某个外设会影响到现有连接，则对应的外设不允许 Python 调用。对 SCI 来说还需要注意与 IIC、UART 的共享。
 
@@ -303,7 +303,7 @@ RA8P1 有 2 个 SPI 和 9 个 SCI（SCI9 已被 REPL 占用），对 Python 代�
 
 参数含义与 `SPI.init()` 相同，通常至少需要指定 `sck`、`mosi` 和 `miso`。
 
-### SPI.init(baudrate=1000000,*,polarity=0,phase=0,bits=8,firstbit=SPI.MSB,sck=None,mosi=None,miso=None,pins=(SCK,MOSI,MISO))
+### SPI.init(baudrate=1000000,*,polarity=0,phase=0,bits=8,firstbit=SPI.MSB,sck=None,mosi=None,miso=None,cs=None,pins=(SCK,MOSI,MISO))
 
 使用指定参数初始化 SPI 总线。
 
@@ -317,6 +317,7 @@ RA8P1 有 2 个 SPI 和 9 个 SCI（SCI9 已被 REPL 占用），对 Python 代�
 - sck: 用作 SPI 时钟信号的 `machine.Pin` 对象
 - mosi: 用作控制器输出、外设输入信号的 `machine.Pin` 对象
 - miso: 用作控制器输入、外设输出信号的 `machine.Pin` 对象
+- cs: 可选的低电平有效片选引脚。传入 `machine.Pin` 时，每次 SPI 传输前自动拉低 CS，传输完成或出错后自动拉高 CS；显式传入 `None` 时关闭自动 CS；在 `init()` 中省略该参数时保留当前 CS 配置
 - pins: WiPy 端口使用的 `(SCK, MOSI, MISO)` 引脚元组，用于替代 `sck`、`mosi` 和 `miso` 参数
 
 硬件 SPI 可使用的引脚通常由外设固定，部分硬件可能提供几组可选引脚；软件 SPI 可以使用任意合适的引脚。
@@ -362,20 +363,9 @@ API 完成情况。函数说明写在上方每个函数的标题下
 | SPI.write()                | ✅    |
 | SPI.write_readinto()       | ✅    |
 | SPI.MSB                    | ✅    |
-| SPI.LSB                    | ❌    |
+| SPI.LSB                    | ✅    |
 | SPI.CONTROLLER             | ❌    |
 
-### SCI0 复用 SPI 板级可用性
-
-RA8P1 芯片支持将 SCI0 复用为 SPI，但 CPKCOR-RA8P1 当前的三组 SCI0 SPI 候选引脚均与板载存储器功能冲突：
-
-| 方案 | MOSI0 | MISO0 | SCK0 | 当前板级功能 | 结论 |
-| ---- | ----- | ----- | ---- | ------------ | ---- |
-| A | P112 | P113 | P300 | SDRAM DQ3 / DQ4 / DQ2 | 与 SDRAM 冲突 |
-| B | P603 | P602 | P601 | P603 和 P602 用于 OSPI1 SCLK / SCLKN | 与 OSPI1 冲突 |
-| C | P609 | P610 | P611 | SDRAM DQ7 / DQ12 / DQ13 | 与 SDRAM 冲突 |
-
-因此，SCI0 并非芯片层面不支持 SPI，而是在保留当前板载 SDRAM 和 OSPI1 功能的前提下，没有可安全使用的完整 SPI 引脚组，所以不向 Python 开放 SCI0 SPI。如果禁用相应的 SDRAM 或 OSPI1 功能，可以重新评估对应引脚组。
 
 ## class I2C
 

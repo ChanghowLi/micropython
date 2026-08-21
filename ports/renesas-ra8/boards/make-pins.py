@@ -28,6 +28,7 @@ def read_pins(filename):
     af_masks = {}
     irq_channels = {}
     irq_deep_standby = {}
+    sci_spi_afs = []
     seen = set()
 
     with open(filename, newline="", encoding="utf-8-sig") as csv_file:
@@ -68,10 +69,30 @@ def read_pins(filename):
                 irq_deep_standby[cpu_name] = match.group(2) is not None
 
             for psel in range(1, 32):
-                if row[f"AF{psel}"].strip():
-                    af_masks[cpu_name] |= 1 << psel
+                af = row[f"AF{psel}"].strip()
+                if not af:
+                    continue
 
-    return pins, af_masks, irq_channels, irq_deep_standby
+                af_masks[cpu_name] |= 1 << psel
+
+                if not af.startswith("SCI:"):
+                    continue
+
+                for signal, channel, group in re.findall(
+                    r"(MISO|MOSI|SCK)([0-9]+)_([A-Z])", af
+                ):
+                    sci_spi_afs.append(
+                        (
+                            cpu_name,
+                            port,
+                            bit,
+                            int(channel, 10),
+                            group,
+                            signal,
+                        )
+                    )
+
+    return pins, af_masks, irq_channels, irq_deep_standby, sci_spi_afs
 
 
 def write_header(filename):
@@ -82,15 +103,19 @@ def write_header(filename):
             "#ifndef MICROPY_INCLUDED_RENESAS_RA8_GENHDR_PINS_H\n"
             "#define MICROPY_INCLUDED_RENESAS_RA8_GENHDR_PINS_H\n"
             "\n"
-            "extern const machine_pin_obj_t *const machine_pin_generated_pins[];\n"
+            "#include <stddef.h>\n"
+            "\n"
+            "extern const struct _machine_pin_obj_t *const machine_pin_generated_pins[];\n"
             "extern const size_t machine_pin_generated_pins_count;\n"
             "\n"
             "#endif\n"
         )
 
 
-def write_source(filename, pins, af_masks, irq_channels, irq_deep_standby):
-    """Generate Pin objects and the safe-pin lookup array."""
+def write_source(
+    filename, pins, af_masks, irq_channels, irq_deep_standby, sci_spi_afs
+):
+    """Generate Pin objects, lookup arrays, and SCI SPI metadata."""
 
     with open(filename, "w", encoding="utf-8", newline="\n") as output:
         output.write('#include "peripheral/pin.h"\n\n')
@@ -151,7 +176,24 @@ def write_source(filename, pins, af_masks, irq_channels, irq_deep_standby):
         output.write(
             "};\n\n"
             "const size_t machine_pin_generated_pins_count =\n"
-            "    MP_ARRAY_SIZE(machine_pin_generated_pins);\n"
+            "    MP_ARRAY_SIZE(machine_pin_generated_pins);\n\n"
+            "const machine_pin_af_obj_t machine_pin_sci_spi_afs[] = {\n"
+        )
+
+        for cpu_name, port, bit, channel, group, signal in sci_spi_afs:
+            output.write(
+                "    {\n"
+                f"        .pin = BSP_IO_PORT_{port:02d}_PIN_{bit:02d},\n"
+                f"        .channel = {channel},\n"
+                f"        .group = '{group}',\n"
+                f"        .signal = MACHINE_PIN_AF_SCI_{signal},\n"
+                "    },\n"
+            )
+
+        output.write(
+            "};\n\n"
+            "const size_t machine_pin_sci_spi_afs_count =\n"
+            "    MP_ARRAY_SIZE(machine_pin_sci_spi_afs);\n"
         )
 
 
@@ -162,7 +204,9 @@ def main():
     parser.add_argument("--output-source", required=True)
     args = parser.parse_args()
 
-    pins, af_masks, irq_channels, irq_deep_standby = read_pins(args.af_csv)
+    pins, af_masks, irq_channels, irq_deep_standby, sci_spi_afs = read_pins(
+        args.af_csv
+    )
     write_header(args.output_header)
     write_source(
         args.output_source,
@@ -170,6 +214,7 @@ def main():
         af_masks,
         irq_channels,
         irq_deep_standby,
+        sci_spi_afs,
     )
 
 

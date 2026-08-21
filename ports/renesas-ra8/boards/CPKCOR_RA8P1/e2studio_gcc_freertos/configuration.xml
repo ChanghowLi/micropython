@@ -12,7 +12,7 @@
     <option key="#FSPVersion#" value="6.4.0"/>
     <option key="#ConfigurationFragments#" value="Renessa##BSP##Board##ra8p1_cpkcor##"/>
     <option key="#SELECTED_TOOLCHAIN#" value="gcc-arm-embedded"/>
-    <option key="#ToolchainVersion#" value="13.2.1.arm-13-7"/>
+    <option key="#ToolchainVersion#" value=""/>
   </generalSettings>
   <raBspConfiguration>
     <config id="config.bsp.ra8p1.R7KA8P1KFLCAC">
@@ -1038,15 +1038,15 @@
       <property id="module.driver.spi_b.next_access_delay" value="module.driver.spi_b.next_access_delay.one"/>
     </module>
     <module id="module.driver.spi_on_sci_b_spi.516001862">
-      <property id="module.driver.spi.name" value="g_sci_spi4"/>
-      <property id="module.driver.spi.channel" value="4"/>
+      <property id="module.driver.spi.name" value="g_sci_spi1"/>
+      <property id="module.driver.spi.channel" value="1"/>
       <property id="module.driver.spi.operating_mode" value="module.driver.spi.operating_mode.mode_master"/>
       <property id="module.driver.spi.clk_phase" value="module.driver.spi.clk_phase.clk_phase_edge_odd"/>
       <property id="module.driver.spi.clk_polarity" value="module.driver.spi.clk_polarity.clk_polarity_low"/>
       <property id="module.driver.spi.mode_fault" value="module.driver.spi.mode_fault.mode_fault_error_disable"/>
       <property id="module.driver.spi.bit_order" value="module.driver.spi.bit_order.bit_order_msb_first"/>
       <property id="module.driver.spi.clock_source" value="module.driver.spi.clock_source.pclk"/>
-      <property id="module.driver.spi.p_callback" value="spi_callback"/>
+      <property id="module.driver.spi.p_callback" value="sci_spi_callback"/>
       <property id="module.driver.spi.rxi_ipl" value="board.icu.common.irq.priority12"/>
       <property id="module.driver.spi.txi_ipl" value="board.icu.common.irq.priority12"/>
       <property id="module.driver.spi.tei_ipl" value="board.icu.common.irq.priority12"/>
@@ -1064,7 +1064,7 @@
       <property id="module.driver.spi.mode_fault" value="module.driver.spi.mode_fault.mode_fault_error_disable"/>
       <property id="module.driver.spi.bit_order" value="module.driver.spi.bit_order.bit_order_msb_first"/>
       <property id="module.driver.spi.clock_source" value="module.driver.spi.clock_source.pclk"/>
-      <property id="module.driver.spi.p_callback" value="sci_b_spi_callback"/>
+      <property id="module.driver.spi.p_callback" value="sci_spi_callback"/>
       <property id="module.driver.spi.rxi_ipl" value="board.icu.common.irq.priority12"/>
       <property id="module.driver.spi.txi_ipl" value="board.icu.common.irq.priority12"/>
       <property id="module.driver.spi.tei_ipl" value="board.icu.common.irq.priority12"/>
@@ -1073,16 +1073,70 @@
       <property id="module.driver.spi.tx_fifo_trigger" value="module.driver.spi.tx_fifo_trigger.0"/>
       <property id="module.driver.spi.rx_sampling_delay" value="module.driver.spi.rx_sampling_delay.0"/>
     </module>
-    <module id="module.driver.spi_on_sci_b_spi.1927049291">
-      <property id="module.driver.spi.name" value="g_sci_spi3"/>
-      <property id="module.driver.spi.channel" value="3"/>
+    <module id="module.driver.spi_on_sci_b_spi.357649988">
+      <property id="module.driver.spi.name" value="g_sci_spi4"/>
+      <property id="module.driver.spi.channel" value="4"/>
       <property id="module.driver.spi.operating_mode" value="module.driver.spi.operating_mode.mode_master"/>
       <property id="module.driver.spi.clk_phase" value="module.driver.spi.clk_phase.clk_phase_edge_odd"/>
       <property id="module.driver.spi.clk_polarity" value="module.driver.spi.clk_polarity.clk_polarity_low"/>
       <property id="module.driver.spi.mode_fault" value="module.driver.spi.mode_fault.mode_fault_error_disable"/>
       <property id="module.driver.spi.bit_order" value="module.driver.spi.bit_order.bit_order_msb_first"/>
       <property id="module.driver.spi.clock_source" value="module.driver.spi.clock_source.pclk"/>
-      <property id="module.driver.spi.p_callback" value="spi_callback"/>
+      <property id="module.driver.spi.p_callback" value="sci_spi_callback"/>
+      <property id="module.driver.spi.rxi_ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.spi.txi_ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.spi.tei_ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.spi.eri_ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.spi.bitrate" value="8000000"/>
+      <property id="module.driver.spi.tx_fifo_trigger" value="module.driver.spi.tx_fifo_trigger.0"/>
+      <property id="module.driver.spi.rx_sampling_delay" value="module.driver.spi.rx_sampling_delay.0"/>
+    </module>
+    <module id="module.driver.spi_on_sci_b_spi.736618596">
+      <property id="module.driver.spi.name" value="g_sci_spi5"/>
+      <property id="module.driver.spi.channel" value="5"/>
+      <property id="module.driver.spi.operating_mode" value="module.driver.spi.operating_mode.mode_master"/>
+      <property id="module.driver.spi.clk_phase" value="module.driver.spi.clk_phase.clk_phase_edge_odd"/>
+      <property id="module.driver.spi.clk_polarity" value="module.driver.spi.clk_polarity.clk_polarity_low"/>
+      <property id="module.driver.spi.mode_fault" value="module.driver.spi.mode_fault.mode_fault_error_disable"/>
+      <property id="module.driver.spi.bit_order" value="module.driver.spi.bit_order.bit_order_msb_first"/>
+      <property id="module.driver.spi.clock_source" value="module.driver.spi.clock_source.pclk"/>
+      <property id="module.driver.spi.p_callback" value="sci_spi_callback"/>
+      <property id="module.driver.spi.rxi_ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.spi.txi_ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.spi.tei_ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.spi.eri_ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.spi.bitrate" value="8000000"/>
+      <property id="module.driver.spi.tx_fifo_trigger" value="module.driver.spi.tx_fifo_trigger.0"/>
+      <property id="module.driver.spi.rx_sampling_delay" value="module.driver.spi.rx_sampling_delay.0"/>
+    </module>
+    <module id="module.driver.spi_on_sci_b_spi.1227782513">
+      <property id="module.driver.spi.name" value="g_sci_spi6"/>
+      <property id="module.driver.spi.channel" value="6"/>
+      <property id="module.driver.spi.operating_mode" value="module.driver.spi.operating_mode.mode_master"/>
+      <property id="module.driver.spi.clk_phase" value="module.driver.spi.clk_phase.clk_phase_edge_odd"/>
+      <property id="module.driver.spi.clk_polarity" value="module.driver.spi.clk_polarity.clk_polarity_low"/>
+      <property id="module.driver.spi.mode_fault" value="module.driver.spi.mode_fault.mode_fault_error_disable"/>
+      <property id="module.driver.spi.bit_order" value="module.driver.spi.bit_order.bit_order_msb_first"/>
+      <property id="module.driver.spi.clock_source" value="module.driver.spi.clock_source.pclk"/>
+      <property id="module.driver.spi.p_callback" value="sci_spi_callback"/>
+      <property id="module.driver.spi.rxi_ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.spi.txi_ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.spi.tei_ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.spi.eri_ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.spi.bitrate" value="8000000"/>
+      <property id="module.driver.spi.tx_fifo_trigger" value="module.driver.spi.tx_fifo_trigger.0"/>
+      <property id="module.driver.spi.rx_sampling_delay" value="module.driver.spi.rx_sampling_delay.0"/>
+    </module>
+    <module id="module.driver.spi_on_sci_b_spi.1058540924">
+      <property id="module.driver.spi.name" value="g_sci_spi8"/>
+      <property id="module.driver.spi.channel" value="8"/>
+      <property id="module.driver.spi.operating_mode" value="module.driver.spi.operating_mode.mode_master"/>
+      <property id="module.driver.spi.clk_phase" value="module.driver.spi.clk_phase.clk_phase_edge_odd"/>
+      <property id="module.driver.spi.clk_polarity" value="module.driver.spi.clk_polarity.clk_polarity_low"/>
+      <property id="module.driver.spi.mode_fault" value="module.driver.spi.mode_fault.mode_fault_error_disable"/>
+      <property id="module.driver.spi.bit_order" value="module.driver.spi.bit_order.bit_order_msb_first"/>
+      <property id="module.driver.spi.clock_source" value="module.driver.spi.clock_source.pclk"/>
+      <property id="module.driver.spi.p_callback" value="sci_spi_callback"/>
       <property id="module.driver.spi.rxi_ipl" value="board.icu.common.irq.priority12"/>
       <property id="module.driver.spi.txi_ipl" value="board.icu.common.irq.priority12"/>
       <property id="module.driver.spi.tei_ipl" value="board.icu.common.irq.priority12"/>
@@ -1141,7 +1195,10 @@
       <stack module="module.driver.spi_on_spi_b.1387385580"/>
       <stack module="module.driver.spi_on_sci_b_spi.516001862"/>
       <stack module="module.driver.spi_on_sci_b_spi.315711928"/>
-      <stack module="module.driver.spi_on_sci_b_spi.1927049291"/>
+      <stack module="module.driver.spi_on_sci_b_spi.357649988"/>
+      <stack module="module.driver.spi_on_sci_b_spi.736618596"/>
+      <stack module="module.driver.spi_on_sci_b_spi.1227782513"/>
+      <stack module="module.driver.spi_on_sci_b_spi.1058540924"/>
     </context>
     <context id="rtos.awsfreertos.thread.0">
       <property id="_symbol" value="repl_thread"/>
@@ -1423,12 +1480,6 @@
       <configSetting altId="p303.gpio_irq.gpio_irq_enabled" configurationId="p303.gpio_irq"/>
       <configSetting altId="p303.gpio_mode.gpio_mode_irq" configurationId="p303.gpio_mode"/>
       <configSetting altId="p303.gpio_pupd.gpio_pupd_ip_up" configurationId="p303.gpio_pupd"/>
-      <configSetting altId="p400.sci1.txd1" configurationId="p400"/>
-      <configSetting altId="p400.gpio_mode.gpio_mode_peripheral" configurationId="p400.gpio_mode"/>
-      <configSetting altId="p401.sci1.rxd1" configurationId="p401"/>
-      <configSetting altId="p401.gpio_mode.gpio_mode_peripheral" configurationId="p401.gpio_mode"/>
-      <configSetting altId="p402.sci1.sck1" configurationId="p402"/>
-      <configSetting altId="p402.gpio_mode.gpio_mode_peripheral" configurationId="p402.gpio_mode"/>
       <configSetting altId="p407.usbhs.usbhs_vbusen" configurationId="p407"/>
       <configSetting altId="p407.gpio_mode.gpio_mode_peripheral" configurationId="p407.gpio_mode"/>
       <configSetting altId="p408.usbhs.usbhs_vbus" configurationId="p408"/>
@@ -1513,12 +1564,6 @@
       <configSetting altId="p615.output.high" configurationId="p615"/>
       <configSetting altId="p615.gpio_speed.gpio_speed_m" configurationId="p615.gpio_drivecapacity"/>
       <configSetting altId="p615.gpio_mode.gpio_mode_out.high" configurationId="p615.gpio_mode"/>
-      <configSetting altId="p801.sci2.txd2" configurationId="p801"/>
-      <configSetting altId="p801.gpio_mode.gpio_mode_peripheral" configurationId="p801.gpio_mode"/>
-      <configSetting altId="p802.sci2.rxd2" configurationId="p802"/>
-      <configSetting altId="p802.gpio_mode.gpio_mode_peripheral" configurationId="p802.gpio_mode"/>
-      <configSetting altId="p803.sci2.sck2" configurationId="p803"/>
-      <configSetting altId="p803.gpio_mode.gpio_mode_peripheral" configurationId="p803.gpio_mode"/>
       <configSetting altId="p813.sdram.sdcs" configurationId="p813"/>
       <configSetting altId="p813.gpio_speed.gpio_speed_h" configurationId="p813.gpio_drivecapacity"/>
       <configSetting altId="p813.gpio_mode.gpio_mode_peripheral" configurationId="p813.gpio_mode"/>
@@ -1619,14 +1664,15 @@
       <configSetting altId="pd07.sdhi0.sd0cd" configurationId="pd07"/>
       <configSetting altId="pd07.gpio_mode.gpio_mode_peripheral" configurationId="pd07.gpio_mode"/>
       <configSetting altId="pd07.gpio_pupd.gpio_pupd_ip_up" configurationId="pd07.gpio_pupd"/>
-      <configSetting altId="sci1.mode.simplespi.free" configurationId="sci1.mode"/>
-      <configSetting altId="sci1.rxd1.p401" configurationId="sci1.rxd1"/>
-      <configSetting altId="sci1.sck1.p402" configurationId="sci1.sck1"/>
-      <configSetting altId="sci1.txd1.p400" configurationId="sci1.txd1"/>
-      <configSetting altId="sci2.mode.simplespi.free" configurationId="sci2.mode"/>
-      <configSetting altId="sci2.rxd2.p802" configurationId="sci2.rxd2"/>
-      <configSetting altId="sci2.sck2.p803" configurationId="sci2.sck2"/>
-      <configSetting altId="sci2.txd2.p801" configurationId="sci2.txd2"/>
+      <configSetting altId="sci0.mode.custom.free" configurationId="sci0.mode"/>
+      <configSetting altId="sci1.mode.custom.free" configurationId="sci1.mode"/>
+      <configSetting altId="sci2.mode.custom.free" configurationId="sci2.mode"/>
+      <configSetting altId="sci3.mode.custom.free" configurationId="sci3.mode"/>
+      <configSetting altId="sci4.mode.custom.free" configurationId="sci4.mode"/>
+      <configSetting altId="sci5.mode.custom.free" configurationId="sci5.mode"/>
+      <configSetting altId="sci6.mode.custom.free" configurationId="sci6.mode"/>
+      <configSetting altId="sci7.mode.custom.free" configurationId="sci7.mode"/>
+      <configSetting altId="sci8.mode.custom.free" configurationId="sci8.mode"/>
       <configSetting altId="sci9.mode.asynchronousuart.free" configurationId="sci9.mode"/>
       <configSetting altId="sci9.rxd9.p208" configurationId="sci9.rxd9"/>
       <configSetting altId="sci9.txd9.p209" configurationId="sci9.txd9"/>
