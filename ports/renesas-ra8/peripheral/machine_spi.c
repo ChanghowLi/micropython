@@ -12,6 +12,23 @@
 #include "sci.h"
 #include "spi.h"
 
+#ifndef __MACHINE_SPI_DEBUG
+#define __MACHINE_SPI_DEBUG 1
+#endif
+
+#if __MACHINE_SPI_DEBUG
+#include "utils/log.h"
+#define MACHINE_SPI_LOGD(msg, ...)      LOG_D(__FUNCTION__, msg, ##__VA_ARGS__)
+#define MACHINE_SPI_LOGI(msg, ...)      LOG_I(__FUNCTION__, msg, ##__VA_ARGS__)
+#define MACHINE_SPI_LOGW(msg, ...)      LOG_W(__FUNCTION__, msg, ##__VA_ARGS__)
+#define MACHINE_SPI_LOGE(msg, ...)      LOG_E(__FUNCTION__, msg, ##__VA_ARGS__)
+#else
+#define MACHINE_SPI_LOGD(msg, ...)
+#define MACHINE_SPI_LOGI(msg, ...)
+#define MACHINE_SPI_LOGW(msg, ...)
+#define MACHINE_SPI_LOGE(msg, ...)
+#endif
+
 #define DEFAULT_SPI_BAUDRATE     (1000000)
 #define DEFAULT_SPI_BITS         (8)
 #define DEFAULT_SPI_FIRSTBIT     (MICROPY_PY_MACHINE_SPI_MSB)
@@ -32,7 +49,7 @@ typedef struct _machine_hard_spi_obj_t
     bsp_io_port_pin_t default_sck;
     bsp_io_port_pin_t default_mosi;
     bsp_io_port_pin_t default_miso;
-    const machine_pin_obj_t *cs;
+    const machine_pin_obj_t *cs;    /* TODO 为什么 cs 不用 bsp_io_port_pin_t 而是用 machine_pin_obj_t */
     ioport_peripheral_t peripheral;
     uint8_t spi_id;
     bool sci_taken;
@@ -197,6 +214,8 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
     },
     #endif
 
+    /* TODO 为什么 SCI7 又不用宏来确定是否有了 */
+
     #if defined(MICROPY_HW_SCI8_SCK)
     {
         .base = {&machine_spi_type},
@@ -230,6 +249,13 @@ static machine_hard_spi_obj_t *machine_hard_spi_find(mp_int_t spi_id)
     return NULL;
 }
 
+/**
+ * TODO 这个函数要判断给定的 pin 能否作为 spi channel 的由 signal 指定的功能
+ * 这是个私有函数，则表明专为 machine_spi 准备，那么为什么要使用在 pin.h 中的枚举
+ *  - 如果这个函数保持私有，那么枚举值应该在本文件内指定
+ *  - 如果把 machine_pin_af_signal_t 的值补完，那么可以让这个函数保持私有，因为对不同的外设，可能查询不同的复用数组记录（machine_pin_sci_spi_afs）
+ *      - 或者更进一步，这个函数的功能应该由 pin.c 提供，因为所有外设都会去查询指定的 Python 通过参数传递过来的引脚能否使用
+ */
 static const machine_pin_af_obj_t *machine_hard_spi_find_af(bsp_io_port_pin_t pin, machine_pin_af_peripheral_t peripheral, uint8_t channel, machine_pin_af_signal_t signal)
 {
     for (size_t index = 0; index < machine_pin_spi_afs_count; ++index) {
@@ -262,6 +288,7 @@ static void machine_hard_spi_validate_pins(machine_hard_spi_obj_t *self, bsp_io_
         mp_raise_ValueError(MP_ERROR_TEXT("bad MISO pin"));
     }
 
+    /* TODO 哪里规定的必须要使用相同的组？ */
     if (sck_af->group != mosi_af->group || sck_af->group != miso_af->group) {
         mp_raise_ValueError(MP_ERROR_TEXT("SPI pins must use the same group"));
     }
@@ -358,6 +385,9 @@ static void machine_hard_spi_print(const mp_print_t *print, mp_obj_t self_in, mp
 
 static mp_obj_t machine_hard_spi_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args)
 {
+    /* TODO 没有解析 pins=(SCK,MOSI,MISO) 的调用，会出现 TypeError: extra keyword arguments given
+     *  - 加上这个参数的解析
+     *  - 在文档中说明不支持这个参数 */
     enum {
         ARG_id,
         ARG_baudrate,
@@ -391,6 +421,14 @@ static mp_obj_t machine_hard_spi_make_new(const mp_obj_type_t *type, size_t n_ar
 
     mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
+    /* TODO Python 代码的 id 和 machine_hard_spi_obj 中的 id 不匹配，对 Python 来说，可以指定的 id 是
+     * 0, 1, 11, 12, 14, 15, 16, 18
+     * spi0 = machine.SPI(2)
+     * 返回
+     * ValueError: SPI(2) does not exist
+     *  - Python 的 id 匹配 machine_hard_spi_obj
+     *  - machine_hard_spi_obj 的 id 匹配 Python
+     *  - C 代码中处理差异 */
     mp_int_t spi_id = mp_obj_get_int(args[ARG_id].u_obj);
     machine_hard_spi_obj_t *self = machine_hard_spi_find(spi_id);
     uint32_t new_baudrate = self->baudrate;
@@ -452,6 +490,7 @@ static mp_obj_t machine_hard_spi_make_new(const mp_obj_type_t *type, size_t n_ar
         new_miso = self->default_miso;
     } else {
         if (!has_sck || !has_mosi || !has_miso) {
+            /* TODO 这个分支就代表，当使用 SCI_SPI 时，要不不指定 sck/mosi/miso，要么全部指定，不能只指定一个或两个，原因是？*/
             mp_raise_ValueError(MP_ERROR_TEXT("must specify sck, mosi and miso"));
         }
 
@@ -471,7 +510,8 @@ static mp_obj_t machine_hard_spi_make_new(const mp_obj_type_t *type, size_t n_ar
     if (args[ARG_cs].u_obj != MP_OBJ_NULL) {
         if (args[ARG_cs].u_obj == mp_const_none) {
             new_cs = NULL;
-        } else {
+        }
+        else {
             new_cs = machine_pin_find(args[ARG_cs].u_obj);
         }
     }
@@ -733,6 +773,7 @@ static void machine_hard_spi_transfer(mp_obj_base_t *self_in, size_t len, const 
     mp_handle_pending(true);
 }
 
+/* TODO 这个函数的意义在哪？ */
 static mp_obj_t machine_hard_spi_deinit_method(mp_obj_t self_in) 
 {
     machine_hard_spi_deinit(MP_OBJ_TO_PTR(self_in));
@@ -841,4 +882,4 @@ MP_DEFINE_CONST_OBJ_TYPE(
     print, machine_hard_spi_print,
     protocol, &machine_hard_spi_p,
     locals_dict, &machine_hard_spi_locals_dict
-    );
+);

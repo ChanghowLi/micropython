@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/* TODO 把 SCI 的功能都先枚举出来吧 */
 typedef enum {
     MACHINE_SCI_OWNER_NONE,
     MACHINE_SCI_OWNER_I2C,

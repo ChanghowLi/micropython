@@ -21,6 +21,8 @@ typedef struct _machine_pin_obj_t {
     bool irq_deep_standby;
 } machine_pin_obj_t;
 
+/* TODO 这里是不是没写完，csv 文件里有很多复用功能，并引申出另一个问题：
+ * 为什么自动生成的 pins_CPKCOR_RA8P1.c 中只有 sci_spi 的复用数组记录，其它的复用记录没生成 */
 typedef enum {
     MACHINE_PIN_AF_PERIPHERAL_SCI,
     MACHINE_PIN_AF_PERIPHERAL_SPI,

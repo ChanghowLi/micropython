@@ -250,13 +250,20 @@ static void machine_pin_configure(const machine_pin_obj_t *pin, mp_int_t mode, m
     R_IOPORT_PinCfg(g_ioport.p_ctrl, pin->pin, cfg);
 }
 
+/* TODO 写成函数注释 */
 //把引脚配置为外设功能
 void machine_pin_configure_alt(bsp_io_port_pin_t pin_id, ioport_peripheral_t peripheral)
 {
+    /* TODO 忽略了以下功能：
+     *  - 驱动能力。高速时，需要高驱动能力
+     *  - CMOS 输出还是 n-ch open drain。不同外设需要配置不同的 output type
+     * 需要确定：
+     *  - 当一个 pin 被配置为其它模式，例如输入，后续 deinit 的时候，配置有没有被清掉，否则即作为外设模式，又设成输入模式，现在不知道行为 */
     uint32_t cfg = (uint32_t)IOPORT_CFG_PERIPHERAL_PIN | (uint32_t)peripheral;
 
     fsp_err_t err = R_IOPORT_PinCfg(g_ioport.p_ctrl, pin_id, cfg);
 
+    /* 没有必要，R_IOPORT_PinCfg() 永远返回 FSP_SUCCESS */
     if (err != FSP_SUCCESS) {
         mp_raise_OSError(MP_EIO);
     }
