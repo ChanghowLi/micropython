@@ -59,7 +59,7 @@ static ra8_sci_spi_state_t *ra8_sci_spi_get_state(uint32_t id)
 
     uint32_t index = id - RA8_SCI_SPI_FIRST_ID;
 
-    if (index >= MP_ARRAY_SIZE(ra8_sci_spi_states)) {
+    if (index >= MP_ARRAY_SIZE(ra8_sci_spi_states) || ra8_sci_spi_states[index].instance == NULL) {
         return NULL;
     }
 
@@ -140,7 +140,11 @@ bool spi_deinit(uint32_t id)
         return false;
     }
 
-    state->instance->p_api->close(state->instance->p_ctrl);
+    fsp_err_t error = state->instance->p_api->close(state->instance->p_ctrl);
+
+    if (error != FSP_SUCCESS) {
+        return false;
+    }
 
     state->event = (spi_event_t)0;
     state->opened = false;
@@ -288,6 +292,10 @@ int spi_transfer(uint32_t id, size_t len, const uint8_t *src, uint8_t *dest, uin
         return MP_EINVAL;
     }
 
+    while (xSemaphoreTake(completion, 0) == pdTRUE) {
+    }
+    *event = (spi_event_t)0;
+
     fsp_err_t error;
 
     if (dest != NULL) {
@@ -308,8 +316,6 @@ int spi_transfer(uint32_t id, size_t len, const uint8_t *src, uint8_t *dest, uin
         spi_deinit(id);
         return MP_ETIMEDOUT;
     }
-
-    mp_handle_pending(true);   //等待 SPI 期间产生的键盘中断或异常
 
     switch (*event) {
         case SPI_EVENT_TRANSFER_COMPLETE:

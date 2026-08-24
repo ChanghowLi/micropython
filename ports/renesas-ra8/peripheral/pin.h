@@ -22,13 +22,19 @@ typedef struct _machine_pin_obj_t {
 } machine_pin_obj_t;
 
 typedef enum {
-    MACHINE_PIN_AF_SCI_MISO,
-    MACHINE_PIN_AF_SCI_MOSI,
-    MACHINE_PIN_AF_SCI_SCK,
+    MACHINE_PIN_AF_PERIPHERAL_SCI,
+    MACHINE_PIN_AF_PERIPHERAL_SPI,
+} machine_pin_af_peripheral_t;
+
+typedef enum {
+    MACHINE_PIN_AF_SPI_MISO,
+    MACHINE_PIN_AF_SPI_MOSI,
+    MACHINE_PIN_AF_SPI_SCK,
 } machine_pin_af_signal_t;
 
 typedef struct {
     bsp_io_port_pin_t pin;
+    machine_pin_af_peripheral_t peripheral;
     uint8_t channel;
     uint8_t group;
     machine_pin_af_signal_t signal;
@@ -37,11 +43,11 @@ typedef struct {
 extern const mp_obj_dict_t machine_pin_board_pins_locals_dict;
 extern const mp_obj_dict_t machine_pin_cpu_pins_locals_dict;
 extern const mp_obj_fun_builtin_var_t machine_pin_irq_obj;
-extern const machine_pin_af_obj_t machine_pin_sci_spi_afs[];
+extern const machine_pin_af_obj_t machine_pin_spi_afs[];
 extern const mp_obj_type_t machine_pin_board_pins_obj_type;
 extern const mp_obj_type_t machine_pin_cpu_pins_obj_type;
 extern const mp_obj_type_t machine_pin_type;
-extern const size_t machine_pin_sci_spi_afs_count;
+extern const size_t machine_pin_spi_afs_count;
 
 void machine_pin_deinit_all(void);
 const machine_pin_obj_t *machine_pin_find(mp_obj_t user_obj);
