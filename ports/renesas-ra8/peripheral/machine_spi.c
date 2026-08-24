@@ -214,7 +214,7 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
     },
     #endif
 
-    /* TODO 为什么 SCI7 又不用宏来确定是否有了 */
+    /* BUG 为什么 SCI7 又不用宏来确定是否有了 */
 
     #if defined(MICROPY_HW_SCI8_SCK)
     {
@@ -288,7 +288,7 @@ static void machine_hard_spi_validate_pins(machine_hard_spi_obj_t *self, bsp_io_
         mp_raise_ValueError(MP_ERROR_TEXT("bad MISO pin"));
     }
 
-    /* TODO 哪里规定的必须要使用相同的组？ */
+    /* BUG 哪里规定的必须要使用相同的组？ */
     if (sck_af->group != mosi_af->group || sck_af->group != miso_af->group) {
         mp_raise_ValueError(MP_ERROR_TEXT("SPI pins must use the same group"));
     }
@@ -421,8 +421,9 @@ static mp_obj_t machine_hard_spi_make_new(const mp_obj_type_t *type, size_t n_ar
 
     mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    /* TODO Python 代码的 id 和 machine_hard_spi_obj 中的 id 不匹配，对 Python 来说，可以指定的 id 是
+    /* BUG Python 代码的 id 和 machine_hard_spi_obj 中的 id 不匹配，对 Python 来说，可以指定的 id 是
      * 0, 1, 11, 12, 14, 15, 16, 18
+     * 0, 1, 2 , 3 , 4 , 5 , 6 , 7
      * spi0 = machine.SPI(2)
      * 返回
      * ValueError: SPI(2) does not exist
@@ -488,9 +489,12 @@ static mp_obj_t machine_hard_spi_make_new(const mp_obj_type_t *type, size_t n_ar
         new_sck = self->default_sck;
         new_mosi = self->default_mosi;
         new_miso = self->default_miso;
-    } else {
+    }
+    else {
         if (!has_sck || !has_mosi || !has_miso) {
-            /* TODO 这个分支就代表，当使用 SCI_SPI 时，要不不指定 sck/mosi/miso，要么全部指定，不能只指定一个或两个，原因是？*/
+            /* TODO 这个分支就代表，当使用 SCI_SPI 时，要不不指定 sck/mosi/miso，要么全部指定，不能只指定一个或两个，原因是？
+             *  - 添加指定单个 sck/mosi/miso 的支持
+             *  - 文档说明这个限制 */
             mp_raise_ValueError(MP_ERROR_TEXT("must specify sck, mosi and miso"));
         }
 

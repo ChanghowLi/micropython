@@ -30,6 +30,7 @@
 #define RA8_SCI_SPI_FIRST_ID (11)
 #define RA8_SPI_COUNT MP_ARRAY_SIZE(ra8_spi_states)
 
+/* TODO ra8_spi_state_t 和 ra8_sci_spi_state_t 可以合并 */
 typedef struct _ra8_spi_state_t 
 {
     const spi_instance_t *instance;
@@ -57,7 +58,7 @@ typedef struct _ra8_sci_spi_state_t
     StaticSemaphore_t completion_storage;
 } ra8_sci_spi_state_t;
 
-/* TODO SCI_SPI0 也用不了，为什么不像 SCI_SPI3 和 SCI_SPI7 一样设置为 NULL，而是直接不写，然后设置 RA8_SCI_SPI_FIRST_ID 为 11
+/* BUG SCI_SPI0 也用不了，为什么不像 SCI_SPI3 和 SCI_SPI7 一样设置为 NULL，而是直接不写，然后设置 RA8_SCI_SPI_FIRST_ID 为 11
  * 并且在 machine_spi.c 中又直接写的是数字 10 */
 static ra8_sci_spi_state_t ra8_sci_spi_states[] = {
     {.instance = &g_sci_spi1},
@@ -138,14 +139,13 @@ bool spi_deinit(uint32_t id)
     ra8_sci_spi_state_t *sci_state = ra8_sci_spi_get_state(id);
 
     if (sci_state != NULL) {
-        /* TODO 为什么 opened 是 false 的时候，就要返回 false？而且最开始 opened 属性一定是 false */
+        /* BUG 为什么 opened 是 false 的时候，就要返回 false？而且最开始 opened 属性一定是 false */
         SPI_LOGD("sci_state->opened: %d", sci_state->opened);
         if (!sci_state->opened) {
             return false;
         }
 
-        /* TODO 这里没有必要，因为 close 只会返回 FSP_SUCCESS，而且在 machine_hard_spi_make_new() 反正也没处理返回 false 的情况
-         * 下面的 close 为什么又不检查返回值了 */
+        /* TODO 这里没有必要，因为 close 只会返回 FSP_SUCCESS，而且在 machine_hard_spi_make_new() 反正也没处理返回 false 的情况 */
         fsp_err_t error = sci_state->instance->p_api->close(sci_state->instance->p_ctrl);
 
         if (error != FSP_SUCCESS) {
@@ -186,7 +186,7 @@ int spi_init(uint32_t id, uint32_t baudrate, uint8_t polarity, uint8_t phase, ui
         SPI_LOGD("opened: %d", sci_state->opened);
         if (sci_state->opened) {
             /* TODO 为什么下面调用的是 spi_deinit，这里又不如下面一样调用 */
-            /* TODO 当前仅针对 CPKCOR_RA8P1 这个板，所以 instance 肯定不会是 NULL，但后续可能会有 RA8 系列的其它开发板，最好判断 instance 是否为 NULL
+            /* BUG 当前仅针对 CPKCOR_RA8P1 这个板，所以 instance 肯定不会是 NULL，但后续可能会有 RA8 系列的其它开发板，最好判断 instance 是否为 NULL
              *  - 回调函数里必定不会是 NULL 的 context 判断了会不会是 NULL，为啥这里又不做了 */
             fsp_err_t error = sci_state->instance->p_api->close(sci_state->instance->p_ctrl);
 
@@ -345,14 +345,16 @@ int spi_transfer(uint32_t id, size_t len, const uint8_t *src, uint8_t *dest, uin
         return MP_ETIMEDOUT;
     }
 
-    /* TODO 等不了一点
+    /* BUG 等不了一点
      *  - 如果传输超时，直接返回了
      *  - 如果传输没超时，那也必须等待传输完成才能响应
      * 如果想要 Ctrl+C 打断传输，那么需要短时间循环等待，然后在每次循环时处理
      * 并且，如果 Ctrl+C 中断了执行，那么这个函数，以及它的调用者 machine_hard_spi_transfer() 都会直接结束，后面的 CS 拉高是执行不到的 */
     mp_handle_pending(true);   //等待 SPI 期间产生的键盘中断或异常
 
-    /* TODO 最好还是考虑产生错误状态时如何处理，FSP 一旦错误，外设就有可能一直用不了了，然后下一次必定超时。对溢出类错误，那么发送或者接收的数据可能是错的 */
+    /* BUG
+     *  - 最好还是考虑产生错误状态时如何处理，FSP 一旦错误，外设就有可能一直用不了了，然后下一次必定超时。对溢出类错误，那么发送或者接收的数据可能是错的
+     *  - 如果处理麻烦，至少打印日志 */
     switch (*event) {
         case SPI_EVENT_TRANSFER_COMPLETE:
             return 0;

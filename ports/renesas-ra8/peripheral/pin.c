@@ -254,7 +254,7 @@ static void machine_pin_configure(const machine_pin_obj_t *pin, mp_int_t mode, m
 //把引脚配置为外设功能
 void machine_pin_configure_alt(bsp_io_port_pin_t pin_id, ioport_peripheral_t peripheral)
 {
-    /* TODO 忽略了以下功能：
+    /* BUG 忽略了以下功能：
      *  - 驱动能力。高速时，需要高驱动能力
      *  - CMOS 输出还是 n-ch open drain。不同外设需要配置不同的 output type
      * 需要确定：
