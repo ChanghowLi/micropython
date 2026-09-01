@@ -90,6 +90,14 @@
 #define MICROPY_READER_VFS                          1
 #endif
 
+#ifndef MICROPY_SCHEDULER_STATIC_NODES
+#define MICROPY_SCHEDULER_STATIC_NODES              1
+#endif
+
+#ifndef MICROPY_STACK_SIZE_HARD_IRQ
+#define MICROPY_STACK_SIZE_HARD_IRQ                 1024
+#endif
+
 #ifndef MICROPY_VFS
 #define MICROPY_VFS                                 1
 #endif
@@ -140,6 +148,10 @@
 
 #ifndef MICROPY_PY_MACHINE_SPI
 #define MICROPY_PY_MACHINE_SPI                      1
+#endif
+
+#ifndef MICROPY_PY_MACHINE_SOFTSPI
+#define MICROPY_PY_MACHINE_SOFTSPI                  1
 #endif
 
 #ifndef MICROPY_PY_MACHINE_SPI_LSB

@@ -54,9 +54,56 @@ enum {
     MACHINE_PIN_PULL_UP,
 };
 
+static uint16_t machine_pin_gpio_states[MACHINE_PIN_PORT_COUNT];
+static uint32_t machine_pin_saved_cfg[MACHINE_PIN_PORT_COUNT][MACHINE_PIN_PINS_PER_PORT];
 static uint16_t machine_pin_states[MACHINE_PIN_PORT_COUNT];
 
-//3检查这个引脚上有没有正在工作的中断
+static bool machine_pin_is_taken(bsp_io_port_pin_t pin_id)
+{
+    uint32_t port = (uint32_t)pin_id >> 8;
+    uint32_t bit = (uint32_t)pin_id & 0xffU;
+
+    if (port >= MACHINE_PIN_PORT_COUNT || bit >= MACHINE_PIN_PINS_PER_PORT) {
+        return false;
+    }
+
+    mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
+    bool taken = (machine_pin_states[port] & (uint16_t)(1U << bit)) != 0U;
+    MICROPY_END_ATOMIC_SECTION(atomic_state);
+    return taken;
+}
+
+static bool machine_pin_gpio_is_taken(bsp_io_port_pin_t pin_id)
+{
+    uint32_t port = (uint32_t)pin_id >> 8;
+    uint32_t bit = (uint32_t)pin_id & 0xffU;
+
+    if (port >= MACHINE_PIN_PORT_COUNT || bit >= MACHINE_PIN_PINS_PER_PORT) {
+        return false;
+    }
+
+    mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
+    bool taken = (machine_pin_gpio_states[port] & (uint16_t)(1U << bit)) != 0U;
+    MICROPY_END_ATOMIC_SECTION(atomic_state);
+    return taken;
+}
+
+static void machine_pin_gpio_set_taken(bsp_io_port_pin_t pin_id, bool taken)
+{
+    uint32_t port = (uint32_t)pin_id >> 8;
+    uint32_t bit = (uint32_t)pin_id & 0xffU;
+    uint16_t mask = (uint16_t)(1U << bit);
+    mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
+
+    if (taken) {
+        machine_pin_gpio_states[port] |= mask;
+    } else {
+        machine_pin_gpio_states[port] &= (uint16_t)~mask;
+    }
+
+    MICROPY_END_ATOMIC_SECTION(atomic_state);
+}
+
 static void machine_pin_require_irq_inactive(const machine_pin_obj_t *pin)
 {
     if (machine_pin_irq_is_active(pin)) {
@@ -91,21 +138,49 @@ const machine_pin_obj_t *machine_pin_find(mp_obj_t user_obj)
     mp_raise_ValueError(MP_ERROR_TEXT("invalid pin"));
 }
 
-void machine_pin_give(bsp_io_port_pin_t pin_id)
+const machine_pin_af_obj_t *machine_pin_find_af(bsp_io_port_pin_t pin, machine_pin_af_peripheral_t peripheral, uint8_t channel, machine_pin_af_signal_t signal)
+{
+    for (size_t index = 0; index < machine_pin_afs_count; ++index) {
+        const machine_pin_af_obj_t *af = &machine_pin_afs[index];
+
+        if (af->pin == pin && af->peripheral == peripheral && af->channel == channel && af->signal == signal) {
+            return af;
+        }
+    }
+
+    return NULL;
+}
+
+bool machine_pin_give(bsp_io_port_pin_t pin_id)
 {
     uint32_t port = (uint32_t)pin_id >> 8;
     uint32_t bit = (uint32_t)pin_id & 0xffU;
 
     if (port >= MACHINE_PIN_PORT_COUNT || bit >= MACHINE_PIN_PINS_PER_PORT) {
-        return;
+        return false;
     }
 
     mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
 
     uint16_t mask = (uint16_t)(1U << bit);
+
+    if ((machine_pin_states[port] & mask) == 0U) {
+        MICROPY_END_ATOMIC_SECTION(atomic_state);
+        return true;
+    }
+
+    fsp_err_t error = R_IOPORT_PinCfg(g_ioport.p_ctrl, pin_id, machine_pin_saved_cfg[port][bit]);
+    if (error != FSP_SUCCESS) {
+        PIN_LOGE("failed to restore pin: pin=0x%04lx, error=%d", (unsigned long)pin_id, (int)error);
+        MICROPY_END_ATOMIC_SECTION(atomic_state);
+        return false;
+    }
+
+    machine_pin_gpio_states[port] &= (uint16_t)~mask;
     machine_pin_states[port] &= (uint16_t)~mask;
 
     MICROPY_END_ATOMIC_SECTION(atomic_state);
+    return true;
 }
 
 bool machine_pin_take(bsp_io_port_pin_t pin_id)
@@ -126,6 +201,7 @@ bool machine_pin_take(bsp_io_port_pin_t pin_id)
         return false;
     }
 
+    machine_pin_saved_cfg[port][bit] = R_PFS->PORT[port].PIN[bit].PmnPFS;
     machine_pin_states[port] |= mask;
     MICROPY_END_ATOMIC_SECTION(atomic_state);
     return true;
@@ -247,35 +323,56 @@ static void machine_pin_configure(const machine_pin_obj_t *pin, mp_int_t mode, m
         }
     }
 
-    R_IOPORT_PinCfg(g_ioport.p_ctrl, pin->pin, cfg);
-}
+    fsp_err_t error = R_IOPORT_PinCfg(g_ioport.p_ctrl, pin->pin, cfg);
 
-/* TODO 写成函数注释 */
-//把引脚配置为外设功能
-void machine_pin_configure_alt(bsp_io_port_pin_t pin_id, ioport_peripheral_t peripheral)
-{
-    /* BUG 忽略了以下功能：
-     *  - 驱动能力。高速时，需要高驱动能力
-     *  - CMOS 输出还是 n-ch open drain。不同外设需要配置不同的 output type
-     * 需要确定：
-     *  - 当一个 pin 被配置为其它模式，例如输入，后续 deinit 的时候，配置有没有被清掉，否则即作为外设模式，又设成输入模式，现在不知道行为 */
-    uint32_t cfg = (uint32_t)IOPORT_CFG_PERIPHERAL_PIN | (uint32_t)peripheral;
-
-    fsp_err_t err = R_IOPORT_PinCfg(g_ioport.p_ctrl, pin_id, cfg);
-
-    /* 没有必要，R_IOPORT_PinCfg() 永远返回 FSP_SUCCESS */
-    if (err != FSP_SUCCESS) {
+    if (error != FSP_SUCCESS) {
         mp_raise_OSError(MP_EIO);
     }
 }
 
-//把 CS 配置为 GPIO 输出
+/**
+ * @brief       将引脚配置为指定的外设复用功能。
+ *
+ * @param       pin_id     要配置的引脚。
+ * @param       peripheral FSP 外设复用功能。
+ * @param       options    驱动能力、开漏和上拉等额外配置。
+ * @exception   OSError FSP 配置引脚失败。
+ */
+void machine_pin_configure_alt(bsp_io_port_pin_t pin_id, ioport_peripheral_t peripheral, uint32_t options)
+{
+    uint32_t cfg = (uint32_t)IOPORT_CFG_PERIPHERAL_PIN | (uint32_t)peripheral | options;
+
+    fsp_err_t error = R_IOPORT_PinCfg(g_ioport.p_ctrl, pin_id, cfg);
+
+    if (error != FSP_SUCCESS) {
+        mp_raise_OSError(MP_EIO);
+    }
+}
+
+void machine_pin_configure_input(const machine_pin_obj_t *pin)
+{
+    machine_pin_configure(pin, MACHINE_PIN_MODE_IN, MP_OBJ_NULL, MP_OBJ_NULL, MP_OBJ_NULL, MP_OBJ_NULL);
+}
+
+/* 把 CS 配置为 GPIO 输出 */
 void machine_pin_configure_output(const machine_pin_obj_t *pin, bool value)
 {
     machine_pin_configure(pin, MACHINE_PIN_MODE_OUT, MP_OBJ_NULL, value ? mp_const_true : mp_const_false, MP_OBJ_NULL, MP_OBJ_NULL);
 }
 
-//把 CS 拉高或拉低
+bool machine_pin_read(const machine_pin_obj_t *pin)
+{
+    bsp_io_level_t level;
+    fsp_err_t err = R_IOPORT_PinRead(g_ioport.p_ctrl, pin->pin, &level);
+
+    if (err != FSP_SUCCESS) {
+        mp_raise_OSError(MP_EIO);
+    }
+
+    return level == BSP_IO_LEVEL_HIGH;
+}
+
+/* 把 CS 拉高或拉低 */
 void machine_pin_write(const machine_pin_obj_t *pin, bool value)
 {
     fsp_err_t err = R_IOPORT_PinWrite(g_ioport.p_ctrl, pin->pin, value ? BSP_IO_LEVEL_HIGH : BSP_IO_LEVEL_LOW);
@@ -285,29 +382,28 @@ void machine_pin_write(const machine_pin_obj_t *pin, bool value)
     }
 }
 
-static void machine_pin_take_and_configure(const machine_pin_obj_t *pin, mp_int_t mode, mp_obj_t pull, mp_obj_t value, mp_obj_t drive, mp_obj_t alt)
+static void machine_pin_gpio_take_and_configure(const machine_pin_obj_t *pin, mp_int_t mode, mp_obj_t pull, mp_obj_t value, mp_obj_t drive, mp_obj_t alt)
 {
-    if (!machine_pin_take(pin->pin)) {
-        mp_raise_OSError(MP_EBUSY);
+    bool newly_taken = false;
+
+    if (!machine_pin_gpio_is_taken(pin->pin)) {
+        if (!machine_pin_take(pin->pin)) {
+            mp_raise_OSError(MP_EBUSY);
+        }
+
+        machine_pin_gpio_set_taken(pin->pin, true);
+        newly_taken = true;
     }
 
-    /* A temporary exception catch point, like try/catch in C++
-     * It will catch all exception thrown by machine_pin_configure() through mp_raise_*() then throw exception again
-     * In C++, it like:
-     * try {
-     *  machine_pin_configure(pin, mode, pull, value, drive, alt);
-     * }
-     * catch (...) {
-     *  machine_pin_give();
-     *  throw;
-     * } */
     nlr_buf_t nlr;
     if (nlr_push(&nlr) == 0) {
         machine_pin_configure(pin, mode, pull, value, drive, alt);
         nlr_pop();
     }
     else {
-        machine_pin_give(pin->pin);
+        if (newly_taken) {
+            machine_pin_give(pin->pin);
+        }
         nlr_jump(nlr.ret_val);
     }
 }
@@ -348,7 +444,7 @@ static mp_obj_t machine_pin_make_new(const mp_obj_type_t *type, size_t n_args, s
 
     if (parsed_args[ARG_mode].u_obj != MP_OBJ_NULL) {
         mp_int_t mode = mp_obj_get_int(parsed_args[ARG_mode].u_obj);
-        machine_pin_take_and_configure(pin, mode, parsed_args[ARG_pull].u_obj, parsed_args[ARG_value].u_obj, parsed_args[ARG_drive].u_obj, parsed_args[ARG_alt].u_obj);
+        machine_pin_gpio_take_and_configure(pin, mode, parsed_args[ARG_pull].u_obj, parsed_args[ARG_value].u_obj, parsed_args[ARG_drive].u_obj, parsed_args[ARG_alt].u_obj);
     }
     else if (
         (parsed_args[ARG_pull].u_obj != MP_OBJ_NULL &&
@@ -398,7 +494,7 @@ static mp_obj_t machine_pin_init(size_t n_args, const mp_obj_t *pos_args, mp_map
     if (parsed_args[ARG_mode].u_obj != MP_OBJ_NULL) {
         mp_int_t mode = mp_obj_get_int(parsed_args[ARG_mode].u_obj);
         machine_pin_require_irq_inactive(self);
-        machine_pin_take_and_configure(self, mode, parsed_args[ARG_pull].u_obj, parsed_args[ARG_value].u_obj, parsed_args[ARG_drive].u_obj, parsed_args[ARG_alt].u_obj);
+        machine_pin_gpio_take_and_configure(self, mode, parsed_args[ARG_pull].u_obj, parsed_args[ARG_value].u_obj, parsed_args[ARG_drive].u_obj, parsed_args[ARG_alt].u_obj);
     }
     else if (
         (parsed_args[ARG_pull].u_obj != MP_OBJ_NULL &&
@@ -421,8 +517,17 @@ static mp_obj_t machine_pin_deinit(mp_obj_t self_in)
 
     machine_pin_require_irq_inactive(self);
 
-    machine_pin_configure(self, MACHINE_PIN_MODE_IN, MP_OBJ_NULL, MP_OBJ_NULL, MP_OBJ_NULL, MP_OBJ_NULL);
-    machine_pin_give(self->pin);
+    if (!machine_pin_gpio_is_taken(self->pin)) {
+        if (machine_pin_is_taken(self->pin)) {
+            mp_raise_OSError(MP_EBUSY);
+        }
+
+        return mp_const_none;
+    }
+
+    if (!machine_pin_give(self->pin)) {
+        mp_raise_OSError(MP_EIO);
+    }
 
     return mp_const_none;
 }
@@ -700,12 +805,6 @@ static mp_obj_t machine_pin_off(mp_obj_t self_in)
     return machine_pin_value(2, value_args);
 }
 
-/**
- * @brief       Toggle the current pin output level.
- *
- * @param       self_in Pin object.
- * @return      None.
- */
 static mp_obj_t machine_pin_toggle(mp_obj_t self_in)
 {
     const machine_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -732,13 +831,13 @@ static mp_obj_t machine_pin_toggle(mp_obj_t self_in)
 
 void machine_pin_deinit_all(void)
 {
-    mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
-
     for (size_t port = 0; port < MACHINE_PIN_PORT_COUNT; ++port) {
-        machine_pin_states[port] = 0;
+        for (size_t bit = 0; bit < MACHINE_PIN_PINS_PER_PORT; ++bit) {
+            if ((machine_pin_states[port] & (uint16_t)(1U << bit)) != 0U) {
+                machine_pin_give((bsp_io_port_pin_t)((port << 8) | bit));
+            }
+        }
     }
-
-    MICROPY_END_ATOMIC_SECTION(atomic_state);
 }
 
 static MP_DEFINE_CONST_FUN_OBJ_1(machine_pin_deinit_obj, machine_pin_deinit);

@@ -35,10 +35,11 @@
 #define DEFAULT_SPI_PHASE        (0)
 #define DEFAULT_SPI_POLARITY     (0)
 
-#define IS_VALID_BITS(value)     ((value) == 8)
 #define IS_VALID_FIRSTBIT(value) (((value) == MICROPY_PY_MACHINE_SPI_MSB) || ((value) == MICROPY_PY_MACHINE_SPI_LSB))
 #define IS_VALID_PHASE(value)    (((value) == 0) || ((value) == 1))
 #define IS_VALID_POLARITY(value) (((value) == 0) || ((value) == 1))
+#define IS_VALID_SCI_SPI_BITS(value) ((value) == 8)
+#define IS_VALID_SPI_BITS(value)     (((value) == 8) || ((value) == 16) || ((value) == 32))
 
 typedef struct _machine_hard_spi_obj_t
 {
@@ -49,9 +50,11 @@ typedef struct _machine_hard_spi_obj_t
     bsp_io_port_pin_t default_sck;
     bsp_io_port_pin_t default_mosi;
     bsp_io_port_pin_t default_miso;
-    const machine_pin_obj_t *cs;    /* TODO 为什么 cs 不用 bsp_io_port_pin_t 而是用 machine_pin_obj_t */
+    const machine_pin_obj_t *cs;
     ioport_peripheral_t peripheral;
+    uint8_t id;
     uint8_t spi_id;
+    bool initialized;
     bool sci_taken;
     uint8_t polarity;
     uint8_t phase;
@@ -65,6 +68,7 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
     #if defined(MICROPY_HW_SPI0_SCK)
     {
         .base = {&machine_spi_type},
+        .id = 0,
         .spi_id = 0,
         .polarity = DEFAULT_SPI_POLARITY,
         .phase = DEFAULT_SPI_PHASE,
@@ -84,6 +88,7 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
     #if defined(MICROPY_HW_SPI1_SCK)
     {
         .base = {&machine_spi_type},
+        .id = 1,
         .spi_id = 1,
         .polarity = DEFAULT_SPI_POLARITY,
         .phase = DEFAULT_SPI_PHASE,
@@ -100,9 +105,30 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
     },
     #endif
 
+    #if defined(MICROPY_HW_SCI0_SCK)
+    {
+        .base = {&machine_spi_type},
+        .id = 8,
+        .spi_id = 10,
+        .polarity = DEFAULT_SPI_POLARITY,
+        .phase = DEFAULT_SPI_PHASE,
+        .bits = DEFAULT_SPI_BITS,
+        .firstbit = DEFAULT_SPI_FIRSTBIT,
+        .peripheral = IOPORT_PERIPHERAL_SCI0_2_4_6_8,
+        .baudrate = DEFAULT_SPI_BAUDRATE,
+        .default_sck = MICROPY_HW_SCI0_SCK,
+        .default_mosi = MICROPY_HW_SCI0_TXD,
+        .default_miso = MICROPY_HW_SCI0_RXD,
+        .sck = MICROPY_HW_SCI0_SCK,
+        .mosi = MICROPY_HW_SCI0_TXD,
+        .miso = MICROPY_HW_SCI0_RXD,
+    },
+    #endif
+
     #if defined(MICROPY_HW_SCI1_SCK)
     {
         .base = {&machine_spi_type},
+        .id = 2,
         .spi_id = 11,
         .polarity = DEFAULT_SPI_POLARITY,
         .phase = DEFAULT_SPI_PHASE,
@@ -122,6 +148,7 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
     #if defined(MICROPY_HW_SCI2_SCK)
     {
         .base = {&machine_spi_type},
+        .id = 3,
         .spi_id = 12,
         .polarity = DEFAULT_SPI_POLARITY,
         .phase = DEFAULT_SPI_PHASE,
@@ -141,6 +168,7 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
     #if defined(MICROPY_HW_SCI3_SCK)
     {
         .base = {&machine_spi_type},
+        .id = 9,
         .spi_id = 13,
         .polarity = DEFAULT_SPI_POLARITY,
         .phase = DEFAULT_SPI_PHASE,
@@ -160,6 +188,7 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
     #if defined(MICROPY_HW_SCI4_SCK)
     {
         .base = {&machine_spi_type},
+        .id = 4,
         .spi_id = 14,
         .polarity = DEFAULT_SPI_POLARITY,
         .phase = DEFAULT_SPI_PHASE,
@@ -179,6 +208,7 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
     #if defined(MICROPY_HW_SCI5_SCK)
     {
         .base = {&machine_spi_type},
+        .id = 5,
         .spi_id = 15,
         .polarity = DEFAULT_SPI_POLARITY,
         .phase = DEFAULT_SPI_PHASE,
@@ -198,6 +228,7 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
     #if defined(MICROPY_HW_SCI6_SCK)
     {
         .base = {&machine_spi_type},
+        .id = 6,
         .spi_id = 16,
         .polarity = DEFAULT_SPI_POLARITY,
         .phase = DEFAULT_SPI_PHASE,
@@ -214,11 +245,30 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
     },
     #endif
 
-    /* BUG 为什么 SCI7 又不用宏来确定是否有了 */
+    #if defined(MICROPY_HW_SCI7_SCK)
+    {
+        .base = {&machine_spi_type},
+        .id = 10,
+        .spi_id = 17,
+        .polarity = DEFAULT_SPI_POLARITY,
+        .phase = DEFAULT_SPI_PHASE,
+        .bits = DEFAULT_SPI_BITS,
+        .firstbit = DEFAULT_SPI_FIRSTBIT,
+        .peripheral = IOPORT_PERIPHERAL_SCI1_3_5_7_9,
+        .baudrate = DEFAULT_SPI_BAUDRATE,
+        .default_sck = MICROPY_HW_SCI7_SCK,
+        .default_mosi = MICROPY_HW_SCI7_TXD,
+        .default_miso = MICROPY_HW_SCI7_RXD,
+        .sck = MICROPY_HW_SCI7_SCK,
+        .mosi = MICROPY_HW_SCI7_TXD,
+        .miso = MICROPY_HW_SCI7_RXD,
+    },
+    #endif
 
     #if defined(MICROPY_HW_SCI8_SCK)
     {
         .base = {&machine_spi_type},
+        .id = 7,
         .spi_id = 18,
         .polarity = DEFAULT_SPI_POLARITY,
         .phase = DEFAULT_SPI_PHASE,
@@ -234,71 +284,76 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
         .miso = MICROPY_HW_SCI8_RXD,
     },
     #endif
+
+    #if defined(MICROPY_HW_SCI9_SCK)
+    {
+        .base = {&machine_spi_type},
+        .id = 11,
+        .spi_id = 19,
+        .polarity = DEFAULT_SPI_POLARITY,
+        .phase = DEFAULT_SPI_PHASE,
+        .bits = DEFAULT_SPI_BITS,
+        .firstbit = DEFAULT_SPI_FIRSTBIT,
+        .peripheral = IOPORT_PERIPHERAL_SCI1_3_5_7_9,
+        .baudrate = DEFAULT_SPI_BAUDRATE,
+        .default_sck = MICROPY_HW_SCI9_SCK,
+        .default_mosi = MICROPY_HW_SCI9_TXD,
+        .default_miso = MICROPY_HW_SCI9_RXD,
+        .sck = MICROPY_HW_SCI9_SCK,
+        .mosi = MICROPY_HW_SCI9_TXD,
+        .miso = MICROPY_HW_SCI9_RXD,
+    },
+    #endif
 };
 
-static machine_hard_spi_obj_t *machine_hard_spi_find(mp_int_t spi_id) 
+static machine_hard_spi_obj_t *machine_hard_spi_find(mp_int_t id)
 {
     for (size_t index = 0; index < MP_ARRAY_SIZE(machine_hard_spi_obj); ++index) {
-        if (machine_hard_spi_obj[index].spi_id == spi_id) {
+        if (machine_hard_spi_obj[index].id == id) {
             return &machine_hard_spi_obj[index];
         }
     }
 
-    mp_raise_msg_varg(&mp_type_ValueError, MP_ERROR_TEXT("SPI(%d) does not exist"), spi_id);
+    mp_raise_msg_varg(&mp_type_ValueError, MP_ERROR_TEXT("SPI(%d) does not exist"), id);
 
     return NULL;
 }
 
-/**
- * TODO 这个函数要判断给定的 pin 能否作为 spi channel 的由 signal 指定的功能
- * 这是个私有函数，则表明专为 machine_spi 准备，那么为什么要使用在 pin.h 中的枚举
- *  - 如果这个函数保持私有，那么枚举值应该在本文件内指定
- *  - 如果把 machine_pin_af_signal_t 的值补完，那么可以让这个函数保持私有，因为对不同的外设，可能查询不同的复用数组记录（machine_pin_sci_spi_afs）
- *      - 或者更进一步，这个函数的功能应该由 pin.c 提供，因为所有外设都会去查询指定的 Python 通过参数传递过来的引脚能否使用
- */
-static const machine_pin_af_obj_t *machine_hard_spi_find_af(bsp_io_port_pin_t pin, machine_pin_af_peripheral_t peripheral, uint8_t channel, machine_pin_af_signal_t signal)
+static bool machine_hard_spi_valid_bits(const machine_hard_spi_obj_t *self, mp_int_t bits)
 {
-    for (size_t index = 0; index < machine_pin_spi_afs_count; ++index) {
-        const machine_pin_af_obj_t *af = &machine_pin_spi_afs[index];
-
-        if (af->pin == pin && af->peripheral == peripheral && af->channel == channel && af->signal == signal) {
-            return af;
-        }
+    if (self->spi_id >= 10) {
+        return IS_VALID_SCI_SPI_BITS(bits);
     }
 
-    return NULL;
+    return IS_VALID_SPI_BITS(bits);
 }
 
 static void machine_hard_spi_validate_pins(machine_hard_spi_obj_t *self, bsp_io_port_pin_t sck, bsp_io_port_pin_t mosi, bsp_io_port_pin_t miso)
 {
     machine_pin_af_peripheral_t peripheral = self->spi_id >= 10 ? MACHINE_PIN_AF_PERIPHERAL_SCI : MACHINE_PIN_AF_PERIPHERAL_SPI;
     uint8_t channel = self->spi_id >= 10 ? self->spi_id - 10 : self->spi_id;
-    const machine_pin_af_obj_t *sck_af = machine_hard_spi_find_af(sck, peripheral, channel, MACHINE_PIN_AF_SPI_SCK);
+    const machine_pin_af_obj_t *sck_af = machine_pin_find_af(sck, peripheral, channel, MACHINE_PIN_AF_SPI_SCK);
     if (sck_af == NULL) {
         mp_raise_ValueError(MP_ERROR_TEXT("bad SCK pin"));
     }
 
-    const machine_pin_af_obj_t *mosi_af = machine_hard_spi_find_af(mosi, peripheral, channel, MACHINE_PIN_AF_SPI_MOSI);
+    const machine_pin_af_obj_t *mosi_af = machine_pin_find_af(mosi, peripheral, channel, MACHINE_PIN_AF_SPI_MOSI);
     if (mosi_af == NULL) {
         mp_raise_ValueError(MP_ERROR_TEXT("bad MOSI pin"));
     }
 
-    const machine_pin_af_obj_t *miso_af = machine_hard_spi_find_af(miso, peripheral, channel, MACHINE_PIN_AF_SPI_MISO);
+    const machine_pin_af_obj_t *miso_af = machine_pin_find_af(miso, peripheral, channel, MACHINE_PIN_AF_SPI_MISO);
     if (miso_af == NULL) {
         mp_raise_ValueError(MP_ERROR_TEXT("bad MISO pin"));
     }
 
-    /* BUG 哪里规定的必须要使用相同的组？ */
-    if (sck_af->group != mosi_af->group || sck_af->group != miso_af->group) {
-        mp_raise_ValueError(MP_ERROR_TEXT("SPI pins must use the same group"));
-    }
 }
 
 static void machine_hard_spi_configure_pins(machine_hard_spi_obj_t *self)
 {
-    machine_pin_configure_alt(self->sck, self->peripheral);
-    machine_pin_configure_alt(self->mosi, self->peripheral);
-    machine_pin_configure_alt(self->miso, self->peripheral);
+    machine_pin_configure_alt(self->sck, self->peripheral, IOPORT_CFG_DRIVE_HIGH);
+    machine_pin_configure_alt(self->mosi, self->peripheral, IOPORT_CFG_DRIVE_HIGH);
+    machine_pin_configure_alt(self->miso, self->peripheral, 0U);
 }
 
 static bool machine_hard_spi_take_pins(machine_hard_spi_obj_t *self, const machine_pin_obj_t *new_cs)
@@ -326,23 +381,39 @@ static bool machine_hard_spi_take_pins(machine_hard_spi_obj_t *self, const machi
             return false;
         }
 
-        machine_pin_configure_output(new_cs, true);
+        nlr_buf_t nlr;
+        if (nlr_push(&nlr) == 0) {
+            machine_pin_configure_output(new_cs, true);
+            nlr_pop();
+        } else {
+            machine_pin_give(new_cs->pin);
+            machine_pin_give(self->miso);
+            machine_pin_give(self->mosi);
+            machine_pin_give(self->sck);
+            nlr_jump(nlr.ret_val);
+        }
     }
 
     self->cs = new_cs;
     return true;
 }
 
-static void machine_hard_spi_give_pins(machine_hard_spi_obj_t *self) 
+static bool machine_hard_spi_give_pins(machine_hard_spi_obj_t *self)
 {
+    bool success = true;
+
     if (self->cs != NULL) {
-        machine_pin_give(self->cs->pin);
-        self->cs = NULL;
+        if (machine_pin_give(self->cs->pin)) {
+            self->cs = NULL;
+        } else {
+            success = false;
+        }
     }
 
-    machine_pin_give(self->miso);
-    machine_pin_give(self->mosi);
-    machine_pin_give(self->sck);
+    success = machine_pin_give(self->miso) && success;
+    success = machine_pin_give(self->mosi) && success;
+    success = machine_pin_give(self->sck) && success;
+    return success;
 }
 
 static void machine_hard_spi_give_sci(machine_hard_spi_obj_t *self)
@@ -353,6 +424,48 @@ static void machine_hard_spi_give_sci(machine_hard_spi_obj_t *self)
     }
 }
 
+static void machine_hard_spi_take_pins_or_raise(machine_hard_spi_obj_t *self, const machine_pin_obj_t *new_cs)
+{
+    bool success;
+    nlr_buf_t nlr;
+
+    if (nlr_push(&nlr) == 0) {
+        success = machine_hard_spi_take_pins(self, new_cs);
+        nlr_pop();
+    } else {
+        nlr_jump(nlr.ret_val);
+    }
+
+    if (!success) {
+        mp_raise_OSError(MP_EBUSY);
+    }
+}
+
+static void machine_hard_spi_start(machine_hard_spi_obj_t *self)
+{
+    nlr_buf_t nlr;
+    if (nlr_push(&nlr) == 0) {
+        machine_hard_spi_configure_pins(self);
+        nlr_pop();
+    } else {
+        if (machine_hard_spi_give_pins(self)) {
+            machine_hard_spi_give_sci(self);
+        }
+        nlr_jump(nlr.ret_val);
+    }
+
+    int error = spi_init(self->spi_id, self->baudrate, self->polarity, self->phase, self->bits, self->firstbit);
+
+    if (error != 0) {
+        if (machine_hard_spi_give_pins(self)) {
+            machine_hard_spi_give_sci(self);
+        }
+        mp_raise_OSError(error);
+    }
+
+    self->initialized = true;
+}
+
 static void machine_hard_spi_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) 
 {
     machine_hard_spi_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -361,9 +474,10 @@ static void machine_hard_spi_print(const mp_print_t *print, mp_obj_t self_in, mp
 
     mp_printf(
         print,
-        "SPI(%u, baudrate=%u, polarity=%u, phase=%u, bits=%u, "
+        "SPI(%u, initialized=%u, baudrate=%u, polarity=%u, phase=%u, bits=%u, "
         "firstbit=%u, sck=P%X%02u, mosi=P%X%02u, miso=P%X%02u",
-        self->spi_id,
+        self->id,
+        self->initialized,
         self->baudrate,
         self->polarity,
         self->phase,
@@ -385,9 +499,6 @@ static void machine_hard_spi_print(const mp_print_t *print, mp_obj_t self_in, mp
 
 static mp_obj_t machine_hard_spi_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args)
 {
-    /* TODO 没有解析 pins=(SCK,MOSI,MISO) 的调用，会出现 TypeError: extra keyword arguments given
-     *  - 加上这个参数的解析
-     *  - 在文档中说明不支持这个参数 */
     enum {
         ARG_id,
         ARG_baudrate,
@@ -404,11 +515,11 @@ static mp_obj_t machine_hard_spi_make_new(const mp_obj_type_t *type, size_t n_ar
     static const mp_arg_t allowed_args[] = 
     {
         {MP_QSTR_id, MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
-        {MP_QSTR_baudrate, MP_ARG_INT, {.u_int = -1}},
-        {MP_QSTR_polarity, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = -1}},
-        {MP_QSTR_phase, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = -1}},
-        {MP_QSTR_bits, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = -1}},
-        {MP_QSTR_firstbit, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = -1}},
+        {MP_QSTR_baudrate, MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
+        {MP_QSTR_polarity, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
+        {MP_QSTR_phase, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
+        {MP_QSTR_bits, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
+        {MP_QSTR_firstbit, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_sck, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_mosi, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_miso, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
@@ -420,62 +531,52 @@ static mp_obj_t machine_hard_spi_make_new(const mp_obj_type_t *type, size_t n_ar
     (void)type;
 
     mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
-
-    /* BUG Python 代码的 id 和 machine_hard_spi_obj 中的 id 不匹配，对 Python 来说，可以指定的 id 是
-     * 0, 1, 11, 12, 14, 15, 16, 18
-     * 0, 1, 2 , 3 , 4 , 5 , 6 , 7
-     * spi0 = machine.SPI(2)
-     * 返回
-     * ValueError: SPI(2) does not exist
-     *  - Python 的 id 匹配 machine_hard_spi_obj
-     *  - machine_hard_spi_obj 的 id 匹配 Python
-     *  - C 代码中处理差异 */
-    mp_int_t spi_id = mp_obj_get_int(args[ARG_id].u_obj);
-    machine_hard_spi_obj_t *self = machine_hard_spi_find(spi_id);
+    mp_int_t id = mp_obj_get_int(args[ARG_id].u_obj);
+    machine_hard_spi_obj_t *self = machine_hard_spi_find(id);
     uint32_t new_baudrate = self->baudrate;
     uint8_t new_polarity = self->polarity;
     uint8_t new_phase = self->phase;
     uint8_t new_bits = self->bits;
     uint8_t new_firstbit = self->firstbit;
 
-    if (args[ARG_baudrate].u_int != -1) 
-    {
-        if (args[ARG_baudrate].u_int <= 0) {
+    if (args[ARG_baudrate].u_obj != MP_OBJ_NULL) {
+        mp_int_t baudrate = mp_obj_get_int(args[ARG_baudrate].u_obj);
+        if (baudrate <= 0) {
             mp_raise_ValueError(MP_ERROR_TEXT("bad baudrate"));
         }
-        new_baudrate = args[ARG_baudrate].u_int;
+        new_baudrate = baudrate;
     }
 
-    if (args[ARG_polarity].u_int != -1) 
-    {
-        if (!IS_VALID_POLARITY(args[ARG_polarity].u_int)) {
+    if (args[ARG_polarity].u_obj != MP_OBJ_NULL) {
+        mp_int_t polarity = mp_obj_get_int(args[ARG_polarity].u_obj);
+        if (!IS_VALID_POLARITY(polarity)) {
             mp_raise_ValueError(MP_ERROR_TEXT("bad polarity"));
         }
-        new_polarity = args[ARG_polarity].u_int;
+        new_polarity = polarity;
     }
 
-    if (args[ARG_phase].u_int != -1) 
-    {
-        if (!IS_VALID_PHASE(args[ARG_phase].u_int)) {
+    if (args[ARG_phase].u_obj != MP_OBJ_NULL) {
+        mp_int_t phase = mp_obj_get_int(args[ARG_phase].u_obj);
+        if (!IS_VALID_PHASE(phase)) {
             mp_raise_ValueError(MP_ERROR_TEXT("bad phase"));
         }
-        new_phase = args[ARG_phase].u_int;
+        new_phase = phase;
     }
 
-    if (args[ARG_bits].u_int != -1) 
-    {
-        if (!IS_VALID_BITS(args[ARG_bits].u_int)) {
-            mp_raise_ValueError(MP_ERROR_TEXT("bad bits"));
+    if (args[ARG_bits].u_obj != MP_OBJ_NULL) {
+        mp_int_t bits = mp_obj_get_int(args[ARG_bits].u_obj);
+        if (!machine_hard_spi_valid_bits(self, bits)) {
+            mp_raise_ValueError(MP_ERROR_TEXT("unsupported bits for this SPI"));
         }
-        new_bits = args[ARG_bits].u_int;
+        new_bits = bits;
     }
 
-    if (args[ARG_firstbit].u_int != -1) 
-    {
-        if (!IS_VALID_FIRSTBIT(args[ARG_firstbit].u_int)) {
+    if (args[ARG_firstbit].u_obj != MP_OBJ_NULL) {
+        mp_int_t firstbit = mp_obj_get_int(args[ARG_firstbit].u_obj);
+        if (!IS_VALID_FIRSTBIT(firstbit)) {
             mp_raise_ValueError(MP_ERROR_TEXT("bad firstbit"));
         }
-        new_firstbit = args[ARG_firstbit].u_int;
+        new_firstbit = firstbit;
     }
 
     bool has_sck = args[ARG_sck].u_obj != MP_OBJ_NULL;
@@ -492,9 +593,6 @@ static mp_obj_t machine_hard_spi_make_new(const mp_obj_type_t *type, size_t n_ar
     }
     else {
         if (!has_sck || !has_mosi || !has_miso) {
-            /* TODO 这个分支就代表，当使用 SCI_SPI 时，要不不指定 sck/mosi/miso，要么全部指定，不能只指定一个或两个，原因是？
-             *  - 添加指定单个 sck/mosi/miso 的支持
-             *  - 文档说明这个限制 */
             mp_raise_ValueError(MP_ERROR_TEXT("must specify sck, mosi and miso"));
         }
 
@@ -520,57 +618,44 @@ static mp_obj_t machine_hard_spi_make_new(const mp_obj_type_t *type, size_t n_ar
         }
     }
 
-    if (spi_deinit(self->spi_id)) {
-        machine_hard_spi_give_pins(self);
+    bool was_initialized = self->initialized;
+    self->initialized = false;
+
+    if (!spi_deinit(self->spi_id)) {
+        self->initialized = was_initialized;
+        mp_raise_OSError(MP_EIO);
     }
 
-    bsp_io_port_pin_t old_sck = self->sck;
-    bsp_io_port_pin_t old_mosi = self->mosi;
-    bsp_io_port_pin_t old_miso = self->miso;
+    if (!machine_hard_spi_give_pins(self)) {
+        mp_raise_OSError(MP_EIO);
+    }
+
+    machine_hard_spi_give_sci(self);
 
     self->sck = new_sck;
     self->mosi = new_mosi;
     self->miso = new_miso;
+    self->baudrate = new_baudrate;
+    self->polarity = new_polarity;
+    self->phase = new_phase;
+    self->bits = new_bits;
+    self->firstbit = new_firstbit;
 
-    if (self->spi_id >= 10 && !self->sci_taken) {
+    machine_hard_spi_take_pins_or_raise(self, new_cs);
+
+    if (self->spi_id >= 10) {
         if (!machine_sci_take(self->spi_id - 10, MACHINE_SCI_OWNER_SPI)) {
-            self->sck = old_sck;
-            self->mosi = old_mosi;
-            self->miso = old_miso;
+            if (!machine_hard_spi_give_pins(self)) {
+                mp_raise_OSError(MP_EIO);
+            }
+
             mp_raise_OSError(MP_EBUSY);
         }
 
         self->sci_taken = true;
     }
 
-    if (!machine_hard_spi_take_pins(self, new_cs)) {
-        self->sck = old_sck;
-        self->mosi = old_mosi;
-        self->miso = old_miso;
-        machine_hard_spi_give_sci(self);
-
-        mp_raise_OSError(MP_EBUSY);
-    }
-
-    machine_hard_spi_configure_pins(self);
-
-    int error = spi_init(self->spi_id, new_baudrate, new_polarity, new_phase, new_bits, new_firstbit);
-
-    if (error != 0) {
-        machine_hard_spi_give_pins(self);
-        self->sck = old_sck;
-        self->mosi = old_mosi;
-        self->miso = old_miso;
-        machine_hard_spi_give_sci(self);
-
-        mp_raise_OSError(error);
-    }
-
-    self->baudrate = new_baudrate;
-    self->polarity = new_polarity;
-    self->phase = new_phase;
-    self->bits = new_bits;
-    self->firstbit = new_firstbit;
+    machine_hard_spi_start(self);
 
     return MP_OBJ_FROM_PTR(self);
 }
@@ -593,11 +678,11 @@ static void machine_hard_spi_init(mp_obj_base_t *self_in, size_t n_args, const m
 
     static const mp_arg_t allowed_args[] = 
     {
-        {MP_QSTR_baudrate, MP_ARG_INT, {.u_int = -1}},
-        {MP_QSTR_polarity, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = -1}},
-        {MP_QSTR_phase, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = -1}},
-        {MP_QSTR_bits, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = -1}},
-        {MP_QSTR_firstbit, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = -1}},
+        {MP_QSTR_baudrate, MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
+        {MP_QSTR_polarity, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
+        {MP_QSTR_phase, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
+        {MP_QSTR_bits, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
+        {MP_QSTR_firstbit, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_sck, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_mosi, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_miso, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
@@ -613,39 +698,44 @@ static void machine_hard_spi_init(mp_obj_base_t *self_in, size_t n_args, const m
     uint8_t new_bits = self->bits;
     uint8_t new_firstbit = self->firstbit;
 
-    if (args[ARG_baudrate].u_int != -1) {
-        if (args[ARG_baudrate].u_int <= 0) {
+    if (args[ARG_baudrate].u_obj != MP_OBJ_NULL) {
+        mp_int_t baudrate = mp_obj_get_int(args[ARG_baudrate].u_obj);
+        if (baudrate <= 0) {
             mp_raise_ValueError(MP_ERROR_TEXT("bad baudrate"));
         }
-        new_baudrate = args[ARG_baudrate].u_int;
+        new_baudrate = baudrate;
     }
 
-    if (args[ARG_polarity].u_int != -1) {
-        if (!IS_VALID_POLARITY(args[ARG_polarity].u_int)) {
+    if (args[ARG_polarity].u_obj != MP_OBJ_NULL) {
+        mp_int_t polarity = mp_obj_get_int(args[ARG_polarity].u_obj);
+        if (!IS_VALID_POLARITY(polarity)) {
             mp_raise_ValueError(MP_ERROR_TEXT("bad polarity"));
         }
-        new_polarity = args[ARG_polarity].u_int;
+        new_polarity = polarity;
     }
 
-    if (args[ARG_phase].u_int != -1) {
-        if (!IS_VALID_PHASE(args[ARG_phase].u_int)) {
+    if (args[ARG_phase].u_obj != MP_OBJ_NULL) {
+        mp_int_t phase = mp_obj_get_int(args[ARG_phase].u_obj);
+        if (!IS_VALID_PHASE(phase)) {
             mp_raise_ValueError(MP_ERROR_TEXT("bad phase"));
         }
-        new_phase = args[ARG_phase].u_int;
+        new_phase = phase;
     }
 
-    if (args[ARG_bits].u_int != -1) {
-        if (!IS_VALID_BITS(args[ARG_bits].u_int)) {
-            mp_raise_ValueError(MP_ERROR_TEXT("bad bits"));
+    if (args[ARG_bits].u_obj != MP_OBJ_NULL) {
+        mp_int_t bits = mp_obj_get_int(args[ARG_bits].u_obj);
+        if (!machine_hard_spi_valid_bits(self, bits)) {
+            mp_raise_ValueError(MP_ERROR_TEXT("unsupported bits for this SPI"));
         }
-        new_bits = args[ARG_bits].u_int;
+        new_bits = bits;
     }
 
-    if (args[ARG_firstbit].u_int != -1) {
-        if (!IS_VALID_FIRSTBIT(args[ARG_firstbit].u_int)) {
+    if (args[ARG_firstbit].u_obj != MP_OBJ_NULL) {
+        mp_int_t firstbit = mp_obj_get_int(args[ARG_firstbit].u_obj);
+        if (!IS_VALID_FIRSTBIT(firstbit)) {
             mp_raise_ValueError(MP_ERROR_TEXT("bad firstbit"));
         }
-        new_firstbit = args[ARG_firstbit].u_int;
+        new_firstbit = firstbit;
     }
 
     bool has_sck = args[ARG_sck].u_obj != MP_OBJ_NULL;
@@ -680,57 +770,44 @@ static void machine_hard_spi_init(mp_obj_base_t *self_in, size_t n_args, const m
         }
     }
 
-    if (spi_deinit(self->spi_id)) {
-        machine_hard_spi_give_pins(self);
+    bool was_initialized = self->initialized;
+    self->initialized = false;
+
+    if (!spi_deinit(self->spi_id)) {
+        self->initialized = was_initialized;
+        mp_raise_OSError(MP_EIO);
     }
 
-    bsp_io_port_pin_t old_sck = self->sck;
-    bsp_io_port_pin_t old_mosi = self->mosi;
-    bsp_io_port_pin_t old_miso = self->miso;
+    if (!machine_hard_spi_give_pins(self)) {
+        mp_raise_OSError(MP_EIO);
+    }
+
+    machine_hard_spi_give_sci(self);
 
     self->sck = new_sck;
     self->mosi = new_mosi;
     self->miso = new_miso;
+    self->baudrate = new_baudrate;
+    self->polarity = new_polarity;
+    self->phase = new_phase;
+    self->bits = new_bits;
+    self->firstbit = new_firstbit;
 
-    if (self->spi_id >= 10 && !self->sci_taken) {
+    machine_hard_spi_take_pins_or_raise(self, new_cs);
+
+    if (self->spi_id >= 10) {
         if (!machine_sci_take(self->spi_id - 10, MACHINE_SCI_OWNER_SPI)) {
-            self->sck = old_sck;
-            self->mosi = old_mosi;
-            self->miso = old_miso;
+            if (!machine_hard_spi_give_pins(self)) {
+                mp_raise_OSError(MP_EIO);
+            }
+
             mp_raise_OSError(MP_EBUSY);
         }
 
         self->sci_taken = true;
     }
 
-    if (!machine_hard_spi_take_pins(self, new_cs)) {
-        self->sck = old_sck;
-        self->mosi = old_mosi;
-        self->miso = old_miso;
-        machine_hard_spi_give_sci(self);
-
-        mp_raise_OSError(MP_EBUSY);
-    }
-
-    machine_hard_spi_configure_pins(self);
-
-    int error = spi_init(self->spi_id, new_baudrate, new_polarity, new_phase, new_bits, new_firstbit);
-
-    if (error != 0) {
-        machine_hard_spi_give_pins(self);
-        self->sck = old_sck;
-        self->mosi = old_mosi;
-        self->miso = old_miso;
-        machine_hard_spi_give_sci(self);
-
-        mp_raise_OSError(error);
-    }
-
-    self->baudrate = new_baudrate;
-    self->polarity = new_polarity;
-    self->phase = new_phase;
-    self->bits = new_bits;
-    self->firstbit = new_firstbit;
+    machine_hard_spi_start(self);
 }
 
 static void machine_hard_spi_deinit(mp_obj_base_t *self_in) 
@@ -738,7 +815,11 @@ static void machine_hard_spi_deinit(mp_obj_base_t *self_in)
     machine_hard_spi_obj_t *self = (machine_hard_spi_obj_t *)self_in;
 
     if (spi_deinit(self->spi_id)) {
-        machine_hard_spi_give_pins(self);
+        self->initialized = false;
+        if (!machine_hard_spi_give_pins(self)) {
+            mp_raise_OSError(MP_EIO);
+        }
+
         machine_hard_spi_give_sci(self);
     }
 }
@@ -747,11 +828,15 @@ static void machine_hard_spi_transfer(mp_obj_base_t *self_in, size_t len, const 
 {
     machine_hard_spi_obj_t *self = (machine_hard_spi_obj_t *)self_in;
 
+    if (!self->initialized) {
+        mp_raise_OSError(MP_ENODEV);
+    }
+
     if (len == 0) {
         return;
     }
 
-    uint32_t transfer_ms = (uint32_t)(((uint64_t)len * self->bits * 1000U + self->baudrate - 1U) / self->baudrate);
+    uint32_t transfer_ms = (uint32_t)(((uint64_t)len * 8U * 1000U + self->baudrate - 1U) / self->baudrate);
     uint32_t timeout_ms = transfer_ms * 2U + 100U;
 
     /* 传输前拉低CS，选中从设备 */
@@ -759,7 +844,7 @@ static void machine_hard_spi_transfer(mp_obj_base_t *self_in, size_t len, const 
         machine_pin_write(self->cs, false);
     }
 
-    int error = spi_transfer(self->spi_id, len, src, dest, timeout_ms);
+    int error = spi_transfer(self->spi_id, len, src, dest, self->bits, timeout_ms);
 
     /* 传输返回后拉高CS，释放从设备 */
     if (self->cs != NULL) {
@@ -768,8 +853,12 @@ static void machine_hard_spi_transfer(mp_obj_base_t *self_in, size_t len, const 
 
     if (error != 0) {
         if (error == MP_ETIMEDOUT) {
-            machine_hard_spi_give_pins(self);
-            machine_hard_spi_give_sci(self);
+            self->initialized = false;
+            if (machine_hard_spi_give_pins(self)) {
+                machine_hard_spi_give_sci(self);
+            } else {
+                error = MP_EIO;
+            }
         }
         mp_raise_OSError(error);
     }
@@ -777,74 +866,77 @@ static void machine_hard_spi_transfer(mp_obj_base_t *self_in, size_t len, const 
     mp_handle_pending(true);
 }
 
-/* TODO 这个函数的意义在哪？ */
-static mp_obj_t machine_hard_spi_deinit_method(mp_obj_t self_in) 
+static mp_int_t machine_hard_spi_get_write_value(size_t n_args, const mp_obj_t *args)
+{
+    mp_int_t write = n_args == 3 ? mp_obj_get_int(args[2]) : 0;
+    if (write < 0 || write > 0xff) {
+        mp_raise_ValueError(MP_ERROR_TEXT("write must be between 0 and 255"));
+    }
+    return write;
+}
+
+static mp_obj_t machine_hard_spi_init_method(size_t n_args, const mp_obj_t *args, mp_map_t *kw_args)
+{
+    machine_hard_spi_init(MP_OBJ_TO_PTR(args[0]), n_args - 1, args + 1, kw_args);
+    return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_KW(machine_hard_spi_init_method_obj, 1, machine_hard_spi_init_method);
+
+static mp_obj_t machine_hard_spi_deinit_method(mp_obj_t self_in)
 {
     machine_hard_spi_deinit(MP_OBJ_TO_PTR(self_in));
     return mp_const_none;
 }
-
-static mp_obj_t machine_hard_spi_init_method(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) 
-{
-    machine_hard_spi_init(MP_OBJ_TO_PTR(pos_args[0]), n_args - 1, pos_args + 1, kw_args);
-    return mp_const_none;
-}
-
-static mp_obj_t machine_hard_spi_write(mp_obj_t self_in, mp_obj_t buffer_in) 
-{
-    mp_buffer_info_t buffer;
-    mp_get_buffer_raise(buffer_in, &buffer, MP_BUFFER_READ);
-
-    machine_hard_spi_transfer(MP_OBJ_TO_PTR(self_in), buffer.len, buffer.buf, NULL);
-    return mp_const_none;
-}
-
-static mp_obj_t machine_hard_spi_write_readinto(mp_obj_t self_in, mp_obj_t write_buffer_in, mp_obj_t read_buffer_in) 
-{
-    mp_buffer_info_t write_buffer;
-    mp_buffer_info_t read_buffer;
-
-    mp_get_buffer_raise(write_buffer_in, &write_buffer, MP_BUFFER_READ);
-    mp_get_buffer_raise(read_buffer_in, &read_buffer, MP_BUFFER_WRITE);
-
-    if (write_buffer.len != read_buffer.len) {
-        mp_raise_ValueError(MP_ERROR_TEXT("buffers must be the same length"));
-    }
-
-    machine_hard_spi_transfer(MP_OBJ_TO_PTR(self_in), write_buffer.len, write_buffer.buf, read_buffer.buf);
-    return mp_const_none;
-}
+static MP_DEFINE_CONST_FUN_OBJ_1(machine_hard_spi_deinit_method_obj, machine_hard_spi_deinit_method);
 
 static mp_obj_t machine_hard_spi_read(size_t n_args, const mp_obj_t *args)
 {
-    mp_int_t len = mp_obj_get_int(args[1]);
-    if (len < 0) {
-        mp_raise_ValueError(MP_ERROR_TEXT("invalid length"));
+    mp_int_t length = mp_obj_get_int(args[1]);
+    if (length < 0) {
+        mp_raise_ValueError(MP_ERROR_TEXT("length must not be negative"));
     }
 
+    mp_int_t write = machine_hard_spi_get_write_value(n_args, args);
     vstr_t vstr;
-    vstr_init_len(&vstr, len);
-    memset(vstr.buf, n_args == 3 ? mp_obj_get_int(args[2]) : 0, vstr.len);
+    vstr_init_len(&vstr, length);
+    memset(vstr.buf, write, vstr.len);
     machine_hard_spi_transfer(MP_OBJ_TO_PTR(args[0]), vstr.len, (uint8_t *)vstr.buf, (uint8_t *)vstr.buf);
     return mp_obj_new_bytes_from_vstr(&vstr);
 }
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_hard_spi_read_obj, 2, 3, machine_hard_spi_read);
 
 static mp_obj_t machine_hard_spi_readinto(size_t n_args, const mp_obj_t *args)
 {
-    mp_buffer_info_t buffer;
-    mp_get_buffer_raise(args[1], &buffer, MP_BUFFER_WRITE);
-    memset(buffer.buf, n_args == 3 ? mp_obj_get_int(args[2]) : 0, buffer.len);
-    machine_hard_spi_transfer(MP_OBJ_TO_PTR(args[0]), buffer.len, buffer.buf, buffer.buf);
+    mp_buffer_info_t bufinfo;
+    mp_get_buffer_raise(args[1], &bufinfo, MP_BUFFER_WRITE);
+    mp_int_t write = machine_hard_spi_get_write_value(n_args, args);
+    memset(bufinfo.buf, write, bufinfo.len);
+    machine_hard_spi_transfer(MP_OBJ_TO_PTR(args[0]), bufinfo.len, bufinfo.buf, bufinfo.buf);
     return mp_const_none;
 }
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_hard_spi_readinto_obj, 2, 3, machine_hard_spi_readinto);
+
+static const mp_rom_map_elem_t machine_hard_spi_locals_dict_table[] = {
+    {MP_ROM_QSTR(MP_QSTR_init), MP_ROM_PTR(&machine_hard_spi_init_method_obj)},
+    {MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&machine_hard_spi_deinit_method_obj)},
+    {MP_ROM_QSTR(MP_QSTR_read), MP_ROM_PTR(&machine_hard_spi_read_obj)},
+    {MP_ROM_QSTR(MP_QSTR_readinto), MP_ROM_PTR(&machine_hard_spi_readinto_obj)},
+    {MP_ROM_QSTR(MP_QSTR_write), MP_ROM_PTR(&mp_machine_spi_write_obj)},
+    {MP_ROM_QSTR(MP_QSTR_write_readinto), MP_ROM_PTR(&mp_machine_spi_write_readinto_obj)},
+    {MP_ROM_QSTR(MP_QSTR_MSB), MP_ROM_INT(MICROPY_PY_MACHINE_SPI_MSB)},
+    {MP_ROM_QSTR(MP_QSTR_LSB), MP_ROM_INT(MICROPY_PY_MACHINE_SPI_LSB)},
+};
+static MP_DEFINE_CONST_DICT(machine_hard_spi_locals_dict, machine_hard_spi_locals_dict_table);
 
 void machine_spi_deinit_all(void) 
 {
     for (size_t index = 0; index < MP_ARRAY_SIZE(machine_hard_spi_obj); ++index) {
         machine_hard_spi_obj_t *self = &machine_hard_spi_obj[index];
         if (spi_deinit(self->spi_id)) {
-            machine_hard_spi_give_pins(self);
-            machine_hard_spi_give_sci(self);
+            self->initialized = false;
+            if (machine_hard_spi_give_pins(self)) {
+                machine_hard_spi_give_sci(self);
+            }
         }
     }
 }
@@ -855,28 +947,6 @@ static const mp_machine_spi_p_t machine_hard_spi_p =
     .deinit = machine_hard_spi_deinit,
     .transfer = machine_hard_spi_transfer,
 };
-
-static MP_DEFINE_CONST_FUN_OBJ_1(machine_hard_spi_deinit_obj, machine_hard_spi_deinit_method);
-static MP_DEFINE_CONST_FUN_OBJ_KW(machine_hard_spi_init_obj, 1, machine_hard_spi_init_method);
-static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_hard_spi_read_obj, 2, 3, machine_hard_spi_read);
-static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_hard_spi_readinto_obj, 2, 3, machine_hard_spi_readinto);
-static MP_DEFINE_CONST_FUN_OBJ_2(machine_hard_spi_write_obj, machine_hard_spi_write);
-static MP_DEFINE_CONST_FUN_OBJ_3(machine_hard_spi_write_readinto_obj, machine_hard_spi_write_readinto);
-
-static const mp_rom_map_elem_t machine_hard_spi_locals_dict_table[] = 
-{
-    {MP_ROM_QSTR(MP_QSTR_CONTROLLER), MP_ROM_INT(0)},
-    {MP_ROM_QSTR(MP_QSTR_LSB), MP_ROM_INT(MICROPY_PY_MACHINE_SPI_LSB)},
-    {MP_ROM_QSTR(MP_QSTR_MSB), MP_ROM_INT(MICROPY_PY_MACHINE_SPI_MSB)},
-    {MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&machine_hard_spi_deinit_obj)},
-    {MP_ROM_QSTR(MP_QSTR_init), MP_ROM_PTR(&machine_hard_spi_init_obj)},
-    {MP_ROM_QSTR(MP_QSTR_read), MP_ROM_PTR(&machine_hard_spi_read_obj)},
-    {MP_ROM_QSTR(MP_QSTR_readinto), MP_ROM_PTR(&machine_hard_spi_readinto_obj)},
-    {MP_ROM_QSTR(MP_QSTR_write), MP_ROM_PTR(&machine_hard_spi_write_obj)},
-    {MP_ROM_QSTR(MP_QSTR_write_readinto), MP_ROM_PTR(&machine_hard_spi_write_readinto_obj)},
-};
-
-static MP_DEFINE_CONST_DICT(machine_hard_spi_locals_dict, machine_hard_spi_locals_dict_table);
 
 MP_DEFINE_CONST_OBJ_TYPE(
     machine_spi_type,

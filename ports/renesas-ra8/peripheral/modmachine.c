@@ -81,6 +81,7 @@
 #define MICROPY_PY_MACHINE_EXTRA_GLOBALS \
     { MP_ROM_QSTR(MP_QSTR_Pin),              MP_ROM_PTR(&machine_pin_type) }, \
     { MP_ROM_QSTR(MP_QSTR_SDCard),           MP_ROM_PTR(&machine_sdcard_type), }, \
+    { MP_ROM_QSTR(MP_QSTR__pin_irq_stats),   MP_ROM_PTR(&machine_pin_irq_stats_obj) }, \
     { MP_ROM_QSTR(MP_QSTR_mem_backup),       MP_ROM_PTR(&machine_mem_backup_obj) }, \
     MICROPY_PY_MACHINE_RNG_ENTRY \
     /** 唤醒原因。 */ \

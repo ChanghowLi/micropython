@@ -78,7 +78,9 @@ SRC_C += peripheral/sdcard.c
 SRC_C += peripheral/spi.c
 
 # MicroPython integration sources
+SRC_C += drivers/bus/softspi.c
 SRC_C += extmod/machine_mem.c
+SRC_C += extmod/machine_spi.c
 SRC_C += extmod/modbinascii.c
 SRC_C += extmod/modhashlib.c
 SRC_C += extmod/modheapq.c
@@ -210,6 +212,7 @@ LIBS = -Wl,--start-group -lgcc -lm -lc -Wl,--end-group
 
 # QSTR sources (for string interning)
 SRC_QSTR += extmod/machine_mem.c
+SRC_QSTR += extmod/machine_spi.c
 SRC_QSTR += extmod/modbinascii.c
 SRC_QSTR += extmod/modhashlib.c
 SRC_QSTR += extmod/modheapq.c

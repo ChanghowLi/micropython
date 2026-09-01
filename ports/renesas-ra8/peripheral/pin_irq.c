@@ -1,12 +1,15 @@
+#include <stddef.h>
 #include <string.h>
 
 #include "hal_data.h"
 #include "pin.h"
 #include "py/mperrno.h"
+#include "py/mphal.h"
 #include "py/runtime.h"
 #include "shared/runtime/mpirq.h"
 
 #define MACHINE_PIN_IRQ_CHANNEL_COUNT (32)
+#define MACHINE_PIN_IRQ_PENDING_MAX (UINT32_MAX)
 #define MACHINE_PIN_IRQ_PRIORITY_MAX (15)
 #define MACHINE_PIN_IRQ_PRIORITY_MIN (1)
 
@@ -18,8 +21,16 @@ typedef struct _machine_pin_irq_obj_t {
     external_irq_cfg_t cfg;
     mp_uint_t flags;
     mp_uint_t trigger;
+    mp_sched_node_t cleanup_node;
+    mp_sched_node_t soft_node;
+    volatile uint32_t hard_callback_count;
+    volatile uint32_t hard_error_count;
+    volatile uint32_t pending_count;
+    volatile uint32_t raw_isr_count;
+    volatile uint32_t overflow_count;
     uint32_t saved_pin_cfg;
     bool open;
+    bool deferred_cleanup;
     bool pin_cfg_saved;
     bool pin_taken;
 } machine_pin_irq_obj_t;
@@ -164,12 +175,15 @@ static void machine_pin_irq_release(machine_pin_irq_obj_t *irq)
     }
 
     if (irq->pin_taken) {
-        machine_pin_give(irq->pin->pin);
-        irq->pin_taken = false;
+        if (machine_pin_give(irq->pin->pin)) {
+            irq->pin_taken = false;
+        }
     }
 
     irq->flags = 0;
     irq->trigger = 0;
+    irq->pending_count = 0;
+    irq->deferred_cleanup = false;
 }
 
 static void machine_pin_irq_force_inactive(machine_pin_irq_obj_t *irq)
@@ -186,12 +200,15 @@ static void machine_pin_irq_force_inactive(machine_pin_irq_obj_t *irq)
     }
 
     if (irq->pin_taken) {
-        machine_pin_give(irq->pin->pin);
-        irq->pin_taken = false;
+        if (machine_pin_give(irq->pin->pin)) {
+            irq->pin_taken = false;
+        }
     }
 
     irq->open = false;
     irq->trigger = 0;
+    irq->pending_count = 0;
+    irq->deferred_cleanup = false;
     if (MP_STATE_PORT(machine_pin_irq_obj[irq->pin->irq_channel]) == irq) {
         MP_STATE_PORT(machine_pin_irq_obj[irq->pin->irq_channel]) = NULL;
     }
@@ -230,6 +247,11 @@ static mp_uint_t machine_pin_irq_trigger(mp_obj_t pin_in, mp_uint_t trigger)
 
     irq->trigger = trigger;
     irq->cfg.trigger = fsp_trigger;
+    irq->hard_callback_count = 0;
+    irq->hard_error_count = 0;
+    irq->pending_count = 0;
+    irq->raw_isr_count = 0;
+    irq->overflow_count = 0;
 
     machine_pin_irq_configure_pin(irq, true);
 
@@ -264,6 +286,40 @@ static const mp_irq_methods_t machine_pin_irq_methods = {
     .info = machine_pin_irq_info,
 };
 
+static void machine_pin_irq_deferred_cleanup(mp_sched_node_t *node)
+{
+    machine_pin_irq_obj_t *irq = (machine_pin_irq_obj_t *)((uintptr_t)node - offsetof(machine_pin_irq_obj_t, cleanup_node));
+
+    if (!irq->deferred_cleanup) {
+        return;
+    }
+
+    nlr_buf_t nlr;
+    if (nlr_push(&nlr) == 0) {
+        machine_pin_irq_release(irq);
+        nlr_pop();
+    } else {
+        machine_pin_irq_force_inactive(irq);
+    }
+}
+
+static void machine_pin_irq_soft_dispatch(mp_sched_node_t *node)
+{
+    machine_pin_irq_obj_t *irq = (machine_pin_irq_obj_t *)((uintptr_t)node - offsetof(machine_pin_irq_obj_t, soft_node));
+    mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
+    uint32_t pending_count = irq->pending_count;
+    irq->pending_count = 0;
+    MICROPY_END_ATOMIC_SECTION(atomic_state);
+
+    for (uint32_t index = 0; index < pending_count; ++index) {
+        if (!irq->open || irq->base.ishard || irq->base.handler == mp_const_none) {
+            break;
+        }
+
+        mp_call_function_1_protected(irq->base.handler, irq->base.parent);
+    }
+}
+
 void machine_pin_irq_callback(external_irq_callback_args_t *p_args)
 {
     if (p_args->channel >= MACHINE_PIN_IRQ_CHANNEL_COUNT) {
@@ -276,9 +332,45 @@ void machine_pin_irq_callback(external_irq_callback_args_t *p_args)
         return;
     }
 
+    ++irq->raw_isr_count;
     irq->flags = irq->trigger;
-    mp_irq_handler(&irq->base);
+    if (!irq->base.ishard && irq->base.handler != mp_const_none) {
+        if (irq->pending_count < MACHINE_PIN_IRQ_PENDING_MAX) {
+            ++irq->pending_count;
+        } else {
+            ++irq->overflow_count;
+        }
+        mp_sched_schedule_node(&irq->soft_node, machine_pin_irq_soft_dispatch);
+    } else if (irq->base.ishard && irq->base.handler != mp_const_none) {
+        if (mp_irq_dispatch(irq->base.handler, irq->base.parent, true) < 0) {
+            ++irq->hard_error_count;
+            irq->base.handler = mp_const_none;
+            irq->deferred_cleanup = true;
+            mp_sched_schedule_node(&irq->cleanup_node, machine_pin_irq_deferred_cleanup);
+        } else {
+            ++irq->hard_callback_count;
+        }
+    }
 }
+
+static mp_obj_t machine_pin_irq_stats(mp_obj_t pin_in)
+{
+    const machine_pin_obj_t *pin = machine_pin_find(pin_in);
+    machine_pin_irq_obj_t *irq = machine_pin_irq_find(pin);
+
+    if (irq == NULL) {
+        mp_raise_ValueError(MP_ERROR_TEXT("IRQ is not configured"));
+    }
+
+    mp_obj_t stats[] = {
+        mp_obj_new_int_from_uint(irq->raw_isr_count),
+        mp_obj_new_int_from_uint(irq->overflow_count),
+        mp_obj_new_int_from_uint(irq->hard_callback_count),
+        mp_obj_new_int_from_uint(irq->hard_error_count),
+    };
+    return mp_obj_new_tuple(MP_ARRAY_SIZE(stats), stats);
+}
+MP_DEFINE_CONST_FUN_OBJ_1(machine_pin_irq_stats_obj, machine_pin_irq_stats);
 
 static mp_obj_t machine_pin_irq(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)
 {

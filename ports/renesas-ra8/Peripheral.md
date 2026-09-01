@@ -367,6 +367,10 @@ API 完成情况。函数说明写在上方每个函数的标题下
 | SPI.CONTROLLER             | ❌    |
 
 
+### 注意
+
+1. RA8P1 端口不支持 `pins=(SCK, MOSI, MISO)` 参数。如需指定 SPI 引脚，必须同时使用 `sck=...`、`mosi=...` 和 `miso=...` 分别指定三个引脚；不能只指定其中一个或两个。三个参数全部省略时使用板级默认引脚；全部指定时，端口会检查它们是否属于同一 SPI 通道和同一复用组。
+
 ## class I2C
 
 参考：[MicroPython class I2C](https://docs.micropython.org/en/latest/library/machine.I2C.html)

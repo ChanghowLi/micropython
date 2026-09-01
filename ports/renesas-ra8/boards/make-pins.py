@@ -28,7 +28,7 @@ def read_pins(filename):
     af_masks = {}
     irq_channels = {}
     irq_deep_standby = {}
-    spi_afs = []
+    afs = []
     seen = set()
 
     with open(filename, newline="", encoding="utf-8-sig") as csv_file:
@@ -79,7 +79,7 @@ def read_pins(filename):
                     for signal, channel, group in re.findall(
                         r"(MISO|MOSI|SCK)([0-9]+)_([A-Z])", af
                     ):
-                        spi_afs.append(
+                        afs.append(
                             (
                                 cpu_name,
                                 port,
@@ -87,7 +87,37 @@ def read_pins(filename):
                                 "SCI",
                                 int(channel, 10),
                                 group,
-                                signal,
+                                f"SPI_{signal}",
+                            )
+                        )
+
+                    for signal, channel, group in re.findall(
+                        r"(CTS_RTS|CTS|RXD|SCK|TXD)([0-9]+)_([A-Z])", af
+                    ):
+                        afs.append(
+                            (
+                                cpu_name,
+                                port,
+                                bit,
+                                "SCI",
+                                int(channel, 10),
+                                group,
+                                f"UART_{signal}",
+                            )
+                        )
+
+                    for signal, channel, group in re.findall(
+                        r"(SCL|SDA)([0-9]+)_([A-Z])", af
+                    ):
+                        afs.append(
+                            (
+                                cpu_name,
+                                port,
+                                bit,
+                                "SCI",
+                                int(channel, 10),
+                                group,
+                                f"I2C_{signal}",
                             )
                         )
 
@@ -95,7 +125,7 @@ def read_pins(filename):
                     for signal, instance, group in re.findall(
                         r"(MISO|MOSI|RSPCK)([AB])_([A-Z])", af
                     ):
-                        spi_afs.append(
+                        afs.append(
                             (
                                 cpu_name,
                                 port,
@@ -103,11 +133,27 @@ def read_pins(filename):
                                 "SPI",
                                 ord(instance) - ord("A"),
                                 group,
-                                "SCK" if signal == "RSPCK" else signal,
+                                f"SPI_{'SCK' if signal == 'RSPCK' else signal}",
                             )
                         )
 
-    return pins, af_masks, irq_channels, irq_deep_standby, spi_afs
+                if af.startswith("IIC/I3C:"):
+                    for signal, channel, group in re.findall(
+                        r"(SCL|SDA)([0-9]+)_([A-Z])", af
+                    ):
+                        afs.append(
+                            (
+                                cpu_name,
+                                port,
+                                bit,
+                                "IIC",
+                                int(channel, 10),
+                                group,
+                                f"I2C_{signal}",
+                            )
+                        )
+
+    return pins, af_masks, irq_channels, irq_deep_standby, afs
 
 
 def write_header(filename):
@@ -127,8 +173,8 @@ def write_header(filename):
         )
 
 
-def write_source(filename, pins, af_masks, irq_channels, irq_deep_standby, spi_afs):
-    """Generate Pin objects, lookup arrays, and SPI metadata."""
+def write_source(filename, pins, af_masks, irq_channels, irq_deep_standby, afs):
+    """Generate Pin objects, lookup arrays, and alternate-function metadata."""
 
     with open(filename, "w", encoding="utf-8", newline="\n") as output:
         output.write('#include "peripheral/pin.h"\n\n')
@@ -190,24 +236,25 @@ def write_source(filename, pins, af_masks, irq_channels, irq_deep_standby, spi_a
             "};\n\n"
             "const size_t machine_pin_generated_pins_count =\n"
             "    MP_ARRAY_SIZE(machine_pin_generated_pins);\n\n"
-            "const machine_pin_af_obj_t machine_pin_spi_afs[] = {\n"
+            "const machine_pin_af_obj_t machine_pin_afs[] = {\n"
         )
 
-        for cpu_name, port, bit, peripheral, channel, group, signal in spi_afs:
+        for cpu_name, port, bit, peripheral, channel, group, signal in afs:
+            group_literal = "'\\0'" if group == "\0" else f"'{group}'"
             output.write(
                 "    {\n"
                 f"        .pin = BSP_IO_PORT_{port:02d}_PIN_{bit:02d},\n"
                 f"        .peripheral = MACHINE_PIN_AF_PERIPHERAL_{peripheral},\n"
                 f"        .channel = {channel},\n"
-                f"        .group = '{group}',\n"
-                f"        .signal = MACHINE_PIN_AF_SPI_{signal},\n"
+                f"        .group = {group_literal},\n"
+                f"        .signal = MACHINE_PIN_AF_{signal},\n"
                 "    },\n"
             )
 
         output.write(
             "};\n\n"
-            "const size_t machine_pin_spi_afs_count =\n"
-            "    MP_ARRAY_SIZE(machine_pin_spi_afs);\n"
+            "const size_t machine_pin_afs_count =\n"
+            "    MP_ARRAY_SIZE(machine_pin_afs);\n"
         )
 
 
@@ -218,7 +265,7 @@ def main():
     parser.add_argument("--output-source", required=True)
     args = parser.parse_args()
 
-    pins, af_masks, irq_channels, irq_deep_standby, spi_afs = read_pins(
+    pins, af_masks, irq_channels, irq_deep_standby, afs = read_pins(
         args.af_csv
     )
     write_header(args.output_header)
@@ -228,7 +275,7 @@ def main():
         af_masks,
         irq_channels,
         irq_deep_standby,
-        spi_afs,
+        afs,
     )
 
 

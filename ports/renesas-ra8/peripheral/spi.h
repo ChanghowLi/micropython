@@ -22,6 +22,7 @@ int spi_transfer(
     size_t len,
     const uint8_t *src,
     uint8_t *dest,
+    uint8_t bits,
     uint32_t timeout_ms
     );
 
