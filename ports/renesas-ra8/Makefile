@@ -69,6 +69,8 @@ SRC_C := $(FSP_SRC_C)
 
 # Peripheral source file
 SRC_C += peripheral/irq.c
+SRC_C += peripheral/i2c.c
+SRC_C += peripheral/machine_i2c.c
 SRC_C += peripheral/machine_spi.c
 SRC_C += peripheral/pin.c
 SRC_C += peripheral/pin_irq.c
@@ -79,6 +81,7 @@ SRC_C += peripheral/spi.c
 
 # MicroPython integration sources
 SRC_C += drivers/bus/softspi.c
+SRC_C += extmod/machine_i2c.c
 SRC_C += extmod/machine_mem.c
 SRC_C += extmod/machine_spi.c
 SRC_C += extmod/modbinascii.c
@@ -205,12 +208,14 @@ LDFLAGS += -T $(LD_SCRIPT)
 LD_SEARCH_DIRS = $(sort $(FSP_PROJECT_DIR)/Debug $(FSP_PROJECT_DIR)/Debug)
 LDFLAGS += $(addprefix -L,$(LD_SEARCH_DIRS))
 LDFLAGS += -Wl,-Map=$@.map -Wl,--cref -Wl,--gc-sections
+LDFLAGS += -Wl,--wrap=iic_master_eri_isr
 LDFLAGS += --specs=nano.specs
 
 # Libraries in --start-group/--end-group (same as e2studio)
 LIBS = -Wl,--start-group -lgcc -lm -lc -Wl,--end-group
 
 # QSTR sources (for string interning)
+SRC_QSTR += extmod/machine_i2c.c
 SRC_QSTR += extmod/machine_mem.c
 SRC_QSTR += extmod/machine_spi.c
 SRC_QSTR += extmod/modbinascii.c
@@ -233,6 +238,7 @@ SRC_QSTR += extmod/vfs_fat.c
 SRC_QSTR += extmod/vfs_fat_diskio.c
 SRC_QSTR += extmod/vfs_fat_file.c
 SRC_QSTR += extmod/vfs_lfs.c
+SRC_QSTR += peripheral/machine_i2c.c
 SRC_QSTR += peripheral/machine_spi.c
 SRC_QSTR += peripheral/pin.c
 SRC_QSTR += peripheral/pin_irq.c

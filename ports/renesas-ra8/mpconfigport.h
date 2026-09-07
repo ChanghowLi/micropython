@@ -146,6 +146,10 @@
 #define MICROPY_PY_MACHINE_SIGNAL                   0
 #endif
 
+#ifndef MICROPY_PY_MACHINE_I2C
+#define MICROPY_PY_MACHINE_I2C                      1
+#endif
+
 #ifndef MICROPY_PY_MACHINE_SPI
 #define MICROPY_PY_MACHINE_SPI                      1
 #endif

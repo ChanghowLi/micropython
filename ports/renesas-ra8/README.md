@@ -95,4 +95,3 @@ python tools\pyboard.py --device your_com_port --baudrate 2000000 --filesystem c
 ```
 
 > 不要使用 pip 安装的 mpremote，那个不能指定波特率，不能链接上开发板
-

@@ -535,10 +535,10 @@ static int read_mem(mp_obj_t self_in, uint16_t addr, uint32_t memaddr, uint8_t a
     #endif
 
     int ret = mp_machine_i2c_writeto(self, addr, memaddr_buf, memaddr_len, false);
-    if (ret != memaddr_len) {
+    if (ret < 0 || (size_t)ret != memaddr_len) {
         // must generate STOP
         mp_machine_i2c_writeto(self, addr, NULL, 0, true);
-        return ret;
+        return ret < 0 ? ret : -MP_EIO;
     }
     return mp_machine_i2c_readfrom(self, addr, buf, len, true);
 }
@@ -558,7 +558,11 @@ static int write_mem(mp_obj_t self_in, uint16_t addr, uint32_t memaddr, uint8_t 
 
     // Do I2C transfer
     mp_machine_i2c_p_t *i2c_p = (mp_machine_i2c_p_t *)MP_OBJ_TYPE_GET_SLOT(self->type, protocol);
-    return i2c_p->transfer(self, addr, 2, bufs, MP_MACHINE_I2C_FLAG_STOP);
+    int ret = i2c_p->transfer(self, addr, 2, bufs, MP_MACHINE_I2C_FLAG_STOP);
+    if (ret >= 0 && (size_t)ret != memaddr_len + len) {
+        return -MP_EIO;
+    }
+    return ret;
 }
 
 static const mp_arg_t machine_i2c_mem_allowed_args[] = {

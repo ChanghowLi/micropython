@@ -355,7 +355,7 @@ API 完成情况。函数说明写在上方每个函数的标题下
 | 函数或常量                 | 状态 |
 | -------------------------- | ---- |
 | machine.SPI()              | ✅    |
-| machine.SoftSPI()          | ❌    |
+| machine.SoftSPI()          | ✅    |
 | SPI.init()                 | ✅    |
 | SPI.deinit()               | ✅    |
 | SPI.read()                 | ✅    |
@@ -381,19 +381,24 @@ RA8P1 有 2 个 IIC（IIC0 已连接板子上其它器件，不允许 Python 调
 
 验证方式：需要另一个板子来互相通信，或者开多个外设互相通信
 
-### machine.I2C(id,*,scl,sda,freq=400000,timeout=50000)
+### machine.I2C(id,*,scl=None,sda=None,freq=400000,timeout=50000)
 
 创建并返回指定硬件总线上的 I2C 对象。
 
 参数：
 
-- id: I2C 外设编号，可用值由端口和开发板决定
-- scl: 用作 SCL 时钟线的 `machine.Pin` 对象
-- sda: 用作 SDA 数据线的 `machine.Pin` 对象
-- freq: SCL 的最大时钟频率，单位为 Hz
-- timeout: I2C 事务允许使用的最长时间，单位为微秒；部分端口不支持此参数
+- id: 当前支持 `I2C(1)` 和 `I2C(2)`
+- scl: 用作 SCL 时钟线的 `machine.Pin` 对象，可省略并使用当前通道默认引脚
+- sda: 用作 SDA 数据线的 `machine.Pin` 对象，可省略并使用当前通道默认引脚
+- freq: SCL 的最大时钟频率，单位为 Hz，当前硬件实现支持到 `1 MHz`
+- timeout: I2C 事务允许使用的最长时间，单位为微秒，默认 `50000 us`
 
-部分端口允许修改 `scl` 和 `sda`，部分端口则使用固定引脚或提供默认值。
+当前默认引脚：
+
+- `I2C(1)`：`SCL=P512`、`SDA=P511`
+- `I2C(2)`：`SCL=P515`、`SDA=P514`
+
+显式指定 `scl` 和 `sda` 时必须同时提供，两根引脚必须属于同一个 IIC 通道和同一组复用引脚；引脚会通过板级 AF 表校验，并进行占用管理。`timeout` 在底层传输前向上取整转换为毫秒。
 
 ### machine.SoftI2C(scl,sda,*,freq=400000,timeout=50000)
 
@@ -406,19 +411,22 @@ RA8P1 有 2 个 IIC（IIC0 已连接板子上其它器件，不允许 Python 调
 - freq: SCL 的最大时钟频率，单位为 Hz
 - timeout: 等待时钟拉伸的最长时间，单位为微秒。超时后抛出 `OSError(ETIMEDOUT)` 异常
 
-### I2C.init(scl,sda,*,freq=400000)
+### I2C.init(scl=None,sda=None,*,freq=None,timeout=None)
 
-使用指定参数初始化 I2C 总线。
+重新初始化 I2C 总线。未提供的参数保持当前配置。
 
 参数：
 
-- scl: 用作 SCL 时钟线的 `machine.Pin` 对象
-- sda: 用作 SDA 数据线的 `machine.Pin` 对象
+- scl: 用作 SCL 时钟线的 `machine.Pin` 对象；修改引脚时必须与 `sda` 同时提供
+- sda: 用作 SDA 数据线的 `machine.Pin` 对象；修改引脚时必须与 `scl` 同时提供
 - freq: SCL 时钟频率，单位为 Hz。硬件实际产生的频率可能低于请求值
+- timeout: I2C 事务超时时间，单位为微秒
+
+重新初始化时先校验引脚和频率是否可用，再关闭当前 IIC 实例并释放原 SCL/SDA，随后占用新引脚并重新打开硬件 IIC。频率校验失败时保留原配置和已打开的实例。
 
 ### I2C.deinit()
 
-关闭 I2C 总线。
+关闭 I2C 总线并释放当前 SCL/SDA 引脚。`deinit()` 后继续调用读写接口会返回 `ENODEV`；再次调用 `init()` 可重新启用该 I2C 对象。
 
 ### I2C.scan()
 
@@ -444,7 +452,13 @@ RA8P1 有 2 个 IIC（IIC0 已连接板子上其它器件，不允许 Python 调
 
 以下方法用于与指定地址的 I2C 设备进行标准读写操作。
 
+硬件 I2C 在 `stop=False` 后仅支持继续访问同一设备地址。若下一次访问换了地址，会先中止待续事务，再抛出 `OSError(EBUSY)`；捕获异常后可重新访问新地址。设备地址未应答返回 `ENODEV`，总线忙或仲裁丢失返回 `EBUSY`，硬件或软件超时返回 `ETIMEDOUT`。
+
+数据字节收到 NACK 时，`writeto()` 和 `writevto()` 返回已收到 ACK 的数据字节数，不包含设备地址。当前 FSP 在 NACK 后会结束事务，即使此前指定了 `stop=False`。
+
 ### I2C.readfrom(addr,nbytes,stop=True,/)
+
+当前硬件 I2C 要求读取长度大于零，零长度读取抛出 `OSError(EINVAL)`。此限制也适用于空缓冲区读取和零长度寄存器读取。
 
 从地址为 `addr` 的设备读取 `nbytes` 个字节。`stop` 为 `True` 时在传输结束后产生 STOP 条件。返回包含接收数据的 `bytes` 对象。
 
@@ -461,6 +475,8 @@ RA8P1 有 2 个 IIC（IIC0 已连接板子上其它器件，不允许 Python 调
 向地址为 `addr` 的设备依次发送 `vector` 中多个缓冲区的数据，设备地址只发送一次。`vector` 应为由缓冲区对象组成的元组或列表，其中可以包含长度为零的对象。收到 NACK 后停止发送剩余内容，返回收到的 ACK 数量。
 
 以下方法用于访问具有寄存器或存储器地址的 I2C 设备。
+
+寄存器地址或写入数据未完整得到 ACK 时抛出 `OSError(EIO)`，不会把部分传输当作成功。
 
 ### I2C.readfrom_mem(addr,memaddr,nbytes,*,addrsize=8)
 
@@ -480,22 +496,22 @@ API 完成情况。函数说明写在上方每个函数的标题下
 
 | 函数                       | 状态 |
 | -------------------------- | ---- |
-| machine.I2C()              | ❌    |
+| machine.I2C()              | ✅    |
 | machine.SoftI2C()          | ❌    |
-| I2C.init()                 | ❌    |
-| I2C.deinit()               | ❌    |
-| I2C.scan()                 | ❌    |
+| I2C.init()                 | ✅    |
+| I2C.deinit()               | ✅    |
+| I2C.scan()                 | ✅    |
 | I2C.start()                | ❌    |
 | I2C.stop()                 | ❌    |
 | I2C.readinto()             | ❌    |
 | I2C.write()                | ❌    |
-| I2C.readfrom()             | ❌    |
-| I2C.readfrom_into()        | ❌    |
-| I2C.writeto()              | ❌    |
-| I2C.writevto()             | ❌    |
-| I2C.readfrom_mem()         | ❌    |
-| I2C.readfrom_mem_into()    | ❌    |
-| I2C.writeto_mem()          | ❌    |
+| I2C.readfrom()             | ✅    |
+| I2C.readfrom_into()        | ✅    |
+| I2C.writeto()              | ✅    |
+| I2C.writevto()             | ✅    |
+| I2C.readfrom_mem()         | ✅    |
+| I2C.readfrom_mem_into()    | ✅    |
+| I2C.writeto_mem()          | ✅    |
 
 ## class UART
 

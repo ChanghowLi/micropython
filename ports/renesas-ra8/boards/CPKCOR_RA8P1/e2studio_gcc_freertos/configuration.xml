@@ -314,7 +314,7 @@
     <node id="board.clock.pll1p.display" option="board.clock.pll1p.display.value"/>
     <node id="board.clock.pll1q.div" option="board.clock.pll1q.div.5"/>
     <node id="board.clock.pll1q.display" option="board.clock.pll1q.display.value"/>
-    <node id="board.clock.pll1r.div" option="board.clock.pll1r.div.6"/>
+    <node id="board.clock.pll1r.div" option="board.clock.pll1r.div.8"/>
     <node id="board.clock.pll1r.display" option="board.clock.pll1r.display.value"/>
     <node id="board.clock.pll2.source" option="board.clock.pll2.source.xtal"/>
     <node id="board.clock.pll2.div" option="board.clock.pll2.div.3"/>
@@ -341,9 +341,9 @@
     <node id="board.clock.iclk.display" option="board.clock.iclk.display.value"/>
     <node id="board.clock.pclka.div" option="board.clock.pclka.div.8"/>
     <node id="board.clock.pclka.display" option="board.clock.pclka.display.value"/>
-    <node id="board.clock.pclkb.div" option="board.clock.pclkb.div.16"/>
+    <node id="board.clock.pclkb.div" option="board.clock.pclkb.div.24"/>
     <node id="board.clock.pclkb.display" option="board.clock.pclkb.display.value"/>
-    <node id="board.clock.pclkc.div" option="board.clock.pclkc.div.8"/>
+    <node id="board.clock.pclkc.div" option="board.clock.pclkc.div.16"/>
     <node id="board.clock.pclkc.display" option="board.clock.pclkc.display.value"/>
     <node id="board.clock.pclkd.div" option="board.clock.pclkd.div.4"/>
     <node id="board.clock.pclkd.display" option="board.clock.pclkd.display.value"/>
@@ -365,7 +365,7 @@
     <node id="board.clock.sciclk.source" option="board.clock.sciclk.source.pll2r"/>
     <node id="board.clock.sciclk.div" option="board.clock.sciclk.div.4"/>
     <node id="board.clock.sciclk.display" option="board.clock.sciclk.display.value"/>
-    <node id="board.clock.spiclk.source" option="board.clock.spiclk.source.disabled"/>
+    <node id="board.clock.spiclk.source" option="board.clock.spiclk.source.pll1r"/>
     <node id="board.clock.spiclk.div" option="board.clock.spiclk.div.1"/>
     <node id="board.clock.spiclk.display" option="board.clock.spiclk.display.value"/>
     <node id="board.clock.canfdclk.source" option="board.clock.canfdclk.source.disabled"/>
@@ -500,6 +500,14 @@
     </component>
     <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_sci_b_spi" variant="" vendor="Renesas" version="6.4.0">
       <description>Serial Peripheral Interface on Serial Communications Interface</description>
+      <originalPack>Renesas.RA.6.4.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_iic_master" variant="" vendor="Renesas" version="6.4.0">
+      <description>I2C Master Interface</description>
+      <originalPack>Renesas.RA.6.4.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_sci_b_i2c" variant="" vendor="Renesas" version="6.4.0">
+      <description>SCI_B I2C Master Interface</description>
       <originalPack>Renesas.RA.6.4.0.pack</originalPack>
     </component>
   </raComponentSelection>
@@ -1004,7 +1012,7 @@
       <property id="module.driver.spi_b.mosi_idle_value_fixing" value="module.driver.spi_b.mosi_idle_value_fixing.disable"/>
       <property id="module.driver.spi_b.parity" value="module.driver.spi_b.parity_mode.disable"/>
       <property id="module.driver.spi_b.byte_swap" value="module.driver.spi_b.byte_swap.disable"/>
-      <property id="module.driver.spi_b.clock_source" value="module.driver.spi_b.clock_source.pclk"/>
+      <property id="module.driver.spi_b.clock_source" value="module.driver.spi_b.clock_source.spiclk"/>
       <property id="module.driver.spi_b.bitrate" value="16000000"/>
       <property id="module.driver.spi_b.spck_delay" value="module.driver.spi_b.spck_delay.one"/>
       <property id="module.driver.spi_b.ssl_negation_delay" value="module.driver.spi_b.ssl_negation_delay.one"/>
@@ -1031,7 +1039,7 @@
       <property id="module.driver.spi_b.mosi_idle_value_fixing" value="module.driver.spi_b.mosi_idle_value_fixing.disable"/>
       <property id="module.driver.spi_b.parity" value="module.driver.spi_b.parity_mode.disable"/>
       <property id="module.driver.spi_b.byte_swap" value="module.driver.spi_b.byte_swap.disable"/>
-      <property id="module.driver.spi_b.clock_source" value="module.driver.spi_b.clock_source.pclk"/>
+      <property id="module.driver.spi_b.clock_source" value="module.driver.spi_b.clock_source.spiclk"/>
       <property id="module.driver.spi_b.bitrate" value="16000000"/>
       <property id="module.driver.spi_b.spck_delay" value="module.driver.spi_b.spck_delay.one"/>
       <property id="module.driver.spi_b.ssl_negation_delay" value="module.driver.spi_b.ssl_negation_delay.one"/>
@@ -1045,7 +1053,7 @@
       <property id="module.driver.spi.clk_polarity" value="module.driver.spi.clk_polarity.clk_polarity_low"/>
       <property id="module.driver.spi.mode_fault" value="module.driver.spi.mode_fault.mode_fault_error_disable"/>
       <property id="module.driver.spi.bit_order" value="module.driver.spi.bit_order.bit_order_msb_first"/>
-      <property id="module.driver.spi.clock_source" value="module.driver.spi.clock_source.pclk"/>
+      <property id="module.driver.spi.clock_source" value="module.driver.spi.clock_source.scispiclk"/>
       <property id="module.driver.spi.p_callback" value="spi_callback"/>
       <property id="module.driver.spi.rxi_ipl" value="board.icu.common.irq.priority12"/>
       <property id="module.driver.spi.txi_ipl" value="board.icu.common.irq.priority12"/>
@@ -1063,7 +1071,7 @@
       <property id="module.driver.spi.clk_polarity" value="module.driver.spi.clk_polarity.clk_polarity_low"/>
       <property id="module.driver.spi.mode_fault" value="module.driver.spi.mode_fault.mode_fault_error_disable"/>
       <property id="module.driver.spi.bit_order" value="module.driver.spi.bit_order.bit_order_msb_first"/>
-      <property id="module.driver.spi.clock_source" value="module.driver.spi.clock_source.pclk"/>
+      <property id="module.driver.spi.clock_source" value="module.driver.spi.clock_source.scispiclk"/>
       <property id="module.driver.spi.p_callback" value="spi_callback"/>
       <property id="module.driver.spi.rxi_ipl" value="board.icu.common.irq.priority12"/>
       <property id="module.driver.spi.txi_ipl" value="board.icu.common.irq.priority12"/>
@@ -1081,7 +1089,7 @@
       <property id="module.driver.spi.clk_polarity" value="module.driver.spi.clk_polarity.clk_polarity_low"/>
       <property id="module.driver.spi.mode_fault" value="module.driver.spi.mode_fault.mode_fault_error_disable"/>
       <property id="module.driver.spi.bit_order" value="module.driver.spi.bit_order.bit_order_msb_first"/>
-      <property id="module.driver.spi.clock_source" value="module.driver.spi.clock_source.pclk"/>
+      <property id="module.driver.spi.clock_source" value="module.driver.spi.clock_source.scispiclk"/>
       <property id="module.driver.spi.p_callback" value="spi_callback"/>
       <property id="module.driver.spi.rxi_ipl" value="board.icu.common.irq.priority12"/>
       <property id="module.driver.spi.txi_ipl" value="board.icu.common.irq.priority12"/>
@@ -1099,7 +1107,7 @@
       <property id="module.driver.spi.clk_polarity" value="module.driver.spi.clk_polarity.clk_polarity_low"/>
       <property id="module.driver.spi.mode_fault" value="module.driver.spi.mode_fault.mode_fault_error_disable"/>
       <property id="module.driver.spi.bit_order" value="module.driver.spi.bit_order.bit_order_msb_first"/>
-      <property id="module.driver.spi.clock_source" value="module.driver.spi.clock_source.pclk"/>
+      <property id="module.driver.spi.clock_source" value="module.driver.spi.clock_source.scispiclk"/>
       <property id="module.driver.spi.p_callback" value="spi_callback"/>
       <property id="module.driver.spi.rxi_ipl" value="board.icu.common.irq.priority12"/>
       <property id="module.driver.spi.txi_ipl" value="board.icu.common.irq.priority12"/>
@@ -1117,7 +1125,7 @@
       <property id="module.driver.spi.clk_polarity" value="module.driver.spi.clk_polarity.clk_polarity_low"/>
       <property id="module.driver.spi.mode_fault" value="module.driver.spi.mode_fault.mode_fault_error_disable"/>
       <property id="module.driver.spi.bit_order" value="module.driver.spi.bit_order.bit_order_msb_first"/>
-      <property id="module.driver.spi.clock_source" value="module.driver.spi.clock_source.pclk"/>
+      <property id="module.driver.spi.clock_source" value="module.driver.spi.clock_source.scispiclk"/>
       <property id="module.driver.spi.p_callback" value="spi_callback"/>
       <property id="module.driver.spi.rxi_ipl" value="board.icu.common.irq.priority12"/>
       <property id="module.driver.spi.txi_ipl" value="board.icu.common.irq.priority12"/>
@@ -1135,7 +1143,7 @@
       <property id="module.driver.spi.clk_polarity" value="module.driver.spi.clk_polarity.clk_polarity_low"/>
       <property id="module.driver.spi.mode_fault" value="module.driver.spi.mode_fault.mode_fault_error_disable"/>
       <property id="module.driver.spi.bit_order" value="module.driver.spi.bit_order.bit_order_msb_first"/>
-      <property id="module.driver.spi.clock_source" value="module.driver.spi.clock_source.pclk"/>
+      <property id="module.driver.spi.clock_source" value="module.driver.spi.clock_source.scispiclk"/>
       <property id="module.driver.spi.p_callback" value="spi_callback"/>
       <property id="module.driver.spi.rxi_ipl" value="board.icu.common.irq.priority12"/>
       <property id="module.driver.spi.txi_ipl" value="board.icu.common.irq.priority12"/>
@@ -1144,6 +1152,126 @@
       <property id="module.driver.spi.bitrate" value="8000000"/>
       <property id="module.driver.spi.tx_fifo_trigger" value="module.driver.spi.tx_fifo_trigger.0"/>
       <property id="module.driver.spi.rx_sampling_delay" value="module.driver.spi.rx_sampling_delay.0"/>
+    </module>
+    <module id="module.driver.i2c_on_iic_master.58319049">
+      <property id="module.driver.i2c_master.name" value="g_i2c_master1"/>
+      <property id="module.driver.i2c_master.channel" value="1"/>
+      <property id="module.driver.i2c_master.rate" value="module.driver.i2c_master.rate.rate_standard"/>
+      <property id="module.driver.i2c_master.rate_value" value="0"/>
+      <property id="module.driver.i2c_master.rise_time_ns" value="120"/>
+      <property id="module.driver.i2c_master.fall_time_ns" value="120"/>
+      <property id="module.driver.i2c_master.duty" value="50"/>
+      <property id="module.driver.i2c_master.slave" value="0x00"/>
+      <property id="module.driver.i2c_master.addr_mode" value="module.driver.i2c_master.addr_mode.addr_mode_7bit"/>
+      <property id="module.driver.i2c_master.timeout_mode" value="module.driver.i2c_master.timeout_mode.short_mode"/>
+      <property id="module.driver.i2c_master.timeout_scl_low" value="module.driver.i2c_master.timeout_scl_low.enabled"/>
+      <property id="module.driver.i2c_master.p_callback" value="i2c_master_callback"/>
+      <property id="module.driver.i2c_master.ipl" value="board.icu.common.irq.priority12"/>
+    </module>
+    <module id="module.driver.i2c_on_iic_master.2060301316">
+      <property id="module.driver.i2c_master.name" value="g_i2c_master2"/>
+      <property id="module.driver.i2c_master.channel" value="2"/>
+      <property id="module.driver.i2c_master.rate" value="module.driver.i2c_master.rate.rate_standard"/>
+      <property id="module.driver.i2c_master.rate_value" value="0"/>
+      <property id="module.driver.i2c_master.rise_time_ns" value="120"/>
+      <property id="module.driver.i2c_master.fall_time_ns" value="120"/>
+      <property id="module.driver.i2c_master.duty" value="50"/>
+      <property id="module.driver.i2c_master.slave" value="0x00"/>
+      <property id="module.driver.i2c_master.addr_mode" value="module.driver.i2c_master.addr_mode.addr_mode_7bit"/>
+      <property id="module.driver.i2c_master.timeout_mode" value="module.driver.i2c_master.timeout_mode.short_mode"/>
+      <property id="module.driver.i2c_master.timeout_scl_low" value="module.driver.i2c_master.timeout_scl_low.enabled"/>
+      <property id="module.driver.i2c_master.p_callback" value="NULL"/>
+      <property id="module.driver.i2c_master.ipl" value="board.icu.common.irq.priority12"/>
+    </module>
+    <module id="module.driver.i2c_on_sci_b_i2c.1294700912">
+      <property id="module.driver.i2c.name" value="g_sci_i2c1"/>
+      <property id="module.driver.i2c.channel" value="1"/>
+      <property id="module.driver.i2c.slave" value="0x00"/>
+      <property id="module.driver.i2c.addr_mode" value="module.driver.i2c.addr_mode.addr_mode_7bit"/>
+      <property id="module.driver.i2c.rate" value="module.driver.i2c.rate.rate_standard"/>
+      <property id="module.driver.i2c.rate_value" value="0"/>
+      <property id="module.driver.i2c.sda_delay" value="300"/>
+      <property id="module.driver.i2c.snfr" value="module.driver.i2c.snfr.div_one"/>
+      <property id="module.driver.i2c.clock_source" value="module.driver.i2c.clock_source.scispiclk"/>
+      <property id="module.driver.i2c.bitrate_modulation" value="module.driver.i2c.bitrate_modulation.true"/>
+      <property id="module.driver.i2c.p_callback" value="sci_b_i2c_master_callback"/>
+      <property id="module.driver.i2c.ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.i2c.rx_ipl" value="_disabled"/>
+    </module>
+    <module id="module.driver.i2c_on_sci_b_i2c.1037133309">
+      <property id="module.driver.i2c.name" value="g_sci_i2c2"/>
+      <property id="module.driver.i2c.channel" value="2"/>
+      <property id="module.driver.i2c.slave" value="0x00"/>
+      <property id="module.driver.i2c.addr_mode" value="module.driver.i2c.addr_mode.addr_mode_7bit"/>
+      <property id="module.driver.i2c.rate" value="module.driver.i2c.rate.rate_standard"/>
+      <property id="module.driver.i2c.rate_value" value="0"/>
+      <property id="module.driver.i2c.sda_delay" value="300"/>
+      <property id="module.driver.i2c.snfr" value="module.driver.i2c.snfr.div_one"/>
+      <property id="module.driver.i2c.clock_source" value="module.driver.i2c.clock_source.scispiclk"/>
+      <property id="module.driver.i2c.bitrate_modulation" value="module.driver.i2c.bitrate_modulation.true"/>
+      <property id="module.driver.i2c.p_callback" value="sci_b_i2c_master_callback"/>
+      <property id="module.driver.i2c.ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.i2c.rx_ipl" value="_disabled"/>
+    </module>
+    <module id="module.driver.i2c_on_sci_b_i2c.1941185550">
+      <property id="module.driver.i2c.name" value="g_sci_i2c4"/>
+      <property id="module.driver.i2c.channel" value="4"/>
+      <property id="module.driver.i2c.slave" value="0x00"/>
+      <property id="module.driver.i2c.addr_mode" value="module.driver.i2c.addr_mode.addr_mode_7bit"/>
+      <property id="module.driver.i2c.rate" value="module.driver.i2c.rate.rate_standard"/>
+      <property id="module.driver.i2c.rate_value" value="0"/>
+      <property id="module.driver.i2c.sda_delay" value="300"/>
+      <property id="module.driver.i2c.snfr" value="module.driver.i2c.snfr.div_one"/>
+      <property id="module.driver.i2c.clock_source" value="module.driver.i2c.clock_source.scispiclk"/>
+      <property id="module.driver.i2c.bitrate_modulation" value="module.driver.i2c.bitrate_modulation.true"/>
+      <property id="module.driver.i2c.p_callback" value="sci_b_i2c_master_callback"/>
+      <property id="module.driver.i2c.ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.i2c.rx_ipl" value="_disabled"/>
+    </module>
+    <module id="module.driver.i2c_on_sci_b_i2c.319592139">
+      <property id="module.driver.i2c.name" value="g_sci_i2c5"/>
+      <property id="module.driver.i2c.channel" value="5"/>
+      <property id="module.driver.i2c.slave" value="0x00"/>
+      <property id="module.driver.i2c.addr_mode" value="module.driver.i2c.addr_mode.addr_mode_7bit"/>
+      <property id="module.driver.i2c.rate" value="module.driver.i2c.rate.rate_standard"/>
+      <property id="module.driver.i2c.rate_value" value="0"/>
+      <property id="module.driver.i2c.sda_delay" value="300"/>
+      <property id="module.driver.i2c.snfr" value="module.driver.i2c.snfr.div_one"/>
+      <property id="module.driver.i2c.clock_source" value="module.driver.i2c.clock_source.scispiclk"/>
+      <property id="module.driver.i2c.bitrate_modulation" value="module.driver.i2c.bitrate_modulation.true"/>
+      <property id="module.driver.i2c.p_callback" value="sci_b_i2c_master_callback"/>
+      <property id="module.driver.i2c.ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.i2c.rx_ipl" value="_disabled"/>
+    </module>
+    <module id="module.driver.i2c_on_sci_b_i2c.344834687">
+      <property id="module.driver.i2c.name" value="g_sci_i2c6"/>
+      <property id="module.driver.i2c.channel" value="6"/>
+      <property id="module.driver.i2c.slave" value="0x00"/>
+      <property id="module.driver.i2c.addr_mode" value="module.driver.i2c.addr_mode.addr_mode_7bit"/>
+      <property id="module.driver.i2c.rate" value="module.driver.i2c.rate.rate_standard"/>
+      <property id="module.driver.i2c.rate_value" value="0"/>
+      <property id="module.driver.i2c.sda_delay" value="300"/>
+      <property id="module.driver.i2c.snfr" value="module.driver.i2c.snfr.div_one"/>
+      <property id="module.driver.i2c.clock_source" value="module.driver.i2c.clock_source.scispiclk"/>
+      <property id="module.driver.i2c.bitrate_modulation" value="module.driver.i2c.bitrate_modulation.true"/>
+      <property id="module.driver.i2c.p_callback" value="sci_b_i2c_master_callback"/>
+      <property id="module.driver.i2c.ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.i2c.rx_ipl" value="_disabled"/>
+    </module>
+    <module id="module.driver.i2c_on_sci_b_i2c.698353222">
+      <property id="module.driver.i2c.name" value="g_sci_i2c8"/>
+      <property id="module.driver.i2c.channel" value="8"/>
+      <property id="module.driver.i2c.slave" value="0x00"/>
+      <property id="module.driver.i2c.addr_mode" value="module.driver.i2c.addr_mode.addr_mode_7bit"/>
+      <property id="module.driver.i2c.rate" value="module.driver.i2c.rate.rate_standard"/>
+      <property id="module.driver.i2c.rate_value" value="0"/>
+      <property id="module.driver.i2c.sda_delay" value="300"/>
+      <property id="module.driver.i2c.snfr" value="module.driver.i2c.snfr.div_one"/>
+      <property id="module.driver.i2c.clock_source" value="module.driver.i2c.clock_source.scispiclk"/>
+      <property id="module.driver.i2c.bitrate_modulation" value="module.driver.i2c.bitrate_modulation.true"/>
+      <property id="module.driver.i2c.p_callback" value="sci_b_i2c_master_callback"/>
+      <property id="module.driver.i2c.ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.i2c.rx_ipl" value="_disabled"/>
     </module>
     <context id="_hal.0">
       <stack module="module.driver.ioport_on_ioport.0"/>
@@ -1199,6 +1327,14 @@
       <stack module="module.driver.spi_on_sci_b_spi.736618596"/>
       <stack module="module.driver.spi_on_sci_b_spi.1227782513"/>
       <stack module="module.driver.spi_on_sci_b_spi.1058540924"/>
+      <stack module="module.driver.i2c_on_iic_master.58319049"/>
+      <stack module="module.driver.i2c_on_iic_master.2060301316"/>
+      <stack module="module.driver.i2c_on_sci_b_i2c.1294700912"/>
+      <stack module="module.driver.i2c_on_sci_b_i2c.1037133309"/>
+      <stack module="module.driver.i2c_on_sci_b_i2c.1941185550"/>
+      <stack module="module.driver.i2c_on_sci_b_i2c.319592139"/>
+      <stack module="module.driver.i2c_on_sci_b_i2c.344834687"/>
+      <stack module="module.driver.i2c_on_sci_b_i2c.698353222"/>
     </context>
     <context id="rtos.awsfreertos.thread.0">
       <property id="_symbol" value="repl_thread"/>
@@ -1272,6 +1408,11 @@
     <config id="config.driver.dmac">
       <property id="config.driver.dmac.param_checking_enable" value="config.driver.dmac.param_checking_enable.bsp"/>
     </config>
+    <config id="config.driver.iic_master">
+      <property id="config.driver.iic_master.param_checking_enable" value="config.driver.iic_master.param_checking_enable.bsp"/>
+      <property id="config.driver.iic_master.dtc_enable" value="config.driver.iic_master.dtc_enable.disabled"/>
+      <property id="config.driver.iic_master.addr_mode_10_bit_enable" value="config.driver.iic_master.addr_mode_10_bit_enable.disabled"/>
+    </config>
     <config id="config.driver.sci_b_spi">
       <property id="config.driver.sci_b_spi.param_checking_enable" value="config.driver.sci_b_spi.param_checking_enable.bsp"/>
       <property id="config.driver.sci_b_spi.dtc_support_enable" value="config.driver.sci_b_spi.dtc_support_enable.enabled"/>
@@ -1294,6 +1435,11 @@
     </config>
     <config id="config.driver.icu">
       <property id="config.driver.icu.param_checking_enable" value="config.driver.icu.param_checking_enable.bsp"/>
+    </config>
+    <config id="config.driver.sci_b_i2c">
+      <property id="config.driver.sci_b_i2c.param_checking_enable" value="config.driver.sci_b_i2c.param_checking_enable.bsp"/>
+      <property id="config.driver.sci_b_i2c.dtc_enable" value="config.driver.sci_b_i2c.dtc_enable.disabled"/>
+      <property id="config.driver.sci_b_i2c.addr_mode_10_bit_enable" value="config.driver.sci_b_i2c.addr_mode_10_bit_enable.disabled"/>
     </config>
     <config id="config.awsfreertos.thread">
       <property id="config.awsfreertos.custom_freertosconfig" value=""/>
@@ -1388,6 +1534,8 @@
       <configSetting altId="iic0.mode.custom.free" configurationId="iic0.mode"/>
       <configSetting altId="iic0.scl0.p410" configurationId="iic0.scl0"/>
       <configSetting altId="iic0.sda0.p409" configurationId="iic0.sda0"/>
+      <configSetting altId="iic1.mode.custom.free" configurationId="iic1.mode"/>
+      <configSetting altId="iic2.mode.custom.free" configurationId="iic2.mode"/>
       <configSetting altId="irq.irq20_dash_ds.p412" configurationId="irq.irq20_dash_ds"/>
       <configSetting altId="irq.irq24.p108" configurationId="irq.irq24"/>
       <configSetting altId="irq.irq29_dash_ds.p303" configurationId="irq.irq29_dash_ds"/>
