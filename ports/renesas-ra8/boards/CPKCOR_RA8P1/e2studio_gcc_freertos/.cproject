@@ -309,6 +309,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
+						<entry excluding="ninaw10|memory|esp-hosted|dht|cc3100" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="drivers"/>
 						<entry excluding="modselect.c|modframebuf.c|moddeflate.c|modasyncio.c|nimble" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="extmod"/>
 						<entry excluding="lfs1.c|lfs1_util.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="littlefs"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="oofatfs"/>

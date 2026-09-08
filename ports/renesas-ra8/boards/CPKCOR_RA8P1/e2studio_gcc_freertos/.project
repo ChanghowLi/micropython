@@ -44,6 +44,11 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>drivers</name>
+			<type>2</type>
+			<locationURI>$%7BPARENT-5-PROJECT_LOC%7D/drivers</locationURI>
+		</link>
+		<link>
 			<name>extmod</name>
 			<type>2</type>
 			<locationURI>$%7BPARENT-5-PROJECT_LOC%7D/extmod</locationURI>
@@ -72,11 +77,6 @@
 			<name>shared</name>
 			<type>2</type>
 			<locationURI>$%7BPARENT-5-PROJECT_LOC%7D/shared</locationURI>
-		</link>
-		<link>
-			<name>src/softspi.c</name>
-			<type>1</type>
-			<location>C:/Users/86187/Desktop/micropython/drivers/bus/softspi.c</location>
 		</link>
 	</linkedResources>
 </projectDescription>
