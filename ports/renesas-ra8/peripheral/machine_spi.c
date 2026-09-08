@@ -41,8 +41,7 @@
 #define IS_VALID_SCI_SPI_BITS(value) ((value) == 8)
 #define IS_VALID_SPI_BITS(value)     (((value) == 8) || ((value) == 16) || ((value) == 32))
 
-typedef struct _machine_hard_spi_obj_t
-{
+typedef struct _machine_hard_spi_obj_t {
     mp_obj_base_t base;
     bsp_io_port_pin_t sck;
     bsp_io_port_pin_t mosi;
@@ -63,9 +62,8 @@ typedef struct _machine_hard_spi_obj_t
     uint32_t baudrate;
 } machine_hard_spi_obj_t;
 
-static machine_hard_spi_obj_t machine_hard_spi_obj[] = 
-{
-    #if defined(MICROPY_HW_SPI0_SCK)
+static machine_hard_spi_obj_t machine_hard_spi_obj[] = {
+#if defined(MICROPY_HW_SPI0_SCK)
     {
         .base = {&machine_spi_type},
         .id = 0,
@@ -83,9 +81,9 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
         .mosi = MICROPY_HW_SPI0_MOSI,
         .miso = MICROPY_HW_SPI0_MISO,
     },
-    #endif
+#endif
 
-    #if defined(MICROPY_HW_SPI1_SCK)
+#if defined(MICROPY_HW_SPI1_SCK)
     {
         .base = {&machine_spi_type},
         .id = 1,
@@ -103,9 +101,9 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
         .mosi = MICROPY_HW_SPI1_MOSI,
         .miso = MICROPY_HW_SPI1_MISO,
     },
-    #endif
+#endif
 
-    #if defined(MICROPY_HW_SCI0_SCK)
+#if defined(MICROPY_HW_SCI0_SCK)
     {
         .base = {&machine_spi_type},
         .id = 8,
@@ -123,9 +121,9 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
         .mosi = MICROPY_HW_SCI0_TXD,
         .miso = MICROPY_HW_SCI0_RXD,
     },
-    #endif
+#endif
 
-    #if defined(MICROPY_HW_SCI1_SCK)
+#if defined(MICROPY_HW_SCI1_SCK)
     {
         .base = {&machine_spi_type},
         .id = 2,
@@ -143,9 +141,9 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
         .mosi = MICROPY_HW_SCI1_TXD,
         .miso = MICROPY_HW_SCI1_RXD,
     },
-    #endif
+#endif
 
-    #if defined(MICROPY_HW_SCI2_SCK)
+#if defined(MICROPY_HW_SCI2_SCK)
     {
         .base = {&machine_spi_type},
         .id = 3,
@@ -163,9 +161,9 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
         .mosi = MICROPY_HW_SCI2_TXD,
         .miso = MICROPY_HW_SCI2_RXD,
     },
-    #endif
+#endif
 
-    #if defined(MICROPY_HW_SCI3_SCK)
+#if defined(MICROPY_HW_SCI3_SCK)
     {
         .base = {&machine_spi_type},
         .id = 9,
@@ -183,9 +181,9 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
         .mosi = MICROPY_HW_SCI3_TXD,
         .miso = MICROPY_HW_SCI3_RXD,
     },
-    #endif
+#endif
 
-    #if defined(MICROPY_HW_SCI4_SCK)
+#if defined(MICROPY_HW_SCI4_SCK)
     {
         .base = {&machine_spi_type},
         .id = 4,
@@ -203,9 +201,9 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
         .mosi = MICROPY_HW_SCI4_TXD,
         .miso = MICROPY_HW_SCI4_RXD,
     },
-    #endif
+#endif
 
-    #if defined(MICROPY_HW_SCI5_SCK)
+#if defined(MICROPY_HW_SCI5_SCK)
     {
         .base = {&machine_spi_type},
         .id = 5,
@@ -223,9 +221,9 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
         .mosi = MICROPY_HW_SCI5_TXD,
         .miso = MICROPY_HW_SCI5_RXD,
     },
-    #endif
+#endif
 
-    #if defined(MICROPY_HW_SCI6_SCK)
+#if defined(MICROPY_HW_SCI6_SCK)
     {
         .base = {&machine_spi_type},
         .id = 6,
@@ -243,9 +241,9 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
         .mosi = MICROPY_HW_SCI6_TXD,
         .miso = MICROPY_HW_SCI6_RXD,
     },
-    #endif
+#endif
 
-    #if defined(MICROPY_HW_SCI7_SCK)
+#if defined(MICROPY_HW_SCI7_SCK)
     {
         .base = {&machine_spi_type},
         .id = 10,
@@ -263,9 +261,9 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
         .mosi = MICROPY_HW_SCI7_TXD,
         .miso = MICROPY_HW_SCI7_RXD,
     },
-    #endif
+#endif
 
-    #if defined(MICROPY_HW_SCI8_SCK)
+#if defined(MICROPY_HW_SCI8_SCK)
     {
         .base = {&machine_spi_type},
         .id = 7,
@@ -283,9 +281,9 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
         .mosi = MICROPY_HW_SCI8_TXD,
         .miso = MICROPY_HW_SCI8_RXD,
     },
-    #endif
+#endif
 
-    #if defined(MICROPY_HW_SCI9_SCK)
+#if defined(MICROPY_HW_SCI9_SCK)
     {
         .base = {&machine_spi_type},
         .id = 11,
@@ -303,7 +301,7 @@ static machine_hard_spi_obj_t machine_hard_spi_obj[] =
         .mosi = MICROPY_HW_SCI9_TXD,
         .miso = MICROPY_HW_SCI9_RXD,
     },
-    #endif
+#endif
 };
 
 static machine_hard_spi_obj_t *machine_hard_spi_find(mp_int_t id)
@@ -385,7 +383,8 @@ static bool machine_hard_spi_take_pins(machine_hard_spi_obj_t *self, const machi
         if (nlr_push(&nlr) == 0) {
             machine_pin_configure_output(new_cs, true);
             nlr_pop();
-        } else {
+        }
+        else {
             machine_pin_give(new_cs->pin);
             machine_pin_give(self->miso);
             machine_pin_give(self->mosi);
@@ -405,7 +404,8 @@ static bool machine_hard_spi_give_pins(machine_hard_spi_obj_t *self)
     if (self->cs != NULL) {
         if (machine_pin_give(self->cs->pin)) {
             self->cs = NULL;
-        } else {
+        }
+        else {
             success = false;
         }
     }
@@ -432,7 +432,8 @@ static void machine_hard_spi_take_pins_or_raise(machine_hard_spi_obj_t *self, co
     if (nlr_push(&nlr) == 0) {
         success = machine_hard_spi_take_pins(self, new_cs);
         nlr_pop();
-    } else {
+    }
+    else {
         nlr_jump(nlr.ret_val);
     }
 
@@ -447,7 +448,8 @@ static void machine_hard_spi_start(machine_hard_spi_obj_t *self)
     if (nlr_push(&nlr) == 0) {
         machine_hard_spi_configure_pins(self);
         nlr_pop();
-    } else {
+    }
+    else {
         if (machine_hard_spi_give_pins(self)) {
             machine_hard_spi_give_sci(self);
         }
@@ -466,7 +468,7 @@ static void machine_hard_spi_start(machine_hard_spi_obj_t *self)
     self->initialized = true;
 }
 
-static void machine_hard_spi_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) 
+static void machine_hard_spi_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind)
 {
     machine_hard_spi_obj_t *self = MP_OBJ_TO_PTR(self_in);
 
@@ -492,7 +494,8 @@ static void machine_hard_spi_print(const mp_print_t *print, mp_obj_t self_in, mp
 
     if (self->cs == NULL) {
         mp_printf(print, ", cs=None)");
-    } else {
+    }
+    else {
         mp_printf(print, ", cs=P%X%02u)", ((uint32_t)self->cs->pin >> 8) & 0xff, (uint32_t)self->cs->pin & 0xff);
     }
 }
@@ -512,8 +515,7 @@ static mp_obj_t machine_hard_spi_make_new(const mp_obj_type_t *type, size_t n_ar
         ARG_cs,
     };
 
-    static const mp_arg_t allowed_args[] = 
-    {
+    static const mp_arg_t allowed_args[] = {
         {MP_QSTR_id, MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_baudrate, MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_polarity, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
@@ -660,8 +662,8 @@ static mp_obj_t machine_hard_spi_make_new(const mp_obj_type_t *type, size_t n_ar
     return MP_OBJ_FROM_PTR(self);
 }
 
-static void machine_hard_spi_init(mp_obj_base_t *self_in, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) 
-{ 
+static void machine_hard_spi_init(mp_obj_base_t *self_in, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)
+{
     machine_hard_spi_obj_t *self = (machine_hard_spi_obj_t *)self_in;
 
     enum {
@@ -676,8 +678,7 @@ static void machine_hard_spi_init(mp_obj_base_t *self_in, size_t n_args, const m
         ARG_cs,
     };
 
-    static const mp_arg_t allowed_args[] = 
-    {
+    static const mp_arg_t allowed_args[] = {
         {MP_QSTR_baudrate, MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_polarity, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_phase, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
@@ -765,7 +766,8 @@ static void machine_hard_spi_init(mp_obj_base_t *self_in, size_t n_args, const m
     if (args[ARG_cs].u_obj != MP_OBJ_NULL) {
         if (args[ARG_cs].u_obj == mp_const_none) {
             new_cs = NULL;
-        } else {
+        }
+        else {
             new_cs = machine_pin_find(args[ARG_cs].u_obj);
         }
     }
@@ -810,7 +812,7 @@ static void machine_hard_spi_init(mp_obj_base_t *self_in, size_t n_args, const m
     machine_hard_spi_start(self);
 }
 
-static void machine_hard_spi_deinit(mp_obj_base_t *self_in) 
+static void machine_hard_spi_deinit(mp_obj_base_t *self_in)
 {
     machine_hard_spi_obj_t *self = (machine_hard_spi_obj_t *)self_in;
 
@@ -824,7 +826,7 @@ static void machine_hard_spi_deinit(mp_obj_base_t *self_in)
     }
 }
 
-static void machine_hard_spi_transfer(mp_obj_base_t *self_in, size_t len, const uint8_t *src, uint8_t *dest) 
+static void machine_hard_spi_transfer(mp_obj_base_t *self_in, size_t len, const uint8_t *src, uint8_t *dest)
 {
     machine_hard_spi_obj_t *self = (machine_hard_spi_obj_t *)self_in;
 
@@ -856,7 +858,8 @@ static void machine_hard_spi_transfer(mp_obj_base_t *self_in, size_t len, const 
             self->initialized = false;
             if (machine_hard_spi_give_pins(self)) {
                 machine_hard_spi_give_sci(self);
-            } else {
+            }
+            else {
                 error = MP_EIO;
             }
         }
@@ -928,7 +931,7 @@ static const mp_rom_map_elem_t machine_hard_spi_locals_dict_table[] = {
 };
 static MP_DEFINE_CONST_DICT(machine_hard_spi_locals_dict, machine_hard_spi_locals_dict_table);
 
-void machine_spi_deinit_all(void) 
+void machine_spi_deinit_all(void)
 {
     for (size_t index = 0; index < MP_ARRAY_SIZE(machine_hard_spi_obj); ++index) {
         machine_hard_spi_obj_t *self = &machine_hard_spi_obj[index];
@@ -941,8 +944,7 @@ void machine_spi_deinit_all(void)
     }
 }
 
-static const mp_machine_spi_p_t machine_hard_spi_p = 
-{
+static const mp_machine_spi_p_t machine_hard_spi_p = {
     .init = machine_hard_spi_init,
     .deinit = machine_hard_spi_deinit,
     .transfer = machine_hard_spi_transfer,

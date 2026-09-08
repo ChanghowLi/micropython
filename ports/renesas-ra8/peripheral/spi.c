@@ -30,8 +30,7 @@
 #define RA8_SCI_SPI_FIRST_ID (10)
 #define RA8_SPI_COUNT MP_ARRAY_SIZE(ra8_spi_states)
 
-typedef struct _ra8_spi_state_t 
-{
+typedef struct _ra8_spi_state_t {
     const spi_instance_t *instance;
     spi_cfg_t cfg;
     spi_b_extended_cfg_t spi_extended_cfg;
@@ -48,56 +47,56 @@ static ra8_spi_state_t ra8_spi_states[] = {
 };
 
 static ra8_spi_state_t ra8_sci_spi_states[] = {
-    #if defined(MICROPY_HW_SCI0_SCK)
+#if defined(MICROPY_HW_SCI0_SCK)
     {.instance = &g_sci_spi0},
-    #else
+#else
     {.instance = NULL},
-    #endif
-    #if defined(MICROPY_HW_SCI1_SCK)
+#endif
+#if defined(MICROPY_HW_SCI1_SCK)
     {.instance = &g_sci_spi1},
-    #else
+#else
     {.instance = NULL},
-    #endif
-    #if defined(MICROPY_HW_SCI2_SCK)
+#endif
+#if defined(MICROPY_HW_SCI2_SCK)
     {.instance = &g_sci_spi2},
-    #else
+#else
     {.instance = NULL},
-    #endif
-    #if defined(MICROPY_HW_SCI3_SCK)
+#endif
+#if defined(MICROPY_HW_SCI3_SCK)
     {.instance = &g_sci_spi3},
-    #else
+#else
     {.instance = NULL},
-    #endif
-    #if defined(MICROPY_HW_SCI4_SCK)
+#endif
+#if defined(MICROPY_HW_SCI4_SCK)
     {.instance = &g_sci_spi4},
-    #else
+#else
     {.instance = NULL},
-    #endif
-    #if defined(MICROPY_HW_SCI5_SCK)
+#endif
+#if defined(MICROPY_HW_SCI5_SCK)
     {.instance = &g_sci_spi5},
-    #else
+#else
     {.instance = NULL},
-    #endif
-    #if defined(MICROPY_HW_SCI6_SCK)
+#endif
+#if defined(MICROPY_HW_SCI6_SCK)
     {.instance = &g_sci_spi6},
-    #else
+#else
     {.instance = NULL},
-    #endif
-    #if defined(MICROPY_HW_SCI7_SCK)
+#endif
+#if defined(MICROPY_HW_SCI7_SCK)
     {.instance = &g_sci_spi7},
-    #else
+#else
     {.instance = NULL},
-    #endif
-    #if defined(MICROPY_HW_SCI8_SCK)
+#endif
+#if defined(MICROPY_HW_SCI8_SCK)
     {.instance = &g_sci_spi8},
-    #else
+#else
     {.instance = NULL},
-    #endif
-    #if defined(MICROPY_HW_SCI9_SCK)
+#endif
+#if defined(MICROPY_HW_SCI9_SCK)
     {.instance = &g_sci_spi9},
-    #else
+#else
     {.instance = NULL},
-    #endif
+#endif
 };
 
 static ra8_spi_state_t *ra8_spi_get_state(uint32_t id)
@@ -119,7 +118,7 @@ static ra8_spi_state_t *ra8_spi_get_state(uint32_t id)
     return &ra8_sci_spi_states[index];
 }
 
-static int ra8_spi_fsp_error(fsp_err_t error) 
+static int ra8_spi_fsp_error(fsp_err_t error)
 {
     if (error == FSP_SUCCESS) {
         return 0;
@@ -128,7 +127,7 @@ static int ra8_spi_fsp_error(fsp_err_t error)
     return MP_EIO;
 }
 
-void spi_callback(spi_callback_args_t *p_args) 
+void spi_callback(spi_callback_args_t *p_args)
 {
     if (p_args->p_context == NULL) {
         return;
@@ -170,7 +169,7 @@ bool spi_deinit(uint32_t id)
     return true;
 }
 
-int spi_init(uint32_t id, uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits, uint8_t firstbit) 
+int spi_init(uint32_t id, uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits, uint8_t firstbit)
 {
     bool valid_bits = id >= RA8_SCI_SPI_FIRST_ID ? bits == 8 : bits == 8 || bits == 16 || bits == 32;
     if (baudrate == 0 || !valid_bits || polarity > 1 || phase > 1 || firstbit > 1) {
@@ -179,7 +178,7 @@ int spi_init(uint32_t id, uint32_t baudrate, uint8_t polarity, uint8_t phase, ui
 
     ra8_spi_state_t *state = ra8_spi_get_state(id);
 
-    if (state == NULL) { 
+    if (state == NULL) {
         return MP_ENODEV;
     }
 
@@ -208,7 +207,8 @@ int spi_init(uint32_t id, uint32_t baudrate, uint8_t polarity, uint8_t phase, ui
         state->sci_spi_extended_cfg = *(const sci_b_spi_extended_cfg_t *)state->instance->p_cfg->p_extend;
         state->cfg.p_extend = &state->sci_spi_extended_cfg;
         error = R_SCI_B_SPI_CalculateBitrate(baudrate, state->sci_spi_extended_cfg.clock_source, &state->sci_spi_extended_cfg.clk_div);
-    } else {
+    }
+    else {
         state->spi_extended_cfg = *(const spi_b_extended_cfg_t *)state->instance->p_cfg->p_extend;
         state->cfg.p_extend = &state->spi_extended_cfg;
         error = R_SPI_B_CalculateBitrate(baudrate, state->spi_extended_cfg.clock_source, &state->spi_extended_cfg.spck_div);
@@ -250,23 +250,23 @@ int spi_transfer(uint32_t id, size_t len, const uint8_t *src, uint8_t *dest, uin
     spi_bit_width_t bit_width;
 
     switch (bits) {
-        case 8:
-            bit_width = SPI_BIT_WIDTH_8_BITS;
-            frame_size = 1;
-            break;
+    case 8:
+        bit_width = SPI_BIT_WIDTH_8_BITS;
+        frame_size = 1;
+        break;
 
-        case 16:
-            bit_width = SPI_BIT_WIDTH_16_BITS;
-            frame_size = 2;
-            break;
+    case 16:
+        bit_width = SPI_BIT_WIDTH_16_BITS;
+        frame_size = 2;
+        break;
 
-        case 32:
-            bit_width = SPI_BIT_WIDTH_32_BITS;
-            frame_size = 4;
-            break;
+    case 32:
+        bit_width = SPI_BIT_WIDTH_32_BITS;
+        frame_size = 4;
+        break;
 
-        default:
-            return MP_EINVAL;
+    default:
+        return MP_EINVAL;
     }
 
     if ((id >= RA8_SCI_SPI_FIRST_ID && bits != 8) || len % frame_size != 0) {
@@ -288,7 +288,8 @@ int spi_transfer(uint32_t id, size_t len, const uint8_t *src, uint8_t *dest, uin
     if (dest != NULL) {
         /*需要接收，所以同时发送和接收*/
         error = state->instance->p_api->writeRead(state->instance->p_ctrl, src, dest, frame_count, bit_width);
-    } else {
+    }
+    else {
         /*不需要接收，只发送*/
         error = state->instance->p_api->write(state->instance->p_ctrl, src, frame_count, bit_width);
     }
@@ -313,34 +314,34 @@ int spi_transfer(uint32_t id, size_t len, const uint8_t *src, uint8_t *dest, uin
     int result;
 
     switch (state->event) {
-        case SPI_EVENT_TRANSFER_COMPLETE:
-            return 0;
+    case SPI_EVENT_TRANSFER_COMPLETE:
+        return 0;
 
-        case SPI_EVENT_TRANSFER_ABORTED:
-            result = MP_ECANCELED;
-            break;
+    case SPI_EVENT_TRANSFER_ABORTED:
+        result = MP_ECANCELED;
+        break;
 
-        case SPI_EVENT_ERR_MODE_FAULT:
-            result = MP_EBUSY;
-            break;
+    case SPI_EVENT_ERR_MODE_FAULT:
+        result = MP_EBUSY;
+        break;
 
-        case SPI_EVENT_ERR_READ_OVERFLOW:
-        case SPI_EVENT_ERR_OVERRUN:
-            result = MP_ENOBUFS;
-            break;
+    case SPI_EVENT_ERR_READ_OVERFLOW:
+    case SPI_EVENT_ERR_OVERRUN:
+        result = MP_ENOBUFS;
+        break;
 
-        case SPI_EVENT_ERR_PARITY:
-        case SPI_EVENT_ERR_FRAMING:
-            result = MP_EIO;
-            break;
+    case SPI_EVENT_ERR_PARITY:
+    case SPI_EVENT_ERR_FRAMING:
+        result = MP_EIO;
+        break;
 
-        case SPI_EVENT_ERR_MODE_UNDERRUN:
-            result = MP_EPIPE;
-            break;
+    case SPI_EVENT_ERR_MODE_UNDERRUN:
+        result = MP_EPIPE;
+        break;
 
-        default:
-            result = MP_EIO;
-            break;
+    default:
+        result = MP_EIO;
+        break;
     }
 
     SPI_LOGE("SPI transfer failed: id=%lu, event=%d, errno=%d", (unsigned long)id, (int)state->event, result);
