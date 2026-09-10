@@ -4,15 +4,14 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/* TODO 把 SCI 的功能都先枚举出来吧 */
 typedef enum {
-    MACHINE_SCI_OWNER_NONE,
+    MACHINE_SCI_OWNER_NONE = 0,
     MACHINE_SCI_OWNER_I2C,
     MACHINE_SCI_OWNER_SPI,
-    MACHINE_SCI_OWNER_UART,
 } machine_sci_owner_t;
 
-bool machine_sci_take(uint8_t channel, machine_sci_owner_t owner);
+machine_sci_owner_t machine_sci_get_owner(uint8_t channel);
 void machine_sci_give(uint8_t channel, machine_sci_owner_t owner);
+bool machine_sci_take(uint8_t channel, machine_sci_owner_t owner);
 
 #endif

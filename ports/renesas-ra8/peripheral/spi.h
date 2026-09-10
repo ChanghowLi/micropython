@@ -8,22 +8,8 @@
 void machine_spi_deinit_all(void);
 bool spi_deinit(uint32_t id);
 
-int spi_init(
-    uint32_t id,
-    uint32_t baudrate,
-    uint8_t polarity,
-    uint8_t phase,
-    uint8_t bits,
-    uint8_t firstbit
-    );
+int spi_init(uint32_t id, uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits, uint8_t firstbit);
 
-int spi_transfer(
-    uint32_t id,
-    size_t len,
-    const uint8_t *src,
-    uint8_t *dest,
-    uint8_t bits,
-    uint32_t timeout_ms
-    );
+int spi_transfer(uint32_t id, size_t len, const uint8_t *src, uint8_t *dest, uint8_t bits, uint32_t timeout_ms);
 
 #endif 

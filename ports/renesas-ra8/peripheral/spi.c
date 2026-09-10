@@ -279,8 +279,7 @@ int spi_transfer(uint32_t id, size_t len, const uint8_t *src, uint8_t *dest, uin
 
     uint32_t frame_count = (uint32_t)(len / frame_size);
 
-    while (xSemaphoreTake(state->completion, 0) == pdTRUE) {
-    }
+    (void)xSemaphoreTake(state->completion, 0);
     state->event = (spi_event_t)0;
 
     fsp_err_t error;

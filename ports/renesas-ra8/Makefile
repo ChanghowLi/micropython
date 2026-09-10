@@ -208,7 +208,6 @@ LDFLAGS += -T $(LD_SCRIPT)
 LD_SEARCH_DIRS = $(sort $(FSP_PROJECT_DIR)/Debug $(FSP_PROJECT_DIR)/Debug)
 LDFLAGS += $(addprefix -L,$(LD_SEARCH_DIRS))
 LDFLAGS += -Wl,-Map=$@.map -Wl,--cref -Wl,--gc-sections
-LDFLAGS += -Wl,--wrap=iic_master_eri_isr
 LDFLAGS += --specs=nano.specs
 
 # Libraries in --start-group/--end-group (same as e2studio)

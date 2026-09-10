@@ -14,5 +14,6 @@ extern machine_reset_flags_t machine_reset_flags;
 
 void machine_init(void);
 void machine_deinit(void);
+void machine_i2c_deinit_all(void);
 
 #endif // MICROPY_INCLUDED_RENESAS_RA8_MODMACHINE_H
