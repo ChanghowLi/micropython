@@ -500,7 +500,7 @@ API 完成情况。函数说明写在上方每个函数的标题下
 | machine.SoftI2C()          | ❌    |
 | I2C.init()                 | ✅    |
 | I2C.deinit()               | ✅    |
-| I2C.scan()                 | ✅    |
+| I2C.scan()                 | ❌    |
 | I2C.start()                | ❌    |
 | I2C.stop()                 | ❌    |
 | I2C.readinto()             | ❌    |
