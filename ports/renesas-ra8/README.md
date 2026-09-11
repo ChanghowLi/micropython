@@ -87,7 +87,7 @@ python run-tests.py -t COM10 -b 2000000 --test-dirs basics
 - `/mram`：大小 64KBytes
 - `/flash`：大小 64MBytes，仅在 NorFlash 型号为 W35T 时可用
 
-启动时自动执行的脚本放置在 `/mram` 中，可以通过 mpremote 复制：
+启动时自动执行的脚本放置在 `/mram` 中，可以通过 `tools\pyboard.py` 复制：
 
 ```bash
 python tools\pyboard.py --device your_com_port --baudrate 2000000 --filesystem cp /parh/to/your/boot.py :/mram/boot.py

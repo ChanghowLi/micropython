@@ -28,7 +28,7 @@
 #define TAG __FUNCTION__
 
 static bool s_load_script_failed = false;
-static char s_head[MICROPY_HEAP_SIZE];
+static char s_mp_heap[MICROPY_HEAP_SIZE];
 
 static int load_auto_exec_script(void);
 
@@ -99,7 +99,7 @@ soft_reset:
     mp_cstack_init_with_sp_here(0x3000);
 
 #if MICROPY_ENABLE_GC
-    gc_init(s_head, s_head + sizeof(s_head));
+    gc_init(s_mp_heap, s_mp_heap + sizeof(s_mp_heap));
 #endif
     mp_init();
     machine_init();

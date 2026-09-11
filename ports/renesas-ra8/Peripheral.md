@@ -115,7 +115,7 @@ API 完成情况。函数说明写在上方每个函数的标题下
 | machine.idle()          | ✅    |
 | machine.lightsleep()    | ❌    |
 | machine.deepsleep()     | ❌    |
-| machine.wake_reason()   | ⚠️（仅接口框架） |
+| machine.wake_reason()   | ❌ |
 | machine.wake_pins()     | ❌    |
 | machine.unique_id()     | ✅    |
 | machine.time_pulse_us() | ❌    |
