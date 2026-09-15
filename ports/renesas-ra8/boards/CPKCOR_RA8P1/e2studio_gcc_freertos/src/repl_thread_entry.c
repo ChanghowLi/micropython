@@ -77,6 +77,11 @@ void repl_thread_entry(void *pvParameters)
     TestMRAM(0x020F0000, 0x10000);
 #endif
 
+    /* WARN: This test overwrites the whole external AT24C02 EEPROM. */
+#if TEST_EN_I2C
+    TestI2C();
+#endif
+
     /* WARN: This test will erase SD Card file system info. Don't enable it unless there's some problems */
 #if TEST_EN_SD
     SD_Init();

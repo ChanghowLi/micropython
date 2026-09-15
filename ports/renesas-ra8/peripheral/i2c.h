@@ -24,9 +24,14 @@ typedef struct {
 #endif
 } i2c_t;
 
-fsp_err_t i2c_open(i2c_t *i2c);
-fsp_err_t i2c_close(i2c_t *i2c);
-fsp_err_t i2c_write(i2c_t *i2c, uint8_t address, uint8_t *data, uint32_t length, bool restart);
-fsp_err_t i2c_read(i2c_t *i2c, uint8_t address, uint8_t *data, uint32_t length, bool restart);
+uint32_t IIC_DeInit(i2c_t *i2c);
+uint32_t IIC_Init(i2c_t *i2c);
+uint32_t IIC_ReadMemory(i2c_t *i2c, uint32_t slave, uint16_t mem_addr, uint8_t addr_width, uint8_t *rdata, uint16_t rlen);
+uint32_t IIC_ReadReg(i2c_t *i2c, uint32_t slave, uint16_t reg_addr, uint8_t addr_width, uint8_t *val, uint8_t val_width);
+uint32_t IIC_Write(i2c_t *i2c, uint32_t slave, uint8_t *data, uint8_t length);
+uint32_t IIC_WriteReg(i2c_t *i2c, uint32_t slave, uint16_t reg_addr, uint8_t addr_width, uint16_t val, uint8_t val_width);
+
+/* Internal primitive used by the MicroPython machine.I2C bridge. */
+uint32_t i2c_transfer(i2c_t *i2c, uint32_t slave, uint8_t *data, uint32_t length, bool read, bool restart);
 
 #endif

@@ -15,6 +15,10 @@ extern "C" {
 #define TEST_EN_HYPER_RAM	0
 #endif
 
+#ifndef TEST_EN_I2C
+#define TEST_EN_I2C		    0
+#endif
+
 #ifndef TEST_EN_LCD
 #define TEST_EN_LCD			0
 #endif
@@ -45,6 +49,10 @@ uint32_t TestAudio(void);
 
 #if TEST_EN_HYPER_RAM
 uint32_t TestHyperRAM(uint32_t start_addr, uint32_t size);
+#endif
+
+#if TEST_EN_I2C
+uint32_t TestI2C(void);
 #endif
 
 #if TEST_EN_LCD

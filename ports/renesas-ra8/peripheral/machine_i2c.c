@@ -19,8 +19,6 @@ typedef struct _machine_hard_i2c_obj_t {
     i2c_t *i2c;
     bsp_io_port_pin_t scl;
     bsp_io_port_pin_t sda;
-    bsp_io_port_pin_t default_scl;
-    bsp_io_port_pin_t default_sda;
     machine_pin_af_peripheral_t af_peripheral;
     ioport_peripheral_t peripheral;
     uint8_t id;
@@ -48,8 +46,6 @@ static machine_hard_i2c_obj_t machine_hard_i2c_obj[] = {
         .i2c = &machine_hard_i2c_instances[0],
         .scl = MICROPY_HW_I2C1_SCL,
         .sda = MICROPY_HW_I2C1_SDA,
-        .default_scl = MICROPY_HW_I2C1_SCL,
-        .default_sda = MICROPY_HW_I2C1_SDA,
         .af_peripheral = MACHINE_PIN_AF_PERIPHERAL_IIC,
         .peripheral = IOPORT_PERIPHERAL_IIC,
         .id = 1,
@@ -65,8 +61,6 @@ static machine_hard_i2c_obj_t machine_hard_i2c_obj[] = {
         .i2c = &machine_hard_i2c_instances[1],
         .scl = MICROPY_HW_I2C2_SCL,
         .sda = MICROPY_HW_I2C2_SDA,
-        .default_scl = MICROPY_HW_I2C2_SCL,
-        .default_sda = MICROPY_HW_I2C2_SDA,
         .af_peripheral = MACHINE_PIN_AF_PERIPHERAL_IIC,
         .peripheral = IOPORT_PERIPHERAL_IIC,
         .id = 2,
@@ -82,8 +76,6 @@ static machine_hard_i2c_obj_t machine_hard_i2c_obj[] = {
         .i2c = &machine_hard_i2c_instances[2],
         .scl = MICROPY_HW_SCI1_RXD,
         .sda = MICROPY_HW_SCI1_TXD,
-        .default_scl = MICROPY_HW_SCI1_RXD,
-        .default_sda = MICROPY_HW_SCI1_TXD,
         .af_peripheral = MACHINE_PIN_AF_PERIPHERAL_SCI,
         .peripheral = IOPORT_PERIPHERAL_SCI1_3_5_7_9,
         .id = 3,
@@ -99,8 +91,6 @@ static machine_hard_i2c_obj_t machine_hard_i2c_obj[] = {
         .i2c = &machine_hard_i2c_instances[3],
         .scl = MICROPY_HW_SCI2_RXD,
         .sda = MICROPY_HW_SCI2_TXD,
-        .default_scl = MICROPY_HW_SCI2_RXD,
-        .default_sda = MICROPY_HW_SCI2_TXD,
         .af_peripheral = MACHINE_PIN_AF_PERIPHERAL_SCI,
         .peripheral = IOPORT_PERIPHERAL_SCI0_2_4_6_8,
         .id = 4,
@@ -116,8 +106,6 @@ static machine_hard_i2c_obj_t machine_hard_i2c_obj[] = {
         .i2c = &machine_hard_i2c_instances[4],
         .scl = MICROPY_HW_SCI4_RXD,
         .sda = MICROPY_HW_SCI4_TXD,
-        .default_scl = MICROPY_HW_SCI4_RXD,
-        .default_sda = MICROPY_HW_SCI4_TXD,
         .af_peripheral = MACHINE_PIN_AF_PERIPHERAL_SCI,
         .peripheral = IOPORT_PERIPHERAL_SCI0_2_4_6_8,
         .id = 5,
@@ -133,8 +121,6 @@ static machine_hard_i2c_obj_t machine_hard_i2c_obj[] = {
         .i2c = &machine_hard_i2c_instances[5],
         .scl = MICROPY_HW_SCI5_RXD,
         .sda = MICROPY_HW_SCI5_TXD,
-        .default_scl = MICROPY_HW_SCI5_RXD,
-        .default_sda = MICROPY_HW_SCI5_TXD,
         .af_peripheral = MACHINE_PIN_AF_PERIPHERAL_SCI,
         .peripheral = IOPORT_PERIPHERAL_SCI1_3_5_7_9,
         .id = 6,
@@ -150,8 +136,6 @@ static machine_hard_i2c_obj_t machine_hard_i2c_obj[] = {
         .i2c = &machine_hard_i2c_instances[6],
         .scl = MICROPY_HW_SCI6_RXD,
         .sda = MICROPY_HW_SCI6_TXD,
-        .default_scl = MICROPY_HW_SCI6_RXD,
-        .default_sda = MICROPY_HW_SCI6_TXD,
         .af_peripheral = MACHINE_PIN_AF_PERIPHERAL_SCI,
         .peripheral = IOPORT_PERIPHERAL_SCI0_2_4_6_8,
         .id = 7,
@@ -167,8 +151,6 @@ static machine_hard_i2c_obj_t machine_hard_i2c_obj[] = {
         .i2c = &machine_hard_i2c_instances[7],
         .scl = MICROPY_HW_SCI8_RXD,
         .sda = MICROPY_HW_SCI8_TXD,
-        .default_scl = MICROPY_HW_SCI8_RXD,
-        .default_sda = MICROPY_HW_SCI8_TXD,
         .af_peripheral = MACHINE_PIN_AF_PERIPHERAL_SCI,
         .peripheral = IOPORT_PERIPHERAL_SCI0_2_4_6_8,
         .id = 8,
@@ -216,7 +198,7 @@ static int machine_hard_i2c_fsp_error(fsp_err_t error)
 
 static void machine_hard_i2c_validate_pins(machine_hard_i2c_obj_t *self, bsp_io_port_pin_t scl, bsp_io_port_pin_t sda)
 {
-    if (scl != self->default_scl || sda != self->default_sda) {
+    if (scl != self->scl || sda != self->sda) {
         mp_raise_ValueError(MP_ERROR_TEXT("only default I2C pins are supported"));
     }
 
@@ -282,7 +264,7 @@ static void machine_hard_i2c_stop(machine_hard_i2c_obj_t *self)
         return;
     }
 
-    fsp_err_t error = i2c_close(self->i2c);
+    fsp_err_t error = (fsp_err_t)IIC_DeInit(self->i2c);
     if (error != FSP_SUCCESS) {
         mp_raise_OSError(machine_hard_i2c_fsp_error(error));
     }
@@ -319,7 +301,7 @@ static void machine_hard_i2c_start(machine_hard_i2c_obj_t *self)
         nlr_jump(nlr.ret_val);
     }
 
-    fsp_err_t error = i2c_open(self->i2c);
+    fsp_err_t error = (fsp_err_t)IIC_Init(self->i2c);
     if (error != FSP_SUCCESS) {
         machine_hard_i2c_give_sci(self);
         machine_hard_i2c_give_pins(self);
@@ -346,8 +328,6 @@ static void machine_hard_i2c_reconfigure(machine_hard_i2c_obj_t *self, bsp_io_po
     }
     machine_hard_i2c_stop(self);
 
-    self->scl = scl;
-    self->sda = sda;
     self->freq = freq;
     machine_hard_i2c_start(self);
 }
@@ -423,8 +403,8 @@ static mp_obj_t machine_i2c_make_new(const mp_obj_type_t *type, size_t n_args, s
         mp_raise_ValueError(MP_ERROR_TEXT("must specify both scl and sda"));
     }
 
-    bsp_io_port_pin_t scl = self->default_scl;
-    bsp_io_port_pin_t sda = self->default_sda;
+    bsp_io_port_pin_t scl = self->scl;
+    bsp_io_port_pin_t sda = self->sda;
     if (has_scl) {
         scl = machine_pin_find(args[ARG_scl].u_obj)->pin;
         sda = machine_pin_find(args[ARG_sda].u_obj)->pin;
@@ -454,12 +434,7 @@ static int machine_hard_i2c_transfer_single(mp_obj_base_t *self_in, uint16_t add
     bool stop = (flags & MP_MACHINE_I2C_FLAG_STOP) != 0;
     bool restart = !stop;
 
-    fsp_err_t fsp_error;
-    if (read) {
-        fsp_error = i2c_read(self->i2c, (uint8_t)addr, buf, (uint32_t)len, restart);
-    } else {
-        fsp_error = i2c_write(self->i2c, (uint8_t)addr, buf, (uint32_t)len, restart);
-    }
+    fsp_err_t fsp_error = (fsp_err_t)i2c_transfer(self->i2c, addr, buf, (uint32_t)len, read, restart);
 
     int error = machine_hard_i2c_fsp_error(fsp_error);
     if (error != 0) {
@@ -497,7 +472,7 @@ void machine_i2c_deinit_all(void)
         if (!self->initialized) {
             continue;
         }
-        if (i2c_close(self->i2c) == FSP_SUCCESS) {
+        if ((fsp_err_t)IIC_DeInit(self->i2c) == FSP_SUCCESS) {
             self->initialized = false;
             machine_hard_i2c_give_pins(self);
             machine_hard_i2c_give_sci(self);
