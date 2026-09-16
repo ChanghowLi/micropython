@@ -12,6 +12,7 @@
 #if MICROPY_PY_MACHINE_I2C
 
 #define MACHINE_I2C_DEFAULT_FREQ_HZ      (400000U)
+#define MACHINE_I2C_DEFAULT_TIMEOUT_US   I2C_DEFAULT_TIMEOUT_US
 #define MACHINE_I2C_PIN_OPTIONS          (IOPORT_CFG_NMOS_ENABLE | IOPORT_CFG_DRIVE_MID)
 
 typedef struct _machine_hard_i2c_obj_t {
@@ -320,7 +321,7 @@ static uint32_t machine_hard_i2c_parse_positive(mp_obj_t value_in, mp_rom_error_
     return (uint32_t)value;
 }
 
-static void machine_hard_i2c_reconfigure(machine_hard_i2c_obj_t *self, bsp_io_port_pin_t scl, bsp_io_port_pin_t sda, uint32_t freq)
+static void machine_hard_i2c_reconfigure(machine_hard_i2c_obj_t *self, bsp_io_port_pin_t scl, bsp_io_port_pin_t sda, uint32_t freq, uint32_t timeout_us)
 {
     machine_hard_i2c_validate_pins(self, scl, sda);
     if (freq != MACHINE_I2C_DEFAULT_FREQ_HZ) {
@@ -329,6 +330,7 @@ static void machine_hard_i2c_reconfigure(machine_hard_i2c_obj_t *self, bsp_io_po
     machine_hard_i2c_stop(self);
 
     self->freq = freq;
+    self->i2c->timeout_us = timeout_us;
     machine_hard_i2c_start(self);
 }
 
@@ -338,10 +340,11 @@ static void machine_hard_i2c_print(const mp_print_t *print, mp_obj_t self_in, mp
     machine_hard_i2c_obj_t *self = MP_OBJ_TO_PTR(self_in);
     mp_printf(
         print,
-        "I2C(%u, initialized=%u, freq=%u, scl=P%X%02u, sda=P%X%02u)",
+        "I2C(%u, initialized=%u, freq=%u, timeout=%u, scl=P%X%02u, sda=P%X%02u)",
         self->id,
         self->initialized,
         self->freq,
+        self->i2c->timeout_us,
         ((uint32_t)self->scl >> 8) & 0xff,
         (uint32_t)self->scl & 0xff,
         ((uint32_t)self->sda >> 8) & 0xff,
@@ -350,11 +353,12 @@ static void machine_hard_i2c_print(const mp_print_t *print, mp_obj_t self_in, mp
 
 static void machine_hard_i2c_init(mp_obj_base_t *self_in, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)
 {
-    enum { ARG_scl, ARG_sda, ARG_freq };
+    enum { ARG_scl, ARG_sda, ARG_freq, ARG_timeout };
     static const mp_arg_t allowed_args[] = {
         {MP_QSTR_scl, MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_sda, MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_freq, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
+        {MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
     };
     machine_hard_i2c_obj_t *self = (machine_hard_i2c_obj_t *)self_in;
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
@@ -378,17 +382,26 @@ static void machine_hard_i2c_init(mp_obj_base_t *self_in, size_t n_args, const m
         freq = machine_hard_i2c_parse_positive(args[ARG_freq].u_obj, MP_ERROR_TEXT("bad freq"));
     }
 
-    machine_hard_i2c_reconfigure(self, scl, sda, freq);
+    uint32_t timeout_us = self->i2c->timeout_us;
+    if (timeout_us == 0U) {
+        timeout_us = MACHINE_I2C_DEFAULT_TIMEOUT_US;
+    }
+    if (args[ARG_timeout].u_obj != MP_OBJ_NULL) {
+        timeout_us = machine_hard_i2c_parse_positive(args[ARG_timeout].u_obj, MP_ERROR_TEXT("bad timeout"));
+    }
+
+    machine_hard_i2c_reconfigure(self, scl, sda, freq, timeout_us);
 }
 
 static mp_obj_t machine_i2c_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args)
 {
-    enum { ARG_id, ARG_scl, ARG_sda, ARG_freq };
+    enum { ARG_id, ARG_scl, ARG_sda, ARG_freq, ARG_timeout };
     static const mp_arg_t allowed_args[] = {
         {MP_QSTR_id, MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_scl, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_sda, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_freq, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
+        {MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     (void)type;
@@ -415,7 +428,12 @@ static mp_obj_t machine_i2c_make_new(const mp_obj_type_t *type, size_t n_args, s
         freq = machine_hard_i2c_parse_positive(args[ARG_freq].u_obj, MP_ERROR_TEXT("bad freq"));
     }
 
-    machine_hard_i2c_reconfigure(self, scl, sda, freq);
+    uint32_t timeout_us = MACHINE_I2C_DEFAULT_TIMEOUT_US;
+    if (args[ARG_timeout].u_obj != MP_OBJ_NULL) {
+        timeout_us = machine_hard_i2c_parse_positive(args[ARG_timeout].u_obj, MP_ERROR_TEXT("bad timeout"));
+    }
+
+    machine_hard_i2c_reconfigure(self, scl, sda, freq, timeout_us);
     return MP_OBJ_FROM_PTR(self);
 }
 
@@ -432,9 +450,8 @@ static int machine_hard_i2c_transfer_single(mp_obj_base_t *self_in, uint16_t add
 
     bool read = (flags & MP_MACHINE_I2C_FLAG_READ) != 0;
     bool stop = (flags & MP_MACHINE_I2C_FLAG_STOP) != 0;
-    bool restart = !stop;
-
-    fsp_err_t fsp_error = (fsp_err_t)i2c_transfer(self->i2c, addr, buf, (uint32_t)len, read, restart);
+    i2c_segment_t segment = {.data = buf, .length = (uint32_t)len, .read = read};
+    fsp_err_t fsp_error = (fsp_err_t)i2c_transfer(self->i2c, addr, &segment, 1U, stop);
 
     int error = machine_hard_i2c_fsp_error(fsp_error);
     if (error != 0) {

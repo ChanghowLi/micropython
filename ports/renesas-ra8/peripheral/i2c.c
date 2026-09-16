@@ -1,45 +1,11 @@
 #include "i2c.h"
 #include "bsp_api.h"
 
-#define I2C_TIMEOUT_MS   (100U)
+#define I2C_ADDR_NONE    (0xFFU)
 
-static void i2c_clear_restart(i2c_t *i2c)
+static void i2c_clear_transaction(i2c_t *i2c)
 {
-    i2c->current_address = 0U;
-    i2c->restart_pending = false;
-}
-
-static fsp_err_t i2c_abort_transfer(i2c_t *i2c)
-{
-    fsp_err_t err = i2c->instance->p_api->abort(i2c->instance->p_ctrl);
-    i2c_clear_restart(i2c);
-    return err;
-}
-
-static fsp_err_t i2c_prepare_transfer(i2c_t *i2c, uint8_t address)
-{
-    if (i2c->restart_pending) {
-        if (address != i2c->current_address) {
-            fsp_err_t err = i2c_abort_transfer(i2c);
-            if (err != FSP_SUCCESS) {
-                return err;
-            }
-            return FSP_ERR_IN_USE;
-        }
-        return FSP_SUCCESS;
-    }
-
-    return i2c->instance->p_api->slaveAddressSet(i2c->instance->p_ctrl, address, I2C_MASTER_ADDR_MODE_7BIT);
-}
-
-static void i2c_update_restart(i2c_t *i2c, uint8_t address, bool restart)
-{
-    if (restart) {
-        i2c->current_address = address;
-        i2c->restart_pending = true;
-    } else {
-        i2c_clear_restart(i2c);
-    }
+    i2c->active_address = I2C_ADDR_NONE;
 }
 
 static fsp_err_t i2c_encode_address(uint16_t address, uint8_t width, uint8_t *buffer)
@@ -93,12 +59,16 @@ static fsp_err_t i2c_transfer_segment(i2c_t *i2c, uint8_t *data, uint32_t length
     }
 
 #if BSP_CFG_RTOS == 2
-    bool timed_out = xSemaphoreTake(i2c->completion, pdMS_TO_TICKS(I2C_TIMEOUT_MS)) != pdTRUE;
+    TickType_t timeout_ticks = (TickType_t)(((uint64_t)i2c->timeout_us * configTICK_RATE_HZ + 999999ULL) / 1000000ULL);
+    if (timeout_ticks == 0U) {
+        timeout_ticks = 1U;
+    }
+    bool timed_out = xSemaphoreTake(i2c->completion, timeout_ticks) != pdTRUE;
 #else
-    uint32_t waited_ms = 0U;
-    while (i2c->event == (i2c_master_event_t)0 && waited_ms < I2C_TIMEOUT_MS) {
-        R_BSP_SoftwareDelay(1U, BSP_DELAY_UNITS_MILLISECONDS);
-        ++waited_ms;
+    uint32_t waited_us = 0U;
+    while (i2c->event == (i2c_master_event_t)0 && waited_us < i2c->timeout_us) {
+        R_BSP_SoftwareDelay(1U, BSP_DELAY_UNITS_MICROSECONDS);
+        ++waited_us;
     }
     bool timed_out = i2c->event == (i2c_master_event_t)0;
 #endif
@@ -158,6 +128,9 @@ uint32_t IIC_Init(i2c_t *i2c)
     i2c->cfg.p_callback = i2c_callback;
     i2c->cfg.p_context = i2c;
     i2c->event = (i2c_master_event_t)0;
+    if (i2c->timeout_us == 0U) {
+        i2c->timeout_us = I2C_DEFAULT_TIMEOUT_US;
+    }
 
     fsp_err_t err = i2c->instance->p_api->open(i2c->instance->p_ctrl, &i2c->cfg);
     if (err != FSP_SUCCESS) {
@@ -165,7 +138,7 @@ uint32_t IIC_Init(i2c_t *i2c)
     }
 
     i2c->opened = true;
-    i2c_clear_restart(i2c);
+    i2c_clear_transaction(i2c);
     return (uint32_t)FSP_SUCCESS;
 }
 
@@ -186,104 +159,95 @@ uint32_t IIC_DeInit(i2c_t *i2c)
 
     i2c->event = (i2c_master_event_t)0;
     i2c->opened = false;
-    i2c_clear_restart(i2c);
+    i2c_clear_transaction(i2c);
     return (uint32_t)FSP_SUCCESS;
 }
 
-uint32_t i2c_transfer(i2c_t *i2c, uint32_t slave, uint8_t *data, uint32_t length, bool read, bool restart)
+uint32_t i2c_transfer(i2c_t *i2c, uint32_t slave, i2c_segment_t *segments, uint32_t count, bool stop)
 {
     if (i2c == NULL || i2c->instance == NULL || i2c->instance->p_api == NULL || i2c->instance->p_ctrl == NULL) {
         return (uint32_t)FSP_ERR_ASSERTION;
     }
 
-    if (slave > 0x7FU) {
+    if (slave > 0x7FU || segments == NULL || count == 0U) {
         return (uint32_t)FSP_ERR_INVALID_ARGUMENT;
     }
 
-    if (read && (data == NULL || length == 0U)) {
-        return (uint32_t)FSP_ERR_INVALID_ARGUMENT;
-    }
-
-    if (!read && length > 0U && data == NULL) {
-        return (uint32_t)FSP_ERR_INVALID_ARGUMENT;
+    for (uint32_t i = 0U; i < count; ++i) {
+        if (segments[i].read && (segments[i].data == NULL || segments[i].length == 0U)) {
+            return (uint32_t)FSP_ERR_INVALID_ARGUMENT;
+        }
+        if (!segments[i].read && segments[i].length > 0U && segments[i].data == NULL) {
+            return (uint32_t)FSP_ERR_INVALID_ARGUMENT;
+        }
     }
 
     if (!i2c->opened) {
         return (uint32_t)FSP_ERR_NOT_OPEN;
     }
 
-    uint8_t address = (uint8_t)slave;
-    fsp_err_t err = i2c_prepare_transfer(i2c, address);
-    if (err != FSP_SUCCESS) {
-        return (uint32_t)err;
+    if (i2c->active_address != I2C_ADDR_NONE) {  // 上次没结束
+        if (slave != i2c->active_address) {   // 这次换了地址
+            fsp_err_t abort_err = i2c->instance->p_api->abort(i2c->instance->p_ctrl);
+            i2c_clear_transaction(i2c);
+            // 中止、清状态、报错
+            return (uint32_t)(abort_err == FSP_SUCCESS ? FSP_ERR_IN_USE : abort_err);
+        }
+    } else {
+        fsp_err_t err = i2c->instance->p_api->slaveAddressSet(i2c->instance->p_ctrl, slave, I2C_MASTER_ADDR_MODE_7BIT);
+        if (err != FSP_SUCCESS) {
+            return (uint32_t)err;
+        }
     }
-
-    bool continuing = i2c->restart_pending;
 
     uint8_t dummy = 0U;
-    uint8_t *transfer_data = data;
-    if (!read && length == 0U) {
-        transfer_data = &dummy;
-    }
-
-    bool started = false;
-    err = i2c_transfer_segment(i2c, transfer_data, length, read, restart, &started);
-    if (err != FSP_SUCCESS) {
-        if (continuing && !started && err != FSP_ERR_TIMEOUT) {
-            fsp_err_t abort_err = i2c_abort_transfer(i2c);
-            if (abort_err != FSP_SUCCESS) {
-                return (uint32_t)abort_err;
-            }
-        } else {
-            i2c_clear_restart(i2c);
+    bool continuing = i2c->active_address != I2C_ADDR_NONE;
+    for (uint32_t i = 0U; i < count; ++i) {
+        bool restart = i + 1U < count || !stop;
+        uint8_t *data = segments[i].data;
+        if (!segments[i].read && segments[i].length == 0U) {
+            data = &dummy;
         }
-        return (uint32_t)err;
+
+        bool started = false;
+        fsp_err_t err = i2c_transfer_segment(i2c, data, segments[i].length, segments[i].read, restart, &started);
+        if (err != FSP_SUCCESS) {
+            if (continuing && !started && err != FSP_ERR_TIMEOUT) {
+                fsp_err_t abort_err = i2c->instance->p_api->abort(i2c->instance->p_ctrl);
+                if (abort_err != FSP_SUCCESS) {
+                    i2c_clear_transaction(i2c);
+                    return (uint32_t)abort_err;
+                }
+            }
+            i2c_clear_transaction(i2c);
+            return (uint32_t)err;
+        }
+
+        continuing = restart;
     }
 
-    i2c_update_restart(i2c, address, restart);
+    if (stop) {
+        i2c_clear_transaction(i2c);
+    } else {
+        i2c->active_address = (uint8_t)slave;
+    }
+
     return (uint32_t)FSP_SUCCESS;
 }
 
 uint32_t IIC_ReadMemory(i2c_t *i2c, uint32_t slave, uint16_t mem_addr, uint8_t addr_width, uint8_t *rdata, uint16_t rlen)
 {
-    if (i2c == NULL || i2c->instance == NULL || i2c->instance->p_api == NULL || i2c->instance->p_ctrl == NULL) {
-        return (uint32_t)FSP_ERR_ASSERTION;
-    }
-
-    if (slave > 0x7FU || rdata == NULL || rlen == 0U) {
-        return (uint32_t)FSP_ERR_INVALID_ARGUMENT;
-    }
-
-    if (!i2c->opened) {
-        return (uint32_t)FSP_ERR_NOT_OPEN;
-    }
-
     uint8_t address_data[2];
     fsp_err_t err = i2c_encode_address(mem_addr, addr_width, address_data);
     if (err != FSP_SUCCESS) {
         return (uint32_t)err;
     }
 
-    err = i2c->instance->p_api->slaveAddressSet(i2c->instance->p_ctrl, slave, I2C_MASTER_ADDR_MODE_7BIT);
-    if (err != FSP_SUCCESS) {
-        return (uint32_t)err;
-    }
-
-    err = i2c_transfer_segment(i2c, address_data, addr_width, false, true, NULL);
-    if (err != FSP_SUCCESS) {
-        return (uint32_t)err;
-    }
-
-    bool started = false;
-    err = i2c_transfer_segment(i2c, rdata, rlen, true, false, &started);
-    if (err != FSP_SUCCESS && !started && err != FSP_ERR_TIMEOUT) {
-        fsp_err_t abort_err = i2c->instance->p_api->abort(i2c->instance->p_ctrl);
-        if (abort_err != FSP_SUCCESS) {
-            return (uint32_t)abort_err;
-        }
-    }
-
-    return (uint32_t)err;
+    i2c_segment_t segments[2] = {
+        {.data = address_data, .length = addr_width, .read = false},
+        {.data = rdata, .length = rlen, .read = true},
+    };
+    return i2c_transfer(i2c, slave, segments, 2U, true);
 }
 
 uint32_t IIC_ReadReg(i2c_t *i2c, uint32_t slave, uint16_t reg_addr, uint8_t addr_width, uint8_t *val, uint8_t val_width)
@@ -297,24 +261,12 @@ uint32_t IIC_ReadReg(i2c_t *i2c, uint32_t slave, uint16_t reg_addr, uint8_t addr
 
 uint32_t IIC_Write(i2c_t *i2c, uint32_t slave, uint8_t *data, uint8_t length)
 {
-    if (i2c == NULL || i2c->instance == NULL || i2c->instance->p_api == NULL || i2c->instance->p_ctrl == NULL) {
-        return (uint32_t)FSP_ERR_ASSERTION;
-    }
-
-    if (slave > 0x7FU || data == NULL || length == 0U) {
+    if (data == NULL || length == 0U) {
         return (uint32_t)FSP_ERR_INVALID_ARGUMENT;
     }
 
-    if (!i2c->opened) {
-        return (uint32_t)FSP_ERR_NOT_OPEN;
-    }
-
-    fsp_err_t err = i2c->instance->p_api->slaveAddressSet(i2c->instance->p_ctrl, slave, I2C_MASTER_ADDR_MODE_7BIT);
-    if (err != FSP_SUCCESS) {
-        return (uint32_t)err;
-    }
-
-    return (uint32_t)i2c_transfer_segment(i2c, data, length, false, false, NULL);
+    i2c_segment_t segment = {.data = data, .length = length, .read = false};
+    return i2c_transfer(i2c, slave, &segment, 1U, true);
 }
 
 uint32_t IIC_WriteReg(i2c_t *i2c, uint32_t slave, uint16_t reg_addr, uint8_t addr_width, uint16_t val, uint8_t val_width)
