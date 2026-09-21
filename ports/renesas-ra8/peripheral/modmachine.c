@@ -226,6 +226,9 @@ void machine_deinit(void)
     machine_i2c_deinit_all();
     #endif
     machine_spi_deinit_all();
+    #if MICROPY_PY_MACHINE_UART
+    machine_uart_deinit_all();
+    #endif
     machine_pin_deinit_all();
     machine_reset_cause_value = MACHINE_RESET_SOFT;
     machine_wake_reason_value = MACHINE_WAKE_UNKNOWN;

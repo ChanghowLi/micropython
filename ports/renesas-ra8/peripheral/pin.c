@@ -111,6 +111,13 @@ static void machine_pin_require_irq_inactive(const machine_pin_obj_t *pin)
     }
 }
 
+static void machine_pin_require_gpio_access(const machine_pin_obj_t *pin)
+{
+    if (machine_pin_is_taken(pin->pin) && !machine_pin_gpio_is_taken(pin->pin)) {
+        mp_raise_OSError(MP_EBUSY);
+    }
+}
+
 /**
  * @brief       将用户传入的引脚标识转换为 Pin 对象。支持已有的 Pin 对象和复用表中注册的引脚名称。
  * @param       user_obj 用户传入的 Pin 对象或引脚名称。
@@ -563,6 +570,7 @@ static mp_obj_t machine_pin_mode(size_t n_args, const mp_obj_t *args)
         return MP_OBJ_NEW_SMALL_INT(open_drain == 0U ? MACHINE_PIN_MODE_OUT : MACHINE_PIN_MODE_OPEN_DRAIN);
     }
 
+    machine_pin_require_gpio_access(self);
     machine_pin_require_irq_inactive(self);
 
     mp_int_t mode = mp_obj_get_int(args[1]);
@@ -627,6 +635,7 @@ static mp_obj_t machine_pin_pull(size_t n_args, const mp_obj_t *args)
         return MP_OBJ_NEW_SMALL_INT((cfg & IOPORT_CFG_PULLUP_ENABLE) != 0U ? MACHINE_PIN_PULL_UP : MACHINE_PIN_PULL_NONE);
     }
 
+    machine_pin_require_gpio_access(self);
     machine_pin_require_irq_inactive(self);
 
     if (args[1] == mp_const_none) {
@@ -668,6 +677,7 @@ static mp_obj_t machine_pin_drive(size_t n_args, const mp_obj_t *args)
         return MP_OBJ_NEW_SMALL_INT(drive);
     }
 
+    machine_pin_require_gpio_access(self);
     machine_pin_require_irq_inactive(self);
 
     if (R_PFS->PORT[port].PIN[bit].PmnPFS_b.PDR == 0U) {
@@ -738,6 +748,7 @@ static mp_obj_t machine_pin_value(size_t n_args, const mp_obj_t *args)
         return MP_OBJ_NEW_SMALL_INT(level == BSP_IO_LEVEL_HIGH);
     }
 
+    machine_pin_require_gpio_access(self);
     machine_pin_require_irq_inactive(self);
 
     bsp_io_level_t level = mp_obj_is_true(args[1]) ? BSP_IO_LEVEL_HIGH : BSP_IO_LEVEL_LOW;
@@ -810,6 +821,7 @@ static mp_obj_t machine_pin_toggle(mp_obj_t self_in)
     const machine_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
     bsp_io_level_t level;
 
+    machine_pin_require_gpio_access(self);
     machine_pin_require_irq_inactive(self);
 
     fsp_err_t err = R_IOPORT_PinRead(g_ioport.p_ctrl, self->pin, &level);

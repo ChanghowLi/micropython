@@ -628,7 +628,7 @@ static mp_obj_t machine_hard_spi_make_new(const mp_obj_type_t *type, size_t n_ar
         mp_raise_OSError(MP_EIO);
     }
 
-    if (!machine_hard_spi_give_pins(self)) {
+    if (was_initialized && !machine_hard_spi_give_pins(self)) {
         mp_raise_OSError(MP_EIO);
     }
 
@@ -780,7 +780,7 @@ static void machine_hard_spi_init(mp_obj_base_t *self_in, size_t n_args, const m
         mp_raise_OSError(MP_EIO);
     }
 
-    if (!machine_hard_spi_give_pins(self)) {
+    if (was_initialized && !machine_hard_spi_give_pins(self)) {
         mp_raise_OSError(MP_EIO);
     }
 
@@ -815,6 +815,10 @@ static void machine_hard_spi_init(mp_obj_base_t *self_in, size_t n_args, const m
 static void machine_hard_spi_deinit(mp_obj_base_t *self_in)
 {
     machine_hard_spi_obj_t *self = (machine_hard_spi_obj_t *)self_in;
+
+    if (!self->initialized) {
+        return;
+    }
 
     if (spi_deinit(self->spi_id)) {
         self->initialized = false;
@@ -935,6 +939,10 @@ void machine_spi_deinit_all(void)
 {
     for (size_t index = 0; index < MP_ARRAY_SIZE(machine_hard_spi_obj); ++index) {
         machine_hard_spi_obj_t *self = &machine_hard_spi_obj[index];
+        if (!self->initialized) {
+            continue;
+        }
+
         if (spi_deinit(self->spi_id)) {
             self->initialized = false;
             if (machine_hard_spi_give_pins(self)) {

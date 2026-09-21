@@ -8,6 +8,7 @@ typedef enum {
     MACHINE_SCI_OWNER_NONE = 0,
     MACHINE_SCI_OWNER_I2C,
     MACHINE_SCI_OWNER_SPI,
+    MACHINE_SCI_OWNER_UART,
 } machine_sci_owner_t;
 
 machine_sci_owner_t machine_sci_get_owner(uint8_t channel);

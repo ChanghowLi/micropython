@@ -451,7 +451,7 @@ static int machine_hard_i2c_transfer_single(mp_obj_base_t *self_in, uint16_t add
     bool read = (flags & MP_MACHINE_I2C_FLAG_READ) != 0;
     bool stop = (flags & MP_MACHINE_I2C_FLAG_STOP) != 0;
     i2c_segment_t segment = {.data = buf, .length = (uint32_t)len, .read = read};
-    fsp_err_t fsp_error = (fsp_err_t)i2c_transfer(self->i2c, addr, &segment, 1U, stop);
+    fsp_err_t fsp_error = (fsp_err_t)IIC_Transfer(self->i2c, addr, &segment, 1U, stop);
 
     int error = machine_hard_i2c_fsp_error(fsp_error);
     if (error != 0) {

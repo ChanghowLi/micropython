@@ -78,6 +78,8 @@ SRC_C += peripheral/rtc.c
 SRC_C += peripheral/sci.c
 SRC_C += peripheral/sdcard.c
 SRC_C += peripheral/spi.c
+SRC_C += peripheral/uart.c
+SRC_C += peripheral/machine_uart.c
 
 # MicroPython integration sources
 SRC_C += drivers/bus/softspi.c
@@ -239,6 +241,7 @@ SRC_QSTR += extmod/vfs_fat_file.c
 SRC_QSTR += extmod/vfs_lfs.c
 SRC_QSTR += peripheral/machine_i2c.c
 SRC_QSTR += peripheral/machine_spi.c
+SRC_QSTR += peripheral/machine_uart.c
 SRC_QSTR += peripheral/pin.c
 SRC_QSTR += peripheral/pin_irq.c
 SRC_QSTR += peripheral/sdcard.c
