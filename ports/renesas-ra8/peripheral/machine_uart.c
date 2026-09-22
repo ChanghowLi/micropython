@@ -590,12 +590,19 @@ static mp_obj_t machine_hard_uart_write(mp_obj_t self_in, mp_obj_t data_in)
         mp_raise_ValueError(MP_ERROR_TEXT("buffer too large"));
     }
 
-    fsp_err_t error = (fsp_err_t)UART_Write(self->uart, bufinfo.buf, (uint32_t)bufinfo.len);
+    uint32_t written_length = 0U;
+    fsp_err_t error = (fsp_err_t)UART_Write(self->uart, bufinfo.buf, (uint32_t)bufinfo.len, &written_length, self->timeout);
+    if (error == FSP_ERR_TIMEOUT) {
+        if (written_length == 0U) {
+            return mp_const_none;
+        }
+        return mp_obj_new_int_from_uint(written_length);
+    }
     if (error != FSP_SUCCESS) {
         mp_raise_OSError(machine_hard_uart_fsp_error(error));
     }
 
-    return mp_obj_new_int_from_uint(bufinfo.len);
+    return mp_obj_new_int_from_uint(written_length);
 }
 static MP_DEFINE_CONST_FUN_OBJ_2(machine_hard_uart_write_obj, machine_hard_uart_write);
 

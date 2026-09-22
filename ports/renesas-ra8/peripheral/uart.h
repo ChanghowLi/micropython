@@ -26,12 +26,15 @@ typedef struct {
     uint8_t tx_buffer[UART_TX_BUFFER_SIZE];
     volatile uint16_t rx_head;
     volatile uint16_t rx_tail;
+    volatile uint32_t rx_overflow_count;
     volatile uart_event_t rx_error;
     volatile bool tx_busy;
     bool opened;
 #if BSP_CFG_RTOS == 2
-    SemaphoreHandle_t rx_ready;
-    StaticSemaphore_t rx_ready_storage;
+    SemaphoreHandle_t rx_sem;
+    StaticSemaphore_t rx_sem_storage;
+    SemaphoreHandle_t tx_sem;
+    StaticSemaphore_t tx_sem_storage;
 #endif
 } uart_t;
 
@@ -39,15 +42,9 @@ uint32_t UART_DeInit(uart_t *uart);
 uint32_t UART_Flush(uart_t *uart);
 uint32_t UART_Init(uart_t *uart);
 uint32_t UART_Any(uart_t *uart, uint32_t *available);
-uint32_t UART_Read(
-    uart_t *uart,
-    uint8_t *data,
-    uint32_t length,
-    uint32_t *read_length,
-    uint32_t timeout_ms,
-    uint32_t timeout_char_ms);
+uint32_t UART_Read(uart_t *uart, uint8_t *data, uint32_t length, uint32_t *read_length, uint32_t timeout_ms, uint32_t timeout_char_ms);
 uint32_t UART_SetBaudrate(uart_t *uart, uint32_t baudrate);
 uint32_t UART_TxDone(uart_t *uart, bool *done);
-uint32_t UART_Write(uart_t *uart, const uint8_t *data, uint32_t length);
+uint32_t UART_Write(uart_t *uart, const uint8_t *data, uint32_t length, uint32_t *written_length, uint32_t timeout_ms);
 
 #endif
