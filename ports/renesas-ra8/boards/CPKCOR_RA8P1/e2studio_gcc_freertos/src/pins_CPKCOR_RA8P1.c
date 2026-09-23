@@ -337,7 +337,7 @@ static const machine_pin_obj_t machine_pin_P409_obj = {
     .base = { &machine_pin_type },
     .name = MP_QSTR_P409,
     .pin = BSP_IO_PORT_04_PIN_09,
-    .alt_mask = 0x00000000U,
+    .alt_mask = 0x00000080U,
     .irq_channel = -1,
     .irq_deep_standby = false,
 };
@@ -346,7 +346,7 @@ static const machine_pin_obj_t machine_pin_P410_obj = {
     .base = { &machine_pin_type },
     .name = MP_QSTR_P410,
     .pin = BSP_IO_PORT_04_PIN_10,
-    .alt_mask = 0x00000000U,
+    .alt_mask = 0x00000080U,
     .irq_channel = -1,
     .irq_deep_standby = false,
 };
@@ -1553,6 +1553,20 @@ const machine_pin_af_obj_t machine_pin_afs[] = {
         .channel = 2,
         .group = 'B',
         .signal = MACHINE_PIN_AF_I2C_SDA,
+    },
+    {
+        .pin = BSP_IO_PORT_04_PIN_09,
+        .peripheral = MACHINE_PIN_AF_PERIPHERAL_IIC,
+        .channel = 0,
+        .group = 'A',
+        .signal = MACHINE_PIN_AF_I2C_SDA,
+    },
+    {
+        .pin = BSP_IO_PORT_04_PIN_10,
+        .peripheral = MACHINE_PIN_AF_PERIPHERAL_IIC,
+        .channel = 0,
+        .group = 'A',
+        .signal = MACHINE_PIN_AF_I2C_SCL,
     },
     {
         .pin = BSP_IO_PORT_04_PIN_14,

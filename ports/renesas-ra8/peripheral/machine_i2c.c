@@ -30,6 +30,7 @@ typedef struct _machine_hard_i2c_obj_t {
 } machine_hard_i2c_obj_t;
 
 static i2c_t machine_hard_i2c_instances[] = {
+    {.instance = &g_i2c_master0},
     {.instance = &g_i2c_master1},
     {.instance = &g_i2c_master2},
     {.instance = &g_sci_i2c1},
@@ -41,10 +42,25 @@ static i2c_t machine_hard_i2c_instances[] = {
 };
 
 static machine_hard_i2c_obj_t machine_hard_i2c_obj[] = {
-#if defined(MICROPY_HW_I2C1_SCL)
+#if defined(MICROPY_HW_I2C0_SCL)
     {
         .base = {&machine_i2c_type},
         .i2c = &machine_hard_i2c_instances[0],
+        .scl = MICROPY_HW_I2C0_SCL,
+        .sda = MICROPY_HW_I2C0_SDA,
+        .af_peripheral = MACHINE_PIN_AF_PERIPHERAL_IIC,
+        .peripheral = IOPORT_PERIPHERAL_IIC,
+        .id = 0,
+        .channel = 0,
+        .initialized = false,
+        .freq = MACHINE_I2C_DEFAULT_FREQ_HZ,
+    },
+#endif
+
+#if defined(MICROPY_HW_I2C1_SCL)
+    {
+        .base = {&machine_i2c_type},
+        .i2c = &machine_hard_i2c_instances[1],
         .scl = MICROPY_HW_I2C1_SCL,
         .sda = MICROPY_HW_I2C1_SDA,
         .af_peripheral = MACHINE_PIN_AF_PERIPHERAL_IIC,
@@ -59,7 +75,7 @@ static machine_hard_i2c_obj_t machine_hard_i2c_obj[] = {
 #if defined(MICROPY_HW_I2C2_SCL)
     {
         .base = {&machine_i2c_type},
-        .i2c = &machine_hard_i2c_instances[1],
+        .i2c = &machine_hard_i2c_instances[2],
         .scl = MICROPY_HW_I2C2_SCL,
         .sda = MICROPY_HW_I2C2_SDA,
         .af_peripheral = MACHINE_PIN_AF_PERIPHERAL_IIC,
@@ -74,7 +90,7 @@ static machine_hard_i2c_obj_t machine_hard_i2c_obj[] = {
 #if defined(MICROPY_HW_SCI1_SCK)
     {
         .base = {&machine_i2c_type},
-        .i2c = &machine_hard_i2c_instances[2],
+        .i2c = &machine_hard_i2c_instances[3],
         .scl = MICROPY_HW_SCI1_RXD,
         .sda = MICROPY_HW_SCI1_TXD,
         .af_peripheral = MACHINE_PIN_AF_PERIPHERAL_SCI,
@@ -89,7 +105,7 @@ static machine_hard_i2c_obj_t machine_hard_i2c_obj[] = {
 #if defined(MICROPY_HW_SCI2_SCK)
     {
         .base = {&machine_i2c_type},
-        .i2c = &machine_hard_i2c_instances[3],
+        .i2c = &machine_hard_i2c_instances[4],
         .scl = MICROPY_HW_SCI2_RXD,
         .sda = MICROPY_HW_SCI2_TXD,
         .af_peripheral = MACHINE_PIN_AF_PERIPHERAL_SCI,
@@ -104,7 +120,7 @@ static machine_hard_i2c_obj_t machine_hard_i2c_obj[] = {
 #if defined(MICROPY_HW_SCI4_SCK)
     {
         .base = {&machine_i2c_type},
-        .i2c = &machine_hard_i2c_instances[4],
+        .i2c = &machine_hard_i2c_instances[5],
         .scl = MICROPY_HW_SCI4_RXD,
         .sda = MICROPY_HW_SCI4_TXD,
         .af_peripheral = MACHINE_PIN_AF_PERIPHERAL_SCI,
@@ -119,7 +135,7 @@ static machine_hard_i2c_obj_t machine_hard_i2c_obj[] = {
 #if defined(MICROPY_HW_SCI5_SCK)
     {
         .base = {&machine_i2c_type},
-        .i2c = &machine_hard_i2c_instances[5],
+        .i2c = &machine_hard_i2c_instances[6],
         .scl = MICROPY_HW_SCI5_RXD,
         .sda = MICROPY_HW_SCI5_TXD,
         .af_peripheral = MACHINE_PIN_AF_PERIPHERAL_SCI,
@@ -134,7 +150,7 @@ static machine_hard_i2c_obj_t machine_hard_i2c_obj[] = {
 #if defined(MICROPY_HW_SCI6_SCK)
     {
         .base = {&machine_i2c_type},
-        .i2c = &machine_hard_i2c_instances[6],
+        .i2c = &machine_hard_i2c_instances[7],
         .scl = MICROPY_HW_SCI6_RXD,
         .sda = MICROPY_HW_SCI6_TXD,
         .af_peripheral = MACHINE_PIN_AF_PERIPHERAL_SCI,
@@ -149,7 +165,7 @@ static machine_hard_i2c_obj_t machine_hard_i2c_obj[] = {
 #if defined(MICROPY_HW_SCI8_SCK)
     {
         .base = {&machine_i2c_type},
-        .i2c = &machine_hard_i2c_instances[7],
+        .i2c = &machine_hard_i2c_instances[8],
         .scl = MICROPY_HW_SCI8_RXD,
         .sda = MICROPY_HW_SCI8_TXD,
         .af_peripheral = MACHINE_PIN_AF_PERIPHERAL_SCI,

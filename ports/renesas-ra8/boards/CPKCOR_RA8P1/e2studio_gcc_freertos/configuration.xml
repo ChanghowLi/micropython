@@ -1460,6 +1460,21 @@
       <property id="module.driver.uart.tei_ipl" value="board.icu.common.irq.priority12"/>
       <property id="module.driver.uart.eri_ipl" value="board.icu.common.irq.priority12"/>
     </module>
+    <module id="module.driver.i2c_on_iic_master.1145274473">
+      <property id="module.driver.i2c_master.name" value="g_i2c_master0"/>
+      <property id="module.driver.i2c_master.channel" value="0"/>
+      <property id="module.driver.i2c_master.rate" value="module.driver.i2c_master.rate.rate_fast"/>
+      <property id="module.driver.i2c_master.rate_value" value="0"/>
+      <property id="module.driver.i2c_master.rise_time_ns" value="120"/>
+      <property id="module.driver.i2c_master.fall_time_ns" value="120"/>
+      <property id="module.driver.i2c_master.duty" value="50"/>
+      <property id="module.driver.i2c_master.slave" value="0x00"/>
+      <property id="module.driver.i2c_master.addr_mode" value="module.driver.i2c_master.addr_mode.addr_mode_7bit"/>
+      <property id="module.driver.i2c_master.timeout_mode" value="module.driver.i2c_master.timeout_mode.short_mode"/>
+      <property id="module.driver.i2c_master.timeout_scl_low" value="module.driver.i2c_master.timeout_scl_low.enabled"/>
+      <property id="module.driver.i2c_master.p_callback" value="i2c_callback"/>
+      <property id="module.driver.i2c_master.ipl" value="board.icu.common.irq.priority12"/>
+    </module>
     <context id="_hal.0">
       <stack module="module.driver.ioport_on_ioport.0"/>
       <stack module="module.middleware.rm_freertos_port.0"/>
@@ -1528,6 +1543,7 @@
       <stack module="module.driver.uart_on_sci_b_uart.1000175676"/>
       <stack module="module.driver.uart_on_sci_b_uart.2002949660"/>
       <stack module="module.driver.uart_on_sci_b_uart.182399513"/>
+      <stack module="module.driver.i2c_on_iic_master.1145274473"/>
     </context>
     <context id="rtos.awsfreertos.thread.0">
       <property id="_symbol" value="repl_thread"/>
