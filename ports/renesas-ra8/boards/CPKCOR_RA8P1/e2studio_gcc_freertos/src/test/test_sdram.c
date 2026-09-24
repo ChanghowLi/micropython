@@ -16,31 +16,47 @@
 #pragma clang diagnostic ignored "-Wunused-function"
 
 #ifndef TEST_SDRAM_EN_VOLATILE
-#define TEST_SDRAM_EN_VOLATILE	1
+#define TEST_SDRAM_EN_VOLATILE			1
 #endif
 
 #ifndef TEST_SDRAM_EN_AUTO_RF
-#define TEST_SDRAM_EN_AUTO_RF	1
+#define TEST_SDRAM_EN_AUTO_RF			0
+#endif
+
+#ifndef TEST_SDRAM_EN_CHECK_ADDR_PIN
+#define TEST_SDRAM_EN_CHECK_ADDR_PIN	0
+#endif
+
+#ifndef TEST_SDRAM_EN_CHECK_DATA_PIN
+#define TEST_SDRAM_EN_CHECK_DATA_PIN	0
+#endif
+
+#ifndef TEST_SDRAM_EN_CHECK_DQM
+#define TEST_SDRAM_EN_CHECK_DQM			0
+#endif
+
+#ifndef TEST_SDRAM_EN_FULL_CHIP
+#define TEST_SDRAM_EN_FULL_CHIP			0
 #endif
 
 #ifndef TEST_SDRAM_EN_DMA
-#define TEST_SDRAM_EN_DMA		0
+#define TEST_SDRAM_EN_DMA				0
 #endif
 
 #ifndef TEST_SDRAM_EN_8BIT
-#define TEST_SDRAM_EN_8BIT		1
+#define TEST_SDRAM_EN_8BIT				1
 #endif
 
 #ifndef TEST_SDRAM_EN_16BIT
-#define TEST_SDRAM_EN_16BIT		1
+#define TEST_SDRAM_EN_16BIT				1
 #endif
 
 #ifndef TEST_SDRAM_EN_32BIT
-#define TEST_SDRAM_EN_32BIT		1
+#define TEST_SDRAM_EN_32BIT				1
 #endif
 
 #ifndef TEST_SDRAM_EN_64BIT
-#define TEST_SDRAM_EN_64BIT		1
+#define TEST_SDRAM_EN_64BIT				1
 #endif
 
 #if TEST_SDRAM_EN_DMA
@@ -51,7 +67,7 @@
 
 #define CHECK_RESULT(r, mp, mf)	do { if (r) { if (mf != NULL) { puts(mf); } return 1; } if (mp != NULL) { puts(mp); } } while(0)
 
-#define CACHE_SIZE		(1024 * 64)
+#define CACHE_SIZE		(1024 * 16)
 
 #if TEST_SDRAM_EN_VOLATILE
 #define VOLATILE	volatile
@@ -74,22 +90,41 @@ static VOLATILE uint8_t s_sdram_nc[CACHE_SIZE] __attribute__((section(".sdram_no
 static VOLATILE uint8_t s_ram_nc[CACHE_SIZE] __attribute__((section(".ram_noinit_nocache")));
 #endif
 
+#if TEST_SDRAM_EN_CHECK_ADDR_PIN
 static uint8_t checkAddressPin(void);
+#endif
+
+#if TEST_SDRAM_EN_CHECK_DATA_PIN
 static uint8_t checkDataPin(uint32_t addr);
+#endif
+
+#if TEST_SDRAM_EN_CHECK_DQM
 static uint8_t checkDQM(uint32_t addr);
+#endif
+
+#if TEST_SDRAM_EN_FULL_CHIP
 static uint8_t checkFullChipNoCache(void);
 static uint8_t checkFullChipWithSeq(void);
 static uint8_t checkFullChipWithRand(uint32_t seed);
+#endif
+
 static void checkSpeedRead(void);
 static void checkSpeedWrite(void);
+static void measureSpeed(float *speed, VOLATILE void *dst, VOLATILE void *src, TestSDRAM_WidthEnum width);
+
+#if BSP_CFG_DCACHE_ENABLED
+static bool setDCacheWriteBack(void);
+#endif
 
 #if TEST_SDRAM_EN_AUTO_RF
 static uint8_t checkAutoRefresh(void);
 #endif
 
-uint32_t TestSDRAM(uint32_t start_addr, uint32_t size)
+uint32_t TestSDRAM(uint32_t start_addr, uint32_t size, bool speed_write, bool speed_read)
 {
 	uint8_t result;
+
+	(void)result;
 
 	if ((start_addr < SDRAM_MAP_START_ADDR) || (start_addr > SDRAM_MAP_END_ADDR)) {
 		puts("start_addr out of range");
@@ -107,15 +142,22 @@ uint32_t TestSDRAM(uint32_t start_addr, uint32_t size)
 		puts("DCache already disable");
 	}
 
+#if TEST_SDRAM_EN_CHECK_DATA_PIN
 	result = checkDataPin(start_addr);
 	CHECK_RESULT(result, "Data pin check PASS", "Data pin check FAILED");
+#endif
 
+#if TEST_SDRAM_EN_CHECK_ADDR_PIN
 	result = checkAddressPin();
 	CHECK_RESULT(result, "Address pin check PASS", "Address pin check FAILED");
+#endif
 
+#if TEST_SDRAM_EN_CHECK_DQM
 	result = checkDQM(start_addr);
 	CHECK_RESULT(result, "DQM pin check PASS", "DQM pin check FAILED");
+#endif
 
+#if TEST_SDRAM_EN_FULL_CHIP
 	result = checkFullChipNoCache();
 	CHECK_RESULT(result, "Full chip check PASS", "Full chip check FAILED");
 
@@ -124,20 +166,269 @@ uint32_t TestSDRAM(uint32_t start_addr, uint32_t size)
 
 	result = checkFullChipWithRand(42);
 	CHECK_RESULT(result, "Full chip check with random sequence PASS", "Full chip check with random sequence FAILED");
+#endif
 
+#if TEST_SDRAM_EN_AUTO_RF
 	result = checkAutoRefresh();
 	CHECK_RESULT(result, "Auto refresh check PASS", "Auto refresh check FAILED");
+#endif
 
 #if TEST_SDRAM_EN_DMA
 	s_dma_done = 0;
 #endif
 
-	checkSpeedWrite();
-	/* 上位机使用 100ms 的时间戳，这个延时仅为了内容分在两个时间戳里 */
-	R_BSP_SoftwareDelay(300, BSP_DELAY_UNITS_MILLISECONDS);
-	checkSpeedRead();
+	if (speed_write) {
+		checkSpeedWrite();
+		/* 上位机使用 100ms 的时间戳，这个延时仅为了内容分在两个时间戳里 */
+		R_BSP_SoftwareDelay(300, BSP_DELAY_UNITS_MILLISECONDS);
+	}
+	if (speed_read) {
+		checkSpeedRead();
+	}
+
+#if BSP_CFG_DCACHE_ENABLED
+
+	volatile uint32_t reg;
+
+#if BSP_CFG_DCACHE_FORCE_WRITETHROUGH
+	/* DCache 进入 write-through 模式 */
+	SCB_DisableDCache();
+	MEMSYSCTL->MSCR |= MEMSYSCTL_MSCR_FORCEWT_Msk;
+	__DSB();
+	__ISB();
+	reg = MEMSYSCTL->MSCR;
+	SCB_EnableDCache();
+	if ((reg & MEMSYSCTL_MSCR_FORCEWT_Msk) == 0) {
+		LOG_E(__FUNCTION__, "Set write-through failed");
+		return 1;
+	}
+#else
+	/* 关闭 forced write-through，进入 write-back 模式 */
+	MEMSYSCTL->MSCR &= ~(MEMSYSCTL_MSCR_FORCEWT_Msk);
+	__DSB();
+	__ISB();
+	reg = MEMSYSCTL->MSCR;
+	if (reg & MEMSYSCTL_MSCR_FORCEWT_Msk) {
+		LOG_E(__FUNCTION__, "Set write-back failed");
+		return 1;
+	}
+	SCB_EnableDCache();
+#endif
+
+#endif
 
 	return 0;
+}
+
+static void measureSpeed(float *speed, VOLATILE void *dst, VOLATILE void *src, TestSDRAM_WidthEnum width)
+{
+	uint32_t i;
+	int64_t time_start;
+	int64_t time_end;
+
+	VOLATILE uint8_t *p8_dst = (VOLATILE uint8_t *)dst;
+	VOLATILE uint8_t *p8_src = (VOLATILE uint8_t *)src;
+	VOLATILE uint16_t *p16_dst = (VOLATILE uint16_t *)dst;
+	VOLATILE uint16_t *p16_src = (VOLATILE uint16_t *)src;
+	VOLATILE uint32_t *p32_dst = (VOLATILE uint32_t *)dst;
+	VOLATILE uint32_t *p32_src = (VOLATILE uint32_t *)src;
+	VOLATILE uint64_t *p64_dst = (VOLATILE uint64_t *)dst;
+	VOLATILE uint64_t *p64_src = (VOLATILE uint64_t *)src;
+
+#if BSP_CFG_DCACHE_ENABLED
+	SCB_CleanInvalidateDCache();
+#endif
+
+	switch (width) {
+	case TEST_SDRAM_WIDTH_8BIT:
+		time_start = get_system_us();
+		for (i = 0; i < CACHE_SIZE; i++) {
+			p8_dst[i] = p8_src[i];
+		}
+		time_end = get_system_us();
+		break;
+	case TEST_SDRAM_WIDTH_16BIT:
+		time_start = get_system_us();
+		for (i = 0; i < (CACHE_SIZE / 2); i++) {
+			p16_dst[i] = p16_src[i];
+		}
+		time_end = get_system_us();
+		break;
+	case TEST_SDRAM_WIDTH_32BIT:
+		time_start = get_system_us();
+		for (i = 0; i < (CACHE_SIZE / 4); i++) {
+			p32_dst[i] = p32_src[i];
+		}
+		time_end = get_system_us();
+		break;
+	case TEST_SDRAM_WIDTH_64BIT:
+		time_start = get_system_us();
+		for (i = 0; i < (CACHE_SIZE / 8); i++) {
+			p64_dst[i] = p64_src[i];
+		}
+		time_end = get_system_us();
+		break;
+	default:
+		return;
+	}
+
+	if (time_end > time_start) {
+		*speed = (float)CACHE_SIZE / (float)(time_end - time_start);
+		*speed = *speed * 1000000.0f / 1024.0f / 1024.0f;
+	}
+	else {
+		LOG_E(__FUNCTION__, "Test size if too small");
+	}
+}
+
+#if BSP_CFG_DCACHE_ENABLED
+static bool setDCacheWriteBack(void)
+{
+	uint32_t reg;
+
+	SCB_DisableDCache();
+	MEMSYSCTL->MSCR &= ~(MEMSYSCTL_MSCR_FORCEWT_Msk);
+	__DSB();
+	__ISB();
+	reg = MEMSYSCTL->MSCR;
+	SCB_EnableDCache();
+
+	return (reg & MEMSYSCTL_MSCR_FORCEWT_Msk) == 0;
+}
+#endif
+
+void TestSDRAM_Speed(float *speed, TestSDRAM_WidthEnum width, TestSDRAM_DirEnum dir)
+{
+	switch (dir) {
+	case TEST_SDRAM_DIR_DTCM_TO_SDRAM:
+		measureSpeed(speed, s_sdram, s_cache, width);
+		break;
+	case TEST_SDRAM_DIR_SRAM_TO_SDRAM:
+		measureSpeed(speed, s_sdram, s_ram, width);
+		break;
+	case TEST_SDRAM_DIR_SDRAM_TO_DTCM:
+		measureSpeed(speed, s_cache, s_sdram, width);
+		break;
+	case TEST_SDRAM_DIR_SDRAM_TO_SRAM:
+		measureSpeed(speed, s_ram, s_sdram, width);
+		break;
+#if BSP_CFG_DCACHE_ENABLED
+	case TEST_SDRAM_DIR_DTCM_TO_SDRAM_NC:
+		measureSpeed(speed, s_sdram_nc, s_cache, width);
+		break;
+	case TEST_SDRAM_DIR_SRAM_TO_SDRAM_NC:
+		measureSpeed(speed, s_sdram_nc, s_ram, width);
+		break;
+	case TEST_SDRAM_DIR_SRAM_NC_TO_SDRAM:
+		measureSpeed(speed, s_sdram, s_ram_nc, width);
+		break;
+	case TEST_SDRAM_DIR_SRAM_NC_TO_SDRAM_NC:
+		measureSpeed(speed, s_sdram_nc, s_ram_nc, width);
+		break;
+	case TEST_SDRAM_DIR_SDRAM_NC_TO_DTCM:
+		measureSpeed(speed, s_cache, s_sdram_nc, width);
+		break;
+	case TEST_SDRAM_DIR_SDRAM_TO_SRAM_NC:
+		measureSpeed(speed, s_ram_nc, s_sdram, width);
+		break;
+	case TEST_SDRAM_DIR_SDRAM_NC_TO_SRAM:
+		measureSpeed(speed, s_ram, s_sdram_nc, width);
+		break;
+	case TEST_SDRAM_DIR_SDRAM_NC_TO_SRAM_NC:
+		measureSpeed(speed, s_ram_nc, s_sdram_nc, width);
+		break;
+#endif
+	default:
+		*speed = -1.0f;
+		break;
+	}
+}
+
+void TestSDRAM_SpeedRead(float speed[TEST_SDRAM_SPEED_COUNT], TestSDRAM_WidthEnum width)
+{
+	uint32_t i;
+
+	if (speed == NULL) {
+		return;
+	}
+	for (i = 0; i < TEST_SDRAM_SPEED_COUNT; i++) {
+		speed[i] = 0.0f;
+	}
+
+	if (((uint32_t)s_sdram < SDRAM_MAP_START_ADDR) || ((uint32_t)s_sdram > SDRAM_MAP_END_ADDR)) {
+		return;
+	}
+	if ((uint32_t)width > (uint32_t)TEST_SDRAM_WIDTH_64BIT) {
+		return;
+	}
+
+#if BSP_CFG_DCACHE_ENABLED
+	if (((uint32_t)s_sdram_nc < SDRAM_MAP_START_ADDR) || ((uint32_t)s_sdram_nc > SDRAM_MAP_END_ADDR)) {
+		return;
+	}
+	if (setDCacheWriteBack() == false) {
+		return;
+	}
+
+	measureSpeed(&speed[0], s_cache, s_sdram_nc, width);
+	measureSpeed(&speed[1], s_ram_nc, s_sdram_nc, width);
+	measureSpeed(&speed[2], s_ram, s_sdram_nc, width);
+	measureSpeed(&speed[3], s_cache, s_sdram, width);
+	measureSpeed(&speed[4], s_ram_nc, s_sdram, width);
+	measureSpeed(&speed[5], s_ram, s_sdram, width);
+#else
+	measureSpeed(&speed[0], s_cache, s_sdram, width);
+	measureSpeed(&speed[1], s_ram, s_sdram, width);
+#endif
+}
+
+void TestSDRAM_SpeedWrite(float speed[TEST_SDRAM_SPEED_COUNT], TestSDRAM_WidthEnum width)
+{
+	uint32_t i;
+
+	if (speed == NULL) {
+		return;
+	}
+	for (i = 0; i < TEST_SDRAM_SPEED_COUNT; i++) {
+		speed[i] = 0.0f;
+	}
+
+	if (((uint32_t)s_sdram < SDRAM_MAP_START_ADDR) || ((uint32_t)s_sdram > SDRAM_MAP_END_ADDR)) {
+		return;
+	}
+	if ((uint32_t)width > (uint32_t)TEST_SDRAM_WIDTH_64BIT) {
+		return;
+	}
+
+	srand(71);
+	for (i = 0; i < (CACHE_SIZE / sizeof(uint32_t)); i++) {
+		((VOLATILE uint32_t *)s_cache)[i] = (uint32_t)rand();
+	}
+	for (i = 0; i < (CACHE_SIZE / sizeof(uint32_t)); i++) {
+		((VOLATILE uint32_t *)s_ram)[i] = (uint32_t)rand();
+	}
+
+#if BSP_CFG_DCACHE_ENABLED
+	if (((uint32_t)s_sdram_nc < SDRAM_MAP_START_ADDR) || ((uint32_t)s_sdram_nc > SDRAM_MAP_END_ADDR)) {
+		return;
+	}
+	for (i = 0; i < (CACHE_SIZE / sizeof(uint32_t)); i++) {
+		((VOLATILE uint32_t *)s_ram_nc)[i] = (uint32_t)rand();
+	}
+	if (setDCacheWriteBack() == false) {
+		return;
+	}
+
+	measureSpeed(&speed[0], s_sdram_nc, s_cache, width);
+	measureSpeed(&speed[1], s_sdram_nc, s_ram_nc, width);
+	measureSpeed(&speed[2], s_sdram_nc, s_ram, width);
+	measureSpeed(&speed[3], s_sdram, s_cache, width);
+	measureSpeed(&speed[4], s_sdram, s_ram_nc, width);
+	measureSpeed(&speed[5], s_sdram, s_ram, width);
+#else
+	measureSpeed(&speed[0], s_sdram, s_cache, width);
+	measureSpeed(&speed[1], s_sdram, s_ram, width);
+#endif
 }
 
 #if TEST_SDRAM_EN_DMA
@@ -149,6 +440,7 @@ void DMA_CALLBACK(transfer_callback_args_t *p_args)
 }
 #endif
 
+#if TEST_SDRAM_EN_CHECK_ADDR_PIN
 static uint8_t checkAddressPin(void)
 {
 	uint32_t i, j;
@@ -303,7 +595,9 @@ static uint8_t checkAddressPin(void)
 
 	return 0;
 }
+#endif /* #if TEST_SDRAM_EN_CHECK_ADDR_PIN */
 
+#if TEST_SDRAM_EN_CHECK_DATA_PIN
 static uint8_t checkDataPin(uint32_t addr)
 {
 	uint32_t i;
@@ -327,7 +621,9 @@ static uint8_t checkDataPin(uint32_t addr)
 
 	return 0;
 }
+#endif /* #if TEST_SDRAM_EN_CHECK_DATA_PIN */
 
+#if TEST_SDRAM_EN_CHECK_DQM
 static uint8_t checkDQM(uint32_t addr)
 {
 	uint8_t i, j;
@@ -389,7 +685,9 @@ static uint8_t checkDQM(uint32_t addr)
 
 	return 0;
 }
+#endif /* #if TEST_SDRAM_EN_CHECK_DQM */
 
+#if TEST_SDRAM_EN_FULL_CHIP
 static uint8_t checkFullChipNoCache(void)
 {
 	uint8_t bit_num;
@@ -586,6 +884,7 @@ static uint8_t checkFullChipWithRand(uint32_t seed)
 
 	return 0;
 }
+#endif /* #if TEST_SDRAM_EN_FULL_CHIP */
 
 static void checkSpeedRead(void)
 {

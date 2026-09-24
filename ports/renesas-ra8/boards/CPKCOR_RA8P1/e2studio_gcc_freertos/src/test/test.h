@@ -1,6 +1,7 @@
 #ifndef __TEST_H
 #define __TEST_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -72,7 +73,35 @@ uint32_t TestSD(void);
 #endif
 
 #if TEST_EN_SDRAM
-uint32_t TestSDRAM(uint32_t start_addr, uint32_t size);
+#define TEST_SDRAM_SPEED_COUNT	6
+
+typedef enum {
+	TEST_SDRAM_WIDTH_8BIT,
+	TEST_SDRAM_WIDTH_16BIT,
+	TEST_SDRAM_WIDTH_32BIT,
+	TEST_SDRAM_WIDTH_64BIT
+} TestSDRAM_WidthEnum;
+
+typedef enum {
+	TEST_SDRAM_DIR_DTCM_TO_SDRAM,
+	TEST_SDRAM_DIR_SRAM_TO_SDRAM,
+	TEST_SDRAM_DIR_SDRAM_TO_DTCM,
+	TEST_SDRAM_DIR_SDRAM_TO_SRAM,
+
+	TEST_SDRAM_DIR_DTCM_TO_SDRAM_NC,
+	TEST_SDRAM_DIR_SRAM_TO_SDRAM_NC,
+	TEST_SDRAM_DIR_SRAM_NC_TO_SDRAM,
+	TEST_SDRAM_DIR_SRAM_NC_TO_SDRAM_NC,
+	TEST_SDRAM_DIR_SDRAM_NC_TO_DTCM,
+	TEST_SDRAM_DIR_SDRAM_TO_SRAM_NC,
+	TEST_SDRAM_DIR_SDRAM_NC_TO_SRAM,
+	TEST_SDRAM_DIR_SDRAM_NC_TO_SRAM_NC
+} TestSDRAM_DirEnum;
+
+uint32_t TestSDRAM(uint32_t start_addr, uint32_t size, bool speed_write, bool speed_read);
+void TestSDRAM_Speed(float *speed, TestSDRAM_WidthEnum width, TestSDRAM_DirEnum dir);
+void TestSDRAM_SpeedRead(float speed[TEST_SDRAM_SPEED_COUNT], TestSDRAM_WidthEnum width);
+void TestSDRAM_SpeedWrite(float speed[TEST_SDRAM_SPEED_COUNT], TestSDRAM_WidthEnum width);
 #endif
 
 #ifdef __cplusplus

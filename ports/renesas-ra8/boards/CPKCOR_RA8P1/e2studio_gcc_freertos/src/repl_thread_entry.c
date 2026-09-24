@@ -99,6 +99,9 @@ void repl_thread_entry(void *pvParameters)
     TestSD();
 #endif
 
+#if TEST_EN_LCD
+#endif
+
 soft_reset:
     /* 必须小于 FreeRTOS 分配的栈大小，当前：0x4000 */
     mp_cstack_init_with_sp_here(0x3000);
