@@ -1,8 +1,9 @@
+#include <inttypes.h>
+#include "pin.h"
+
 #include "py/mperrno.h"
 #include "py/mphal.h"
 #include "py/runtime.h"
-
-#include "pin.h"
 
 #ifndef __PIN_DEBUG
 #define __PIN_DEBUG 1
@@ -54,9 +55,9 @@ enum {
     MACHINE_PIN_PULL_UP,
 };
 
-static uint16_t machine_pin_gpio_states[MACHINE_PIN_PORT_COUNT];
+static uint16_t machine_pin_states[MACHINE_PIN_PORT_COUNT]; /* 用于全局？ */
+static uint16_t machine_pin_gpio_states[MACHINE_PIN_PORT_COUNT]; /* 用于自身 pin.c ？ */
 static uint32_t machine_pin_saved_cfg[MACHINE_PIN_PORT_COUNT][MACHINE_PIN_PINS_PER_PORT];
-static uint16_t machine_pin_states[MACHINE_PIN_PORT_COUNT];
 
 static bool machine_pin_is_taken(bsp_io_port_pin_t pin_id)
 {
@@ -73,6 +74,12 @@ static bool machine_pin_is_taken(bsp_io_port_pin_t pin_id)
     return taken;
 }
 
+/**
+ * @brief   检查指定的 pin 是否已被占用（局部）
+ * @param   pin_id 要检查的 pin
+ * @retval  true   已被占用
+ * @retval  false  未被占用
+ */
 static bool machine_pin_gpio_is_taken(bsp_io_port_pin_t pin_id)
 {
     uint32_t port = (uint32_t)pin_id >> 8;
@@ -88,6 +95,11 @@ static bool machine_pin_gpio_is_taken(bsp_io_port_pin_t pin_id)
     return taken;
 }
 
+/**
+ * @brief   设置是否占用指定引脚（局部）
+ * @param   pin_id 要占用或释放的引脚
+ * @param   taken  是否要占用
+ */
 static void machine_pin_gpio_set_taken(bsp_io_port_pin_t pin_id, bool taken)
 {
     uint32_t port = (uint32_t)pin_id >> 8;
@@ -97,7 +109,8 @@ static void machine_pin_gpio_set_taken(bsp_io_port_pin_t pin_id, bool taken)
 
     if (taken) {
         machine_pin_gpio_states[port] |= mask;
-    } else {
+    }
+    else {
         machine_pin_gpio_states[port] &= (uint16_t)~mask;
     }
 
@@ -190,6 +203,12 @@ bool machine_pin_give(bsp_io_port_pin_t pin_id)
     return true;
 }
 
+/**
+ * @brief   申请占用指定的引脚（全局）
+ * @param   pin_id 要占用的引脚
+ * @retval  true   申请占用成功
+ * @retval  false  申请占用失败
+ */
 bool machine_pin_take(bsp_io_port_pin_t pin_id)
 {
     uint32_t port = (uint32_t)pin_id >> 8;    //取port
@@ -204,6 +223,7 @@ bool machine_pin_take(bsp_io_port_pin_t pin_id)
     uint16_t mask = (uint16_t)(1U << bit);
 
     if ((machine_pin_states[port] & mask) != 0U) {
+        PIN_LOGE("pin[0x%" PRIX32 "] already be taken", (uint32_t)pin_id);
         MICROPY_END_ATOMIC_SECTION(atomic_state);
         return false;
     }
@@ -222,6 +242,7 @@ bool machine_pin_take(bsp_io_port_pin_t pin_id)
  * @param       pull  无上下拉或内部上拉配置。
  * @param       value 初始输出值，未提供时为 MP_OBJ_NULL。
  * @param       drive 输出驱动能力，未提供时为 MP_OBJ_NULL。
+ * @param       alt   复用功能描述，值为 1~31，对应于引脚复用表中的列
  * @exception   ValueError mode、pull 或 drive 不是当前支持的配置。
  * @exception   OSError FSP 配置引脚失败。
  */
@@ -250,9 +271,12 @@ static void machine_pin_configure(const machine_pin_obj_t *pin, mp_int_t mode, m
 
     switch (mode) {
     case MACHINE_PIN_MODE_ANALOG:
-        if (value != MP_OBJ_NULL && value != mp_const_none) {
-            mp_raise_ValueError(MP_ERROR_TEXT("value is not valid for analog mode"));
+        if ((pull != MP_OBJ_NULL && pull != mp_const_none) ||
+            (value != MP_OBJ_NULL && value != mp_const_none) ||
+            (drive != MP_OBJ_NULL && drive != mp_const_none)) {
+            mp_raise_ValueError(MP_ERROR_TEXT("Analog mode can't set other attribute"));
         }
+        /* TODO 还要加一个判断，来判断当前要配置的引脚是否支持 Analog 功能 */
         cfg = IOPORT_CFG_ANALOG_ENABLE;
         break;
     case MACHINE_PIN_MODE_IN:
@@ -285,6 +309,19 @@ static void machine_pin_configure(const machine_pin_obj_t *pin, mp_int_t mode, m
                 cfg |= IOPORT_CFG_PORT_OUTPUT_LOW;
             }
         }
+        /* TODO New logic, wait validation */
+        else {
+            PIN_LOGD("Unassigned value, will remain unchanged");
+            /* FSP 会一次写入 PmnPFS，所以需要先读出 */
+            bsp_io_level_t level;
+            R_IOPORT_PinRead(g_ioport.p_ctrl, pin->pin, &level);
+            if (level == BSP_IO_LEVEL_HIGH) {
+                cfg |= IOPORT_CFG_PORT_OUTPUT_HIGH;
+            }
+            else {
+                cfg |= IOPORT_CFG_PORT_OUTPUT_LOW;
+            }
+        }
         break;
     default:
         mp_raise_ValueError(MP_ERROR_TEXT("invalid pin mode"));
@@ -295,9 +332,6 @@ static void machine_pin_configure(const machine_pin_obj_t *pin, mp_int_t mode, m
         case MACHINE_PIN_PULL_NONE:
             break;
         case MACHINE_PIN_PULL_UP:
-            if (mode == MACHINE_PIN_MODE_ANALOG) {
-                mp_raise_ValueError(MP_ERROR_TEXT("pull is not valid for analog mode"));
-            }
             cfg |= IOPORT_CFG_PULLUP_ENABLE;
             break;
         default:
@@ -328,6 +362,12 @@ static void machine_pin_configure(const machine_pin_obj_t *pin, mp_int_t mode, m
         default:
             mp_raise_ValueError(MP_ERROR_TEXT("invalid pin drive"));
         }
+    }
+
+    /* 当配置为 Analog 功能时，cfg 只能有 IOPORT_CFG_ANALOG_ENABLE 属性。现在还没有加 ADC/DAC 功能
+     * 后续加的时候，需要看日志有没有这个报错，如果没有，那这个判断可以删除 */
+    if ((mode == MACHINE_PIN_MODE_ANALOG) && (cfg != IOPORT_CFG_ANALOG_ENABLE)) {
+        PIN_LOGE("Pin analog cfg error: cfg = 0x%" PRIX32, cfg);
     }
 
     fsp_err_t error = R_IOPORT_PinCfg(g_ioport.p_ctrl, pin->pin, cfg);
@@ -393,11 +433,15 @@ static void machine_pin_gpio_take_and_configure(const machine_pin_obj_t *pin, mp
 {
     bool newly_taken = false;
 
+    /* 检查是否被局部占用 */
     if (!machine_pin_gpio_is_taken(pin->pin)) {
+        /* 如果没有被局部占用，则先全局占用 */
         if (!machine_pin_take(pin->pin)) {
+            PIN_LOGE("Try take pin[%s] failed", qstr_str(pin->name));
             mp_raise_OSError(MP_EBUSY);
         }
 
+        /* 设置局部占用 */
         machine_pin_gpio_set_taken(pin->pin, true);
         newly_taken = true;
     }
@@ -448,21 +492,22 @@ static mp_obj_t machine_pin_make_new(const mp_obj_type_t *type, size_t n_args, s
     mp_arg_parse_all_kw_array(n_args, n_kw, args, MP_ARRAY_SIZE(allowed_args), allowed_args, parsed_args);
 
     const machine_pin_obj_t *pin = machine_pin_find(parsed_args[ARG_id].u_obj);
+    PIN_LOGD("id = %s", qstr_str(pin->name));
 
     if (parsed_args[ARG_mode].u_obj != MP_OBJ_NULL) {
         mp_int_t mode = mp_obj_get_int(parsed_args[ARG_mode].u_obj);
+        PIN_LOGD("mode = %d", mode);
         machine_pin_gpio_take_and_configure(pin, mode, parsed_args[ARG_pull].u_obj, parsed_args[ARG_value].u_obj, parsed_args[ARG_drive].u_obj, parsed_args[ARG_alt].u_obj);
     }
     else if (
-        (parsed_args[ARG_pull].u_obj != MP_OBJ_NULL &&
-         parsed_args[ARG_pull].u_obj != mp_const_none) ||
-        (parsed_args[ARG_value].u_obj != MP_OBJ_NULL &&
-         parsed_args[ARG_value].u_obj != mp_const_none) ||
-        (parsed_args[ARG_drive].u_obj != MP_OBJ_NULL &&
-         parsed_args[ARG_drive].u_obj != mp_const_none) ||
-        (parsed_args[ARG_alt].u_obj != MP_OBJ_NULL &&
-         parsed_args[ARG_alt].u_obj != mp_const_none)) {
+        (parsed_args[ARG_pull].u_obj != MP_OBJ_NULL && parsed_args[ARG_pull].u_obj != mp_const_none) ||
+        (parsed_args[ARG_value].u_obj != MP_OBJ_NULL && parsed_args[ARG_value].u_obj != mp_const_none) ||
+        (parsed_args[ARG_drive].u_obj != MP_OBJ_NULL && parsed_args[ARG_drive].u_obj != mp_const_none) ||
+        (parsed_args[ARG_alt].u_obj != MP_OBJ_NULL && parsed_args[ARG_alt].u_obj != mp_const_none)) {
         mp_raise_ValueError(MP_ERROR_TEXT("pull, value, drive and alt require mode"));
+    }
+    else {
+        PIN_LOGD("This call didn't set any args except id");
     }
 
     return MP_OBJ_FROM_PTR(pin);

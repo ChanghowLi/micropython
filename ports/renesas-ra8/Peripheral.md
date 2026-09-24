@@ -134,35 +134,21 @@ API 完成情况。函数说明写在上方每个函数的标题下
 
 参数：
 
-- id: int、字符串或由端口号和引脚号组成的元组。RA8 上使用字符串时，比如 `'P006'`
+- id: int、字符串或由端口号和引脚号组成的元组。RA8 上使用字符串时，比如 `'P006'`。仅放出部分可用 IO，可用 IO 在每个 boards 文件夹下的引脚复用表中，或通过 `help(Pin.board)` 和 `help(Pin.cpu)` 列出所有可用 Pin
 - mode
     - Pin.IN: 配置为输入
     - Pin.OUT: 配置为输出
     - Pin.OPEN_DRAIN: 配置为开漏
     - Pin.ALT: 配置为复用功能
     - Pin.ALT_OPEN_DRAIN: 配置为复用开漏
-    - Pin.ANALOG: 配置为模拟输入
+    - Pin.ANALOG: 配置为模拟输入，在模拟输入模式下，不能设置 `pull`、`value`、`driver` 属性
 - pull
     - None: 无上下拉
     - Pin.PULL_UP: 内部上拉
     - Pin.PULL_DOWN: 内部下拉，RA8P1 当前不支持
-- value: 仅在 `Pin.OUT` 和 `Pin.OPEN_DRAIN` 模式下有效，用于设置引脚的初始输出值。未指定时保持引脚原有状态
-- drive: 设置引脚的输出驱动能力，可使用 `Pin.DRIVE_0`、`Pin.DRIVE_1` 等常量。数值越大，驱动能力越强，具体能力由端口决定
+- value: 仅在 `Pin.OUT` 和 `Pin.OPEN_DRAIN` 模式下有效，用于设置引脚的初始输出值。使用 `True` 或者 `1` 来表示高，`False` 或者 `0` 来表示低
+- drive: 设置引脚的输出驱动能力，可使用 `Pin.DRIVE_0`、`Pin.DRIVE_1`、`Pin.DRIVE_2`、`Pin.DRIVE_3`，分别对应 L、M、H、HH
 - alt: 设置引脚的复用功能，仅在 `Pin.ALT` 和 `Pin.ALT_OPEN_DRAIN` 模式下有效，可用值由端口决定
-
-未指定的参数会保持引脚原有状态。配置为复用功能后，除重新调用构造函数或 `Pin.init()` 外，其它 `Pin` 方法的行为未定义。
-
-当前 RA8P1 实现状态：
-
-- Pin 对象根据板级引脚复用表的 `CPU_PIN` 列自动生成，同时生成对应的 IRQ 和复用功能掩码
-- 支持 `Pin.IN`、`Pin.OUT`
-- 支持 `Pin.PULL_NONE`、`Pin.PULL_UP`；RA8P1 的 PFS/FSP 未提供内部下拉配置
-- 支持仅限关键字传入的 `value=` 和 `drive=`
-- 支持 `Pin.DRIVE_0`、`Pin.DRIVE_1`、`Pin.DRIVE_2`、`Pin.DRIVE_3`
-- 当前 `Pin.OUT` 未指定 `value` 时使用 FSP 的默认低电平配置，尚未实现“保持原输出值”
-- 尚未支持 `Pin.OPEN_DRAIN`、`Pin.ALT`、`Pin.ALT_OPEN_DRAIN`、`Pin.ANALOG` 和 `alt=`
-- `Pin("P000")`、类常量以及 `mode`、`pull`、`value`、`drive` 参数解析已完成 REPL 验证
-- P000 的实际输入输出电平、内部上拉效果和各档驱动能力尚待万用表或其它仪器验证
 
 ### Pin.init(mode=-1,pull=-1,*,value=None,drive=0,alt=-1)
 
