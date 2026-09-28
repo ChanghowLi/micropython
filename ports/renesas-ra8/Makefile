@@ -207,7 +207,7 @@ CFLAGS += $(INC)
 # CPU flags MUST be passed to linker for correct multilib selection
 LDFLAGS += $(CFLAGS_CORTEX_M85)
 LDFLAGS += -T $(LD_SCRIPT)
-LD_SEARCH_DIRS = $(sort $(FSP_PROJECT_DIR)/Debug $(FSP_PROJECT_DIR)/Debug)
+LD_SEARCH_DIRS = $(sort $(FSP_PROJECT_DIR)/Debug $(FSP_PROJECT_DIR)/script)
 LDFLAGS += $(addprefix -L,$(LD_SEARCH_DIRS))
 LDFLAGS += -Wl,-Map=$@.map -Wl,--cref -Wl,--gc-sections
 LDFLAGS += --specs=nano.specs
@@ -282,11 +282,13 @@ $(BUILD)/_frozen_mpy.c: $(TOP)/tests/assets/frozentest.mpy $(BUILD)/genhdr/qstrd
 	$(Q)$(TOP)/tools/mpy-tool.py -f -q $(BUILD)/genhdr/qstrdefs.preprocessed.h -mlongint-impl=none $< > $@
 
 # Link — use GCC instead of LD so that libgcc/libc paths are resolved
+ifeq ($(BOARD),CPKCOR_RA8P1)
 LINKER_DEPS = $(LD_SCRIPT) \
-    $(FSP_PROJECT_DIR)/Debug/memory_regions.ld \
+    $(FSP_PROJECT_DIR)/script/memory_regions_cpkcor.ld \
     $(FSP_PROJECT_DIR)/Debug/fsp_gen.ld
+endif
 
-$(BUILD)/firmware.elf: $(OBJ)
+$(BUILD)/firmware.elf: $(OBJ) $(LINKER_DEPS)
 	$(ECHO) "LINK $@"
 	$(file >$@.in,$(LDFLAGS) -o $@ $(OBJ) $(LIBS))
 	$(Q)$(CC) @"$@.in"

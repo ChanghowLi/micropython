@@ -59,6 +59,12 @@ static uint16_t machine_pin_states[MACHINE_PIN_PORT_COUNT]; /* 用于全局？ *
 static uint16_t machine_pin_gpio_states[MACHINE_PIN_PORT_COUNT]; /* 用于自身 pin.c ？ */
 static uint32_t machine_pin_saved_cfg[MACHINE_PIN_PORT_COUNT][MACHINE_PIN_PINS_PER_PORT];
 
+/**
+ * @brief   检查指定的 pin 是否已被占用（全局）
+ * @param   pin_id 要检查的 pin
+ * @retval  true   已被占用
+ * @retval  false  未被占用
+ */
 static bool machine_pin_is_taken(bsp_io_port_pin_t pin_id)
 {
     uint32_t port = (uint32_t)pin_id >> 8;
@@ -171,6 +177,12 @@ const machine_pin_af_obj_t *machine_pin_find_af(bsp_io_port_pin_t pin, machine_p
     return NULL;
 }
 
+/**
+ * @brief   释放占用的引脚，并恢复 take 前的 pin 配置
+ * @param   pin_id 要释放的引脚
+ * @retval  true   成功
+ * @retval  false  指定的引脚不存在
+ */
 bool machine_pin_give(bsp_io_port_pin_t pin_id)
 {
     uint32_t port = (uint32_t)pin_id >> 8;
@@ -189,12 +201,7 @@ bool machine_pin_give(bsp_io_port_pin_t pin_id)
         return true;
     }
 
-    fsp_err_t error = R_IOPORT_PinCfg(g_ioport.p_ctrl, pin_id, machine_pin_saved_cfg[port][bit]);
-    if (error != FSP_SUCCESS) {
-        PIN_LOGE("failed to restore pin: pin=0x%04lx, error=%d", (unsigned long)pin_id, (int)error);
-        MICROPY_END_ATOMIC_SECTION(atomic_state);
-        return false;
-    }
+    R_IOPORT_PinCfg(g_ioport.p_ctrl, pin_id, machine_pin_saved_cfg[port][bit]);
 
     machine_pin_gpio_states[port] &= (uint16_t)~mask;
     machine_pin_states[port] &= (uint16_t)~mask;
@@ -466,6 +473,7 @@ static void machine_pin_gpio_take_and_configure(const machine_pin_obj_t *pin, mp
  * @param       n_kw   关键字参数数量。
  * @param       args   位置参数和关键字参数值。
  * @return      与引脚标识对应的 MicroPython Pin 对象。
+ * @note        如果除了 id，其它参数都没有指定，则不会对 pin 进行占用
  */
 static mp_obj_t machine_pin_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args)
 {
@@ -496,7 +504,6 @@ static mp_obj_t machine_pin_make_new(const mp_obj_type_t *type, size_t n_args, s
 
     if (parsed_args[ARG_mode].u_obj != MP_OBJ_NULL) {
         mp_int_t mode = mp_obj_get_int(parsed_args[ARG_mode].u_obj);
-        PIN_LOGD("mode = %d", mode);
         machine_pin_gpio_take_and_configure(pin, mode, parsed_args[ARG_pull].u_obj, parsed_args[ARG_value].u_obj, parsed_args[ARG_drive].u_obj, parsed_args[ARG_alt].u_obj);
     }
     else if (
@@ -542,22 +549,25 @@ static mp_obj_t machine_pin_init(size_t n_args, const mp_obj_t *pos_args, mp_map
     mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, parsed_args);
 
     const machine_pin_obj_t *self = MP_OBJ_TO_PTR(pos_args[0]);
+    PIN_LOGD("Pin: %s", qstr_str(self->name));
 
     if (parsed_args[ARG_mode].u_obj != MP_OBJ_NULL) {
         mp_int_t mode = mp_obj_get_int(parsed_args[ARG_mode].u_obj);
-        machine_pin_require_irq_inactive(self);
+        if (machine_pin_irq_is_active(self)) {
+            PIN_LOGE("Current pin is used as external irq pin");
+            mp_raise_OSError(MP_EBUSY);
+        }
         machine_pin_gpio_take_and_configure(self, mode, parsed_args[ARG_pull].u_obj, parsed_args[ARG_value].u_obj, parsed_args[ARG_drive].u_obj, parsed_args[ARG_alt].u_obj);
     }
     else if (
-        (parsed_args[ARG_pull].u_obj != MP_OBJ_NULL &&
-         parsed_args[ARG_pull].u_obj != mp_const_none) ||
-        (parsed_args[ARG_value].u_obj != MP_OBJ_NULL &&
-         parsed_args[ARG_value].u_obj != mp_const_none) ||
-        (parsed_args[ARG_drive].u_obj != MP_OBJ_NULL &&
-         parsed_args[ARG_drive].u_obj != mp_const_none) ||
-        (parsed_args[ARG_alt].u_obj != MP_OBJ_NULL &&
-         parsed_args[ARG_alt].u_obj != mp_const_none)) {
+        (parsed_args[ARG_pull].u_obj != MP_OBJ_NULL && parsed_args[ARG_pull].u_obj != mp_const_none) ||
+        (parsed_args[ARG_value].u_obj != MP_OBJ_NULL && parsed_args[ARG_value].u_obj != mp_const_none) ||
+        (parsed_args[ARG_drive].u_obj != MP_OBJ_NULL && parsed_args[ARG_drive].u_obj != mp_const_none) ||
+        (parsed_args[ARG_alt].u_obj != MP_OBJ_NULL && parsed_args[ARG_alt].u_obj != mp_const_none)) {
         mp_raise_ValueError(MP_ERROR_TEXT("pull, value, drive and alt require mode"));
+    }
+    else {
+        PIN_LOGD("This call didn't set any args except id");
     }
 
     return mp_const_none;
@@ -567,23 +577,35 @@ static mp_obj_t machine_pin_deinit(mp_obj_t self_in)
 {
     const machine_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
 
-    machine_pin_require_irq_inactive(self);
+    PIN_LOGD("%s call", qstr_str(self->name));
 
+    if (machine_pin_irq_is_active(self)) {
+        PIN_LOGE("Current pin is used as external irq pin");
+        mp_raise_OSError(MP_EBUSY);
+    }
+
+    /* pin 没有被局部占用
+     * make_new 在没有指定 mode 时，不会对 pin 进行占用，对应这种 case */
     if (!machine_pin_gpio_is_taken(self->pin)) {
+        /* pin 没有被局部占用，但被全局占用 */
         if (machine_pin_is_taken(self->pin)) {
+            PIN_LOGE("Pin is taken");
             mp_raise_OSError(MP_EBUSY);
         }
 
         return mp_const_none;
     }
 
-    if (!machine_pin_give(self->pin)) {
-        mp_raise_OSError(MP_EIO);
-    }
+    machine_pin_give(self->pin);
 
     return mp_const_none;
 }
 
+/**
+ * @brief   读取或设置引脚模式，对应于 Pin.mode([mode])
+ * @param   n_args 参数数量
+ * @param   args   参数数组
+ */
 static mp_obj_t machine_pin_mode(size_t n_args, const mp_obj_t *args)
 {
     const machine_pin_obj_t *self = MP_OBJ_TO_PTR(args[0]);
@@ -591,14 +613,10 @@ static mp_obj_t machine_pin_mode(size_t n_args, const mp_obj_t *args)
     uint32_t bit = (uint32_t) self->pin & 0xffU;
 
     if (n_args == 1) {
-        uint32_t analog =
-            R_PFS->PORT[port].PIN[bit].PmnPFS_b.ASEL;
-        uint32_t peripheral =
-            R_PFS->PORT[port].PIN[bit].PmnPFS_b.PMR;
-        uint32_t direction =
-            R_PFS->PORT[port].PIN[bit].PmnPFS_b.PDR;
-        uint32_t open_drain =
-            R_PFS->PORT[port].PIN[bit].PmnPFS_b.NCODR;
+        uint32_t analog = R_PFS->PORT[port].PIN[bit].PmnPFS_b.ASEL;
+        uint32_t peripheral = R_PFS->PORT[port].PIN[bit].PmnPFS_b.PMR;
+        uint32_t direction = R_PFS->PORT[port].PIN[bit].PmnPFS_b.PDR;
+        uint32_t open_drain = R_PFS->PORT[port].PIN[bit].PmnPFS_b.NCODR;
 
         if (analog != 0U) {
             return MP_OBJ_NEW_SMALL_INT(MACHINE_PIN_MODE_ANALOG);
@@ -615,8 +633,10 @@ static mp_obj_t machine_pin_mode(size_t n_args, const mp_obj_t *args)
         return MP_OBJ_NEW_SMALL_INT(open_drain == 0U ? MACHINE_PIN_MODE_OUT : MACHINE_PIN_MODE_OPEN_DRAIN);
     }
 
-    machine_pin_require_gpio_access(self);
-    machine_pin_require_irq_inactive(self);
+    if (machine_pin_irq_is_active(self)) {
+        PIN_LOGE("Current pin is used as external irq pin");
+        mp_raise_OSError(MP_EBUSY);
+    }
 
     mp_int_t mode = mp_obj_get_int(args[1]);
 
@@ -710,6 +730,11 @@ static mp_obj_t machine_pin_pull(size_t n_args, const mp_obj_t *args)
     return mp_const_none;
 }
 
+/**
+ * @brief   读取或设置 Pin 的驱动能力，对应于 Pin.drive([drive])
+ * @param   n_args 参数数量
+ * @param   args   参数数组
+ */
 static mp_obj_t machine_pin_drive(size_t n_args, const mp_obj_t *args)
 {
     const machine_pin_obj_t *self = MP_OBJ_TO_PTR(args[0]);
@@ -722,8 +747,10 @@ static mp_obj_t machine_pin_drive(size_t n_args, const mp_obj_t *args)
         return MP_OBJ_NEW_SMALL_INT(drive);
     }
 
-    machine_pin_require_gpio_access(self);
-    machine_pin_require_irq_inactive(self);
+    if (machine_pin_irq_is_active(self)) {
+        PIN_LOGE("Pin[%s] current is used as external irq", qstr_str(self->name));
+        mp_raise_OSError(MP_EBUSY);
+    }
 
     if (R_PFS->PORT[port].PIN[bit].PmnPFS_b.PDR == 0U) {
         mp_raise_ValueError(MP_ERROR_TEXT("drive is only valid for output mode"));
@@ -733,24 +760,20 @@ static mp_obj_t machine_pin_drive(size_t n_args, const mp_obj_t *args)
     uint32_t drive_cfg;
 
     switch (drive) {
-        case MACHINE_PIN_DRIVE_0:
-            drive_cfg = 0U;
-            break;
-
-        case MACHINE_PIN_DRIVE_1:
-            drive_cfg = IOPORT_CFG_DRIVE_MID;
-            break;
-
-        case MACHINE_PIN_DRIVE_2:
-            drive_cfg = IOPORT_CFG_DRIVE_HS_HIGH;
-            break;
-
-        case MACHINE_PIN_DRIVE_3:
-            drive_cfg = IOPORT_CFG_DRIVE_HIGH;
-            break;
-
-        default:
-            mp_raise_ValueError(MP_ERROR_TEXT("invalid pin drive"));
+    case MACHINE_PIN_DRIVE_0:
+        drive_cfg = 0U;
+        break;
+    case MACHINE_PIN_DRIVE_1:
+        drive_cfg = IOPORT_CFG_DRIVE_MID;
+        break;
+    case MACHINE_PIN_DRIVE_2:
+        drive_cfg = IOPORT_CFG_DRIVE_HS_HIGH;
+        break;
+    case MACHINE_PIN_DRIVE_3:
+        drive_cfg = IOPORT_CFG_DRIVE_HIGH;
+        break;
+    default:
+        mp_raise_ValueError(MP_ERROR_TEXT("invalid pin drive"));
     }
 
     uint32_t cfg = R_PFS->PORT[port].PIN[bit].PmnPFS;
@@ -758,50 +781,39 @@ static mp_obj_t machine_pin_drive(size_t n_args, const mp_obj_t *args)
     cfg &= ~((uint32_t) R_PFS_PORT_PIN_PmnPFS_DSCR_Msk);
     cfg |= drive_cfg;
 
-    fsp_err_t err = R_IOPORT_PinCfg(g_ioport.p_ctrl, self->pin, cfg);
-    if (err != FSP_SUCCESS) {
-        mp_raise_OSError(MP_EIO);
-    }
+    R_IOPORT_PinCfg(g_ioport.p_ctrl, self->pin, cfg);
 
     return mp_const_none;
 }
 
 /**
- * @brief 读取或设置 Pin 对象的数字电平。
- *
- * 不传入 value 时读取当前电平；传入 value 时根据其 Python
- * 真值输出高电平或低电平。
- *
- * @param n_args 参数数量，包括 self。
- * @param args 参数数组，其中 args[0] 是 Pin 对象。
- * @return 读取时返回 0 或 1，写入时返回 None。
- * @exception OSError FSP 读取或写入引脚失败。
+ * @brief       读取或设置 Pin 对象的数字电平。
+ * @param       n_args 参数数量，包括 self。
+ * @param       args   参数数组，其中 args[0] 是 Pin 对象。
+ * @return      读取时返回 0 或 1，写入时返回 None。
+ * @exception   OSError FSP 读取或写入引脚失败。
  */
 static mp_obj_t machine_pin_value(size_t n_args, const mp_obj_t *args)
 {
+    bsp_io_level_t level;
+
     const machine_pin_obj_t *self = MP_OBJ_TO_PTR(args[0]);
-    fsp_err_t err;
 
     if (n_args == 1) {
-        bsp_io_level_t level;
-
-        err = R_IOPORT_PinRead(g_ioport.p_ctrl, self->pin, &level);
-        if (err != FSP_SUCCESS) {
-            mp_raise_OSError(MP_EIO);
-        }
+        R_IOPORT_PinRead(g_ioport.p_ctrl, self->pin, &level);
 
         return MP_OBJ_NEW_SMALL_INT(level == BSP_IO_LEVEL_HIGH);
     }
 
-    machine_pin_require_gpio_access(self);
-    machine_pin_require_irq_inactive(self);
-
-    bsp_io_level_t level = mp_obj_is_true(args[1]) ? BSP_IO_LEVEL_HIGH : BSP_IO_LEVEL_LOW;
-
-    err = R_IOPORT_PinWrite(g_ioport.p_ctrl, self->pin, level);
-    if (err != FSP_SUCCESS) {
-        mp_raise_OSError(MP_EIO);
+    /* TODO 后续会修改行为，p001 = Pin("P001") 从不占用引脚到会占用引脚
+     * 所以删除 pin 占用的检测，只需要判断当前 pin 是否正在作为 irq */
+    if (machine_pin_irq_is_active(self)) {
+        PIN_LOGE("Pin[%s] current is used as external irq", qstr_str(self->name));
+        mp_raise_OSError(MP_EBUSY);
     }
+
+    level = mp_obj_is_true(args[1]) ? BSP_IO_LEVEL_HIGH : BSP_IO_LEVEL_LOW;
+    R_IOPORT_PinWrite(g_ioport.p_ctrl, self->pin, level);
 
     return mp_const_none;
 }
@@ -863,25 +875,18 @@ static mp_obj_t machine_pin_off(mp_obj_t self_in)
 
 static mp_obj_t machine_pin_toggle(mp_obj_t self_in)
 {
-    const machine_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
     bsp_io_level_t level;
 
-    machine_pin_require_gpio_access(self);
-    machine_pin_require_irq_inactive(self);
+    const machine_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
 
-    fsp_err_t err = R_IOPORT_PinRead(g_ioport.p_ctrl, self->pin, &level);
-    if (err != FSP_SUCCESS) {
-        mp_raise_OSError(MP_EIO);
+    if (machine_pin_irq_is_active(self)) {
+        PIN_LOGE("Pin[%s] current is used as external irq", qstr_str(self->name));
+        mp_raise_OSError(MP_EBUSY);
     }
 
-    level = level == BSP_IO_LEVEL_HIGH
-        ? BSP_IO_LEVEL_LOW
-        : BSP_IO_LEVEL_HIGH;
-
-    err = R_IOPORT_PinWrite(g_ioport.p_ctrl, self->pin, level);
-    if (err != FSP_SUCCESS) {
-        mp_raise_OSError(MP_EIO);
-    }
+    R_IOPORT_PinRead(g_ioport.p_ctrl, self->pin, &level);
+    level = level == BSP_IO_LEVEL_HIGH ? BSP_IO_LEVEL_LOW : BSP_IO_LEVEL_HIGH;
+    R_IOPORT_PinWrite(g_ioport.p_ctrl, self->pin, level);
 
     return mp_const_none;
 }
@@ -946,7 +951,7 @@ static const mp_rom_map_elem_t machine_pin_locals_dict_table[] = {
     {MP_ROM_QSTR(MP_QSTR_drive), MP_ROM_PTR(&machine_pin_drive_obj)},
     {MP_ROM_QSTR(MP_QSTR_high), MP_ROM_PTR(&machine_pin_on_obj) },
     {MP_ROM_QSTR(MP_QSTR_init), MP_ROM_PTR(&machine_pin_init_obj)},
-    {MP_ROM_QSTR(MP_QSTR_irq), MP_ROM_PTR(&machine_pin_irq_obj)},
+    {MP_ROM_QSTR(MP_QSTR_irq), MP_ROM_PTR(&machine_pin_irq_fun_obj)},
     {MP_ROM_QSTR(MP_QSTR_low), MP_ROM_PTR(&machine_pin_off_obj) },
     {MP_ROM_QSTR(MP_QSTR_mode), MP_ROM_PTR(&machine_pin_mode_obj) },
     {MP_ROM_QSTR(MP_QSTR_off), MP_ROM_PTR(&machine_pin_off_obj)},
@@ -959,7 +964,7 @@ static const mp_rom_map_elem_t machine_pin_locals_dict_table[] = {
 static MP_DEFINE_CONST_DICT(
     machine_pin_locals_dict,
     machine_pin_locals_dict_table
-    );
+);
 
 /** Python 层 machine.Pin 对应的 MicroPython 类型。 */
 MP_DEFINE_CONST_OBJ_TYPE(
@@ -969,4 +974,4 @@ MP_DEFINE_CONST_OBJ_TYPE(
     make_new, machine_pin_make_new,
     call, machine_pin_call,
     locals_dict, &machine_pin_locals_dict
-    );
+);

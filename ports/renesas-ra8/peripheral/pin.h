@@ -50,7 +50,7 @@ typedef struct {
 
 extern const mp_obj_dict_t machine_pin_board_pins_locals_dict;
 extern const mp_obj_dict_t machine_pin_cpu_pins_locals_dict;
-extern const mp_obj_fun_builtin_var_t machine_pin_irq_obj;
+extern const mp_obj_fun_builtin_var_t machine_pin_irq_fun_obj;
 extern const mp_obj_fun_builtin_fixed_t machine_pin_irq_stats_obj;
 extern const machine_pin_af_obj_t machine_pin_afs[];
 extern const mp_obj_type_t machine_pin_board_pins_obj_type;

@@ -88,9 +88,15 @@ static machine_pin_irq_obj_t *machine_pin_irq_find(const machine_pin_obj_t *pin)
     return NULL;
 }
 
+/**
+ * @brief   查询给定的引脚当前是否有激活的中断
+ * @param   pin 要查询的引脚对象
+ * @retval  true  已有激活的中断
+ * @retval  false 没有已激活的中断
+ */
 bool machine_pin_irq_is_active(const machine_pin_obj_t *pin)
 {
-    if (pin->irq_channel < 0 || (size_t)pin->irq_channel >= MACHINE_PIN_IRQ_CHANNEL_COUNT) {
+    if (pin->irq_channel < 0 || pin->irq_channel >= MACHINE_PIN_IRQ_CHANNEL_COUNT) {
         return false;
     }
 
@@ -372,6 +378,12 @@ static mp_obj_t machine_pin_irq_stats(mp_obj_t pin_in)
 }
 MP_DEFINE_CONST_FUN_OBJ_1(machine_pin_irq_stats_obj, machine_pin_irq_stats);
 
+/**
+ * @brief   Pin.irq() 的实现
+ * @param   n_args   位置参数数量
+ * @param   pos_args 位置参数数组
+ * @param   kw_args  关键字参数表
+ */
 static mp_obj_t machine_pin_irq(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)
 {
     enum {
@@ -504,4 +516,4 @@ void machine_pin_irq_deinit(void)
     MP_STATE_PORT(machine_pin_irq_obj_list) = NULL;
 }
 
-MP_DEFINE_CONST_FUN_OBJ_KW(machine_pin_irq_obj, 1, machine_pin_irq);
+MP_DEFINE_CONST_FUN_OBJ_KW(machine_pin_irq_fun_obj, 1, machine_pin_irq);
