@@ -8,10 +8,27 @@
 #include "py/runtime.h"
 #include "shared/runtime/mpirq.h"
 
-#define MACHINE_PIN_IRQ_CHANNEL_COUNT (32)
-#define MACHINE_PIN_IRQ_PENDING_MAX (UINT32_MAX)
-#define MACHINE_PIN_IRQ_PRIORITY_MAX (15)
-#define MACHINE_PIN_IRQ_PRIORITY_MIN (1)
+#ifndef PIN_IRQ_DEBUG
+#define PIN_IRQ_DEBUG   1
+#endif
+
+#define MACHINE_PIN_IRQ_CHANNEL_COUNT   32
+#define MACHINE_PIN_IRQ_PENDING_MAX     UINT32_MAX
+#define MACHINE_PIN_IRQ_PRIORITY_MAX    15
+#define MACHINE_PIN_IRQ_PRIORITY_MIN    0
+
+#if PIN_IRQ_DEBUG
+#include "utils/log.h"
+#define PIN_IRQ_LOGD(msg, ...)          LOG_D(__FUNCTION__, msg, ##__VA_ARGS__)
+#define PIN_IRQ_LOGI(msg, ...)          LOG_I(__FUNCTION__, msg, ##__VA_ARGS__)
+#define PIN_IRQ_LOGW(msg, ...)          LOG_W(__FUNCTION__, msg, ##__VA_ARGS__)
+#define PIN_IRQ_LOGE(msg, ...)          LOG_E(__FUNCTION__, msg, ##__VA_ARGS__)
+#else
+#define PIN_IRQ_LOGD(msg, ...)
+#define PIN_IRQ_LOGI(msg, ...)
+#define PIN_IRQ_LOGW(msg, ...)
+#define PIN_IRQ_LOGE(msg, ...)
+#endif
 
 typedef struct _machine_pin_irq_obj_t {
     mp_irq_obj_t base;
@@ -112,27 +129,33 @@ static void machine_pin_irq_raise_fsp_error(fsp_err_t err)
     }
 }
 
+/**
+ * @brief   将 Python 的触发枚举转为 FSP 的触发枚举值
+ * @param   trigger Python 的触发枚举
+ * @retval  FSP 的触发枚举
+ */
 static external_irq_trigger_t machine_pin_irq_fsp_trigger(mp_uint_t trigger)
 {
+    external_irq_trigger_t t = -1;
+
     switch (trigger) {
-        case MACHINE_PIN_IRQ_FALLING:
-            return EXTERNAL_IRQ_TRIGGER_FALLING;
-
-        case MACHINE_PIN_IRQ_RISING:
-            return EXTERNAL_IRQ_TRIGGER_RISING;
-
-        case MACHINE_PIN_IRQ_FALLING | MACHINE_PIN_IRQ_RISING:
-            return EXTERNAL_IRQ_TRIGGER_BOTH_EDGE;
-
-        case MACHINE_PIN_IRQ_LOW_LEVEL:
-            return EXTERNAL_IRQ_TRIGGER_LEVEL_LOW;
-
-        case MACHINE_PIN_IRQ_HIGH_LEVEL:
-            mp_raise_msg_varg(&mp_type_ValueError, MP_ERROR_TEXT("%q is not supported"), MP_QSTR_IRQ_HIGH_LEVEL);
-
-        default:
-            mp_raise_ValueError(MP_ERROR_TEXT("invalid IRQ trigger"));
+    case MACHINE_PIN_IRQ_FALLING:
+        t = EXTERNAL_IRQ_TRIGGER_FALLING;
+        break;
+    case MACHINE_PIN_IRQ_RISING:
+        t = EXTERNAL_IRQ_TRIGGER_RISING;
+        break;
+    case MACHINE_PIN_IRQ_FALLING | MACHINE_PIN_IRQ_RISING:
+        t = EXTERNAL_IRQ_TRIGGER_BOTH_EDGE;
+        break;
+    case MACHINE_PIN_IRQ_LOW_LEVEL:
+        t = EXTERNAL_IRQ_TRIGGER_LEVEL_LOW;
+        break;
+    default:
+        break;
     }
+
+    return t;
 }
 
 static void machine_pin_irq_configure_pin(machine_pin_irq_obj_t *irq, bool enable)
@@ -436,8 +459,12 @@ static mp_obj_t machine_pin_irq(size_t n_args, const mp_obj_t *pos_args, mp_map_
             mp_raise_ValueError(MP_ERROR_TEXT("handler must be None or callable"));
         }
 
+        if (args[ARG_trigger].u_int & MACHINE_PIN_IRQ_HIGH_LEVEL) {
+            mp_raise_ValueError(MP_ERROR_TEXT("ra8 not support HIGH_LEVEL trigger"));
+        }
+
         if (args[ARG_priority].u_int < MACHINE_PIN_IRQ_PRIORITY_MIN || args[ARG_priority].u_int > MACHINE_PIN_IRQ_PRIORITY_MAX) {
-            mp_raise_ValueError(MP_ERROR_TEXT("invalid IRQ priority"));
+            mp_raise_ValueError(MP_ERROR_TEXT("Invalid IRQ priority, it should be 0-15"));
         }
 
         if (args[ARG_wake].u_obj != mp_const_none) {
@@ -459,7 +486,7 @@ static mp_obj_t machine_pin_irq(size_t n_args, const mp_obj_t *pos_args, mp_map_
 
         irq->base.handler = args[ARG_handler].u_obj;
         irq->base.ishard = args[ARG_hard].u_bool;
-        irq->cfg.ipl = (uint8_t)(16 - args[ARG_priority].u_int);
+        irq->cfg.ipl = (uint8_t)args[ARG_priority].u_int;
 
         nlr_buf_t nlr;
         if (nlr_push(&nlr) == 0) {

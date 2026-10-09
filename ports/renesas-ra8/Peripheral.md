@@ -138,17 +138,14 @@ API 完成情况。函数说明写在上方每个函数的标题下
 - mode
     - Pin.IN: 配置为输入
     - Pin.OUT: 配置为输出
-    - Pin.OPEN_DRAIN: 配置为开漏
-    - Pin.ALT: 配置为复用功能
-    - Pin.ALT_OPEN_DRAIN: 配置为复用开漏
-    - Pin.ANALOG: 配置为模拟输入，在模拟输入模式下，不能设置 `pull`、`value`、`driver` 属性
+    - Pin.OPEN_DRAIN: 配置为开漏输出
 - pull
     - None: 无上下拉
     - Pin.PULL_UP: 内部上拉
     - Pin.PULL_DOWN: 内部下拉，RA8P1 当前不支持
-- value: 仅在 `Pin.OUT` 和 `Pin.OPEN_DRAIN` 模式下有效，用于设置引脚的初始输出值。使用 `True` 或者 `1` 来表示高，`False` 或者 `0` 来表示低
+- value: 用于设置引脚的初始输出值。使用 `True` 或者 `1` 来表示高，`False` 或者 `0` 来表示低
 - drive: 设置引脚的输出驱动能力，可使用 `Pin.DRIVE_0`、`Pin.DRIVE_1`、`Pin.DRIVE_2`、`Pin.DRIVE_3`，分别对应 L、M、H、HH
-- alt: 设置引脚的复用功能，仅在 `Pin.ALT` 和 `Pin.ALT_OPEN_DRAIN` 模式下有效，可用值由端口决定
+- alt: 设置引脚的复用功能，当前 ports 忽略这个设置，复用功能由各外设模块自行配置
 
 ### Pin.init(mode=-1,pull=-1,*,value=None,drive=0,alt=-1)
 
@@ -186,7 +183,7 @@ API 完成情况。函数说明写在上方每个函数的标题下
     - Pin.IRQ_RISING: 上升沿触发
     - Pin.IRQ_LOW_LEVEL: 低电平触发
     - Pin.IRQ_HIGH_LEVEL: 高电平触发
-- priority: 中断优先级，可用范围由端口决定，数值越大优先级越高
+- priority: 中断优先级，可用范围由端口决定，数值越小优先级越高，范围是 0-15
 - wake: 指定该中断可以从哪些低功耗模式唤醒系统，可使用 `machine.IDLE`、`machine.SLEEP`、`machine.DEEPSLEEP` 或它们的按位或组合
 - hard: 为 `True` 时使用硬中断。硬中断延迟更低，但中断处理函数中不能分配内存；并非所有端口都支持此参数
 

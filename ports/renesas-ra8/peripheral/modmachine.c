@@ -221,14 +221,16 @@ void machine_init(void)
 
 void machine_deinit(void)
 {
+    LOGD("Call");
+    
     machine_pin_irq_deinit();
-    #if MICROPY_PY_MACHINE_I2C
+#if MICROPY_PY_MACHINE_I2C
     machine_i2c_deinit_all();
-    #endif
+#endif
     machine_spi_deinit_all();
-    #if MICROPY_PY_MACHINE_UART
+#if MICROPY_PY_MACHINE_UART
     machine_uart_deinit_all();
-    #endif
+#endif
     machine_pin_deinit_all();
     machine_reset_cause_value = MACHINE_RESET_SOFT;
     machine_wake_reason_value = MACHINE_WAKE_UNKNOWN;
