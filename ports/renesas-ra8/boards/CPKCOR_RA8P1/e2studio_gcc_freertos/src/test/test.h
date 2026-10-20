@@ -12,20 +12,16 @@ extern "C" {
 #define TEST_EN_AUDIO		0
 #endif
 
+#ifndef TEST_EN_CAMERA
+#define TEST_EN_CAMERA		0
+#endif
+
 #ifndef TEST_EN_HYPER_RAM
 #define TEST_EN_HYPER_RAM	0
 #endif
 
-#ifndef TEST_EN_I2C
-#define TEST_EN_I2C		    0
-#endif
-
 #ifndef TEST_EN_LCD
 #define TEST_EN_LCD			0
-#endif
-
-#ifndef TEST_EN_MRAM
-#define TEST_EN_MRAM		0
 #endif
 
 #ifndef TEST_EN_NOR_FLASH
@@ -36,10 +32,6 @@ extern "C" {
 #define TEST_EN_PDM			0
 #endif
 
-#ifndef TEST_EN_SD
-#define TEST_EN_SD			0
-#endif
-
 #ifndef TEST_EN_SDRAM
 #define TEST_EN_SDRAM		0
 #endif
@@ -48,28 +40,21 @@ extern "C" {
 uint32_t TestAudio(void);
 #endif
 
-#if TEST_EN_HYPER_RAM
-uint32_t TestHyperRAM(uint32_t start_addr, uint32_t size);
+#if TEST_EN_CAMERA
+uint32_t TestCamera(void *camera);
+uint32_t TestCamera2(void *camera1, void *camera_cfg1, void *camera2, void *camera_cfg2);
 #endif
 
-#if TEST_EN_I2C
-uint32_t TestI2C(void);
+#if TEST_EN_HYPER_RAM
+uint32_t TestHyperRAM(uint32_t start_addr, uint32_t size);
 #endif
 
 #if TEST_EN_LCD
 uint32_t TestLCD(void *lcd_device);
 #endif
 
-#if TEST_EN_MRAM
-uint32_t TestMRAM(uint32_t start_addr, uint32_t size);
-#endif
-
 #if TEST_EN_NOR_FLASH
 uint32_t TestNorFlash(uint32_t start_addr, uint32_t size);
-#endif
-
-#if TEST_EN_SD
-uint32_t TestSD(void);
 #endif
 
 #if TEST_EN_SDRAM

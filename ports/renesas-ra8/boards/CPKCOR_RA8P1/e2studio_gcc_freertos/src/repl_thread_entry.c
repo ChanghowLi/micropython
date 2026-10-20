@@ -9,6 +9,7 @@
 #include "repl_thread.h"
 #include "rtc.h"
 #include "sd.h"
+#include "lcd_board.h"
 #include "perf_counter/perf_counter.h"
 #include "SEGGER_RTT/SEGGER_RTT.h"
 #include "test/test.h"
@@ -100,6 +101,10 @@ void repl_thread_entry(void *pvParameters)
 #endif
 
 #if TEST_EN_LCD
+    LCD_DeviceType *lcd = LCD_BoardInitialize(LCD_STARTUP_MODE);
+    if (lcd != NULL && LCD_STARTUP_MODE != LCD_STARTUP_TFP410) {
+        TestLCD(lcd);
+    }
 #endif
 
 soft_reset:
@@ -204,6 +209,17 @@ handle_auto_exec_err:
     machine_deinit();
     LOG_W(TAG, "Soft reset");
     goto soft_reset;
+}
+
+/* FSP initial callbacks; the LCD driver installs its callbacks during initialization. */
+void GLCDC_Callback(display_callback_args_t *p_args)
+{
+    FSP_PARAMETER_NOT_USED(p_args);
+}
+
+void MIPI_DSI_Callback(mipi_dsi_callback_args_t *p_args)
+{
+    FSP_PARAMETER_NOT_USED(p_args);
 }
 
 #if LOG_CFG_EN_TIMESTAMP

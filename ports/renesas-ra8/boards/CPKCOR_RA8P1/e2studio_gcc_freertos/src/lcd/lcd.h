@@ -13,11 +13,11 @@
 #endif
 
 #ifndef LCD_EN_PERI_MIPI
-#define LCD_EN_PERI_MIPI	0
+#define LCD_EN_PERI_MIPI	1
 #endif
 
 #ifndef LCD_EN_PERI_SCI_SPI
-#define LCD_EN_PERI_SCI_SPI	0
+#define LCD_EN_PERI_SCI_SPI	1
 #endif
 
 #ifndef LCD_EN_PERI_SPI
@@ -32,13 +32,13 @@
 
 #if LCD_EN_PERI_GLCDC && LCD_EN_PERI_MIPI
 #ifndef LCD_EN_EK79007AD2
-#define LCD_EN_EK79007AD2   1
+#define LCD_EN_EK79007AD2   0
 #endif
 #endif
 
 #if LCD_EN_PERI_GLCDC && LCD_EN_PERI_MIPI
 #ifndef LCD_EN_ILI9881C
-#define LCD_EN_ILI9881C     1
+#define LCD_EN_ILI9881C     0
 #endif
 #endif
 
@@ -50,7 +50,7 @@
 
 #if LCD_EN_PERI_GLCDC || LCD_EN_PERI_MIPI || LCD_EN_PERI_SCI_SPI
 #ifndef LCD_EN_ST7796U
-#define LCD_EN_ST7796U      0
+#define LCD_EN_ST7796U      1
 #endif
 #endif
 
@@ -155,6 +155,9 @@ typedef struct {
     uint32_t (*iicWrite)(uint8_t *data, uint8_t len);
     uint32_t (*iicRead)(uint8_t *data_w, uint8_t len_w, uint8_t *data_r, uint8_t len_r);
 #endif
+#if LCD_EN_PERI_SCI_SPI
+    uint32_t (*spiWrite)(const void *data, uint32_t len);
+#endif
 } LCD_ConfigType;
 
 #if LCD_EN_PERI_GLCDC
@@ -215,6 +218,9 @@ typedef struct LCD_DeviceType{
 #if LCD_EN_PERI_I2C
     uint32_t (*iicWrite)(uint8_t *data, uint8_t len);
     uint32_t (*iicRead)(uint8_t *data_w, uint8_t len_w, uint8_t *data_r, uint8_t len_r);
+#endif
+#if LCD_EN_PERI_SCI_SPI
+   uint32_t (*spiWrite)(const void *data, uint32_t len);
 #endif
 } LCD_DeviceType;
 

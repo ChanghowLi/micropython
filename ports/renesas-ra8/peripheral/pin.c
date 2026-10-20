@@ -902,6 +902,7 @@ void machine_pin_deinit_all(void)
     }
 }
 
+/*把普通 C 函数包装成 MicroPython 能识别、能暴露给 Python 调用的函数对象*/
 static MP_DEFINE_CONST_FUN_OBJ_1(machine_pin_deinit_obj, machine_pin_deinit);
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_pin_drive_obj, 1, 2, machine_pin_drive);
 static MP_DEFINE_CONST_FUN_OBJ_KW(machine_pin_init_obj, 1, machine_pin_init);
@@ -912,22 +913,11 @@ static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_pin_pull_obj, 1, 2, machine_p
 static MP_DEFINE_CONST_FUN_OBJ_1(machine_pin_toggle_obj, machine_pin_toggle);
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_pin_value_obj, 1, 2, machine_pin_value);
 
-MP_DEFINE_CONST_OBJ_TYPE(
-    machine_pin_board_pins_obj_type,
-    MP_QSTR_board,
-    MP_TYPE_FLAG_NONE,
-    locals_dict, &machine_pin_board_pins_locals_dict
-    );
+/*cpu 和 board 要单独定义，是因为它们本身下面还有一层成员，不是一个普通值*/
+MP_DEFINE_CONST_OBJ_TYPE(machine_pin_board_pins_obj_type, MP_QSTR_board, MP_TYPE_FLAG_NONE, locals_dict, &machine_pin_board_pins_locals_dict);
+MP_DEFINE_CONST_OBJ_TYPE(machine_pin_cpu_pins_obj_type, MP_QSTR_cpu, MP_TYPE_FLAG_NONE, locals_dict, &machine_pin_cpu_pins_locals_dict);
 
-MP_DEFINE_CONST_OBJ_TYPE(
-    machine_pin_cpu_pins_obj_type,
-    MP_QSTR_cpu,
-    MP_TYPE_FLAG_NONE,
-    locals_dict, &machine_pin_cpu_pins_locals_dict
-    );
-
-
-/** machine.Pin 类的常量和方法。 */
+/*先有映射表：machine.Pin 类的常量和方法。 */
 static const mp_rom_map_elem_t machine_pin_locals_dict_table[] = {
     {MP_ROM_QSTR(MP_QSTR_ALT), MP_ROM_INT(MACHINE_PIN_MODE_ALT)},
     {MP_ROM_QSTR(MP_QSTR_ALT_OPEN_DRAIN), MP_ROM_INT(MACHINE_PIN_MODE_ALT_OPEN_DRAIN)},
@@ -961,17 +951,8 @@ static const mp_rom_map_elem_t machine_pin_locals_dict_table[] = {
     {MP_ROM_QSTR(MP_QSTR_value), MP_ROM_PTR(&machine_pin_value_obj)},
 };
 
-static MP_DEFINE_CONST_DICT(
-    machine_pin_locals_dict,
-    machine_pin_locals_dict_table
-);
+/*再把映射表包装成字典*/
+static MP_DEFINE_CONST_DICT(machine_pin_locals_dict, machine_pin_locals_dict_table);
 
-/** Python 层 machine.Pin 对应的 MicroPython 类型。 */
-MP_DEFINE_CONST_OBJ_TYPE(
-    machine_pin_type,
-    MP_QSTR_Pin,
-    MP_TYPE_FLAG_NONE,
-    make_new, machine_pin_make_new,
-    call, machine_pin_call,
-    locals_dict, &machine_pin_locals_dict
-);
+/*最后定义整个 Pin 类型：Python 层 machine.Pin 对应的 MicroPython 类型。 */
+MP_DEFINE_CONST_OBJ_TYPE(machine_pin_type, MP_QSTR_Pin, MP_TYPE_FLAG_NONE, make_new, machine_pin_make_new, call, machine_pin_call, locals_dict, &machine_pin_locals_dict);

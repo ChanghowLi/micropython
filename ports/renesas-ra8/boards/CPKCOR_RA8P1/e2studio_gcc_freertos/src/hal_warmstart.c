@@ -6,6 +6,15 @@
 
 #include "hal_data.h"
 #include "modmachine.h"
+#include "FreeRTOS.h"
+#include "portable.h"
+
+#define SRAM_HEAP_SIZE  (32U * 1024U)
+#define SDRAM_HEAP_SIZE (16U * 1024U * 1024U)
+
+static uint8_t s_sram_heap[SRAM_HEAP_SIZE] __attribute__((aligned(32)));
+static uint8_t s_sdram_heap[SDRAM_HEAP_SIZE]
+    __attribute__((section(".sdram_noinit_nocache"), aligned(64)));
 
 FSP_CPP_HEADER
 void R_BSP_WarmStart(bsp_warm_start_event_t event);
@@ -64,6 +73,13 @@ void R_BSP_WarmStart (bsp_warm_start_event_t event)
 
         /* Setup SDRAM and initialize it. Must configure pins first. */
         R_BSP_SdramInit(true);
+
+        const HeapRegion_t heap_regions[] = {
+            { s_sram_heap, sizeof(s_sram_heap) },
+            { s_sdram_heap, sizeof(s_sdram_heap) },
+            { NULL, 0 }
+        };
+        vPortDefineHeapRegions(heap_regions);
 #endif
     }
 }

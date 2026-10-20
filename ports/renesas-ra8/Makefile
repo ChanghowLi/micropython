@@ -70,7 +70,9 @@ SRC_C := $(FSP_SRC_C)
 # Peripheral source file
 SRC_C += peripheral/irq.c
 SRC_C += peripheral/i2c.c
+SRC_C += peripheral/lcd_board.c
 SRC_C += peripheral/machine_i2c.c
+SRC_C += peripheral/machine_lcd.c
 SRC_C += peripheral/machine_spi.c
 SRC_C += peripheral/pin.c
 SRC_C += peripheral/pin_irq.c
@@ -145,6 +147,7 @@ INC += -I$(FSP_PROJECT_DIR)/ra/fsp/inc/instances
 INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/bsp/cmsis/Device/RENESAS/Include
 INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/bsp/mcu/all
 INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/bsp/mcu/ra8p1
+INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_mipi_csi
 INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_rsip_protected/crypto_procedures_protected/src/rsip/common/inc/api
 INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_rsip_protected/crypto_procedures_protected/src/rsip/common/primitive
 INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_rsip_protected/crypto_procedures_protected/src/rsip/common/private
@@ -155,6 +158,7 @@ INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_rsip_protected/crypto_procedures_protec
 INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_rsip_protected/crypto_procedures_protected/src/rsip/ra/private/ra_rsip_e5xx/lib/common
 INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_rsip_protected/crypto_procedures_protected/src/rsip/ra/private/ra_rsip_e5xx/lib/rsip/ra_rsip_e50d/inc
 INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_rsip_protected/crypto_procedures_protected/src/rsip/ra/private/ra_rsip_e5xx/lib/sb_lib/inc
+INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/r_vin
 INC += -I$(FSP_PROJECT_DIR)/ra/fsp/src/rm_freertos_port
 INC += -I$(FSP_PROJECT_DIR)/ra_gen
 INC += -I$(FSP_PROJECT_DIR)/src
@@ -189,6 +193,8 @@ CFLAGS += -D_RA_CORE=CPU0
 CFLAGS += -D_RA_ORDINAL=1
 CFLAGS += -D_RENESAS_RA_
 CFLAGS += -D__arm__
+# Map the legacy intrinsic spelling to the CMSIS GCC intrinsic.
+CFLAGS += -D__nop=__NOP
 CFLAGS += -D__PERFC_USE_PMU_PORTING__=1
 CFLAGS += -D__PERFC_CFG_DISABLE_DEFAULT_SYSTICK_PORTING__=1
 # This is RTT buffer size, default is 1024, too small
@@ -240,6 +246,7 @@ SRC_QSTR += extmod/vfs_fat_diskio.c
 SRC_QSTR += extmod/vfs_fat_file.c
 SRC_QSTR += extmod/vfs_lfs.c
 SRC_QSTR += peripheral/machine_i2c.c
+SRC_QSTR += peripheral/machine_lcd.c
 SRC_QSTR += peripheral/machine_spi.c
 SRC_QSTR += peripheral/machine_uart.c
 SRC_QSTR += peripheral/pin.c

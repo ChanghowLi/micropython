@@ -102,7 +102,7 @@ struct spi_trans_contex {
 	};
 	uint32_t remain;
 	uint8_t *p_data;
-	const spi_instance_t *inst;		/* 在初始化时务必给出 SCI_SPI 实例 */
+	LCD_DeviceType *lcd;
 };
 
 /* If cmd == 0xFF, that means delay len ms */
@@ -301,7 +301,7 @@ uint32_t LCD_ST7796U_DrawBitmap(LCD_DeviceType *lcd, uint16_t x, uint16_t y, uin
 			for (j = 0; j < length; j++) {
 				color = p16_bitmap[i * src_length + j] >> 8;
 				color |= p16_bitmap[i * src_length + j] << 8;
-				err = p_inst->p_api->write(p_inst->p_ctrl, &color, 2, SPI_BIT_WIDTH_8_BITS);
+				err = lcd->spiWrite(&color, 2);
 				UNLIKE_RETURN(err, 0, "write color failed: %" PRIu32, err);
 				err = waitTransferDone(p_inst, __ST7796U_DEFAULT_TIMEOUT);
 				UNLIKE_RETURN(err, 0, "Timeout when wait writing color");
@@ -451,7 +451,7 @@ uint32_t LCD_ST7796U_Fill(LCD_DeviceType *lcd, uint32_t color)
 		R_BSP_PinWrite(ST7796U_PIN_DCX, BSP_IO_LEVEL_HIGH);
 		for (i = 0; i < (lcd->x_length * lcd->y_length); i++) {
 			s_spi_transfer_done = false;
-			err = p_inst->p_api->write(p_inst->p_ctrl, wcache, 2, SPI_BIT_WIDTH_8_BITS);
+			err = lcd->spiWrite(wcache, 2);
 			UNLIKE_RETURN(err, 0, "Write memory failed: %" PRIu32, err);
 			err = waitTransferDone(p_inst, __ST7796U_DEFAULT_TIMEOUT);
 			UNLIKE_RETURN(err, 0, "Timeout when wait writing color");
@@ -542,7 +542,7 @@ uint32_t LCD_ST7796U_FillRectangle(LCD_DeviceType *lcd, uint16_t x, uint16_t y, 
 		R_BSP_PinWrite(ST7796U_PIN_DCX, BSP_IO_LEVEL_HIGH);
         for (i = 0; i < (length * width); i++) {
         	s_spi_transfer_done = false;
-			err = p_inst->p_api->write(p_inst->p_ctrl, &_color, 2, SPI_BIT_WIDTH_8_BITS);
+			err = lcd->spiWrite(&_color, 2);
 			UNLIKE_RETURN(err, 0, "Write memory failed: %" PRIu32, err);
 			err = waitTransferDone(p_inst, __ST7796U_DEFAULT_TIMEOUT);
 			UNLIKE_RETURN(err, 0, "Timeout when wait writing color");
@@ -559,6 +559,12 @@ uint32_t LCD_ST7796U_Init(LCD_DeviceType *lcd)
 {
     uint32_t err;
     size_t i, init_table_len;
+
+#if LCD_EN_PERI_SCI_SPI
+    if (lcd->peri_model_1 == LCD_PERI_SCI_SPI && lcd->spiWrite == NULL) {
+        return FSP_ERR_ASSERTION;
+    }
+#endif
 
 #if LCD_EN_PERI_GLCDC
 	dirtyRectClear(&lcd->dirty_current);
@@ -609,7 +615,7 @@ uint32_t LCD_ST7796U_Init(LCD_DeviceType *lcd)
     		UNLIKE_RETURN(err, 0, "MIPI Command Error: %" PRIu32, err);
     		while (s_mipi_cmd_tx_done == false) {
     		#ifdef __OPTIMIZE__
-				__nop();
+				__NOP();
 			#endif
     		}
     	}
@@ -639,8 +645,8 @@ uint32_t LCD_ST7796U_Init(LCD_DeviceType *lcd)
     	const spi_instance_t *p_inst = (const spi_instance_t *)lcd->peri_1;
     	sci_b_spi_instance_ctrl_t *p_ctrl = (sci_b_spi_instance_ctrl_t *)p_inst->p_ctrl;
     	s_spi_transfer_done = true;
-    	s_spi_contex.inst = (const spi_instance_t *)lcd->peri_1;
-    	if (p_ctrl->open) {
+    	s_spi_contex.lcd = lcd;
+		if (p_ctrl->open) {
 			ST7796U_LOGI("peri_inst already open");
 			p_inst->p_api->close(p_inst->p_ctrl);
 		}
@@ -1074,7 +1080,7 @@ static uint32_t writeMemory(const spi_instance_t *inst, const uint8_t *val, uint
     R_BSP_PinWrite(ST7796U_PIN_DCX, BSP_IO_LEVEL_LOW);
     R_BSP_PinAccessDisable();
     s_spi_transfer_done = false;
-    err = inst->p_api->write(inst->p_ctrl, &wcache, 1, SPI_BIT_WIDTH_8_BITS);
+    err = s_spi_contex.lcd->spiWrite(&wcache, 1);
     UNLIKE_RETURN(err, 0, "Failed when write RAMWR. err: %" PRIu32, err);
     err = waitTransferDone(inst, __ST7796U_DEFAULT_TIMEOUT);
     UNLIKE_RETURN(err, 0, "Timeout when wait writing RAMWR");
@@ -1085,14 +1091,14 @@ static uint32_t writeMemory(const spi_instance_t *inst, const uint8_t *val, uint
     s_spi_transfer_done = false;
     if ((p_cfg->p_transfer_tx == NULL) || (len <= SPI_TRANS_MAX_BYTES)) {
     	s_spi_contex.b.used = 0;
-    	err = inst->p_api->write(inst->p_ctrl, val, len, SPI_BIT_WIDTH_8_BITS);
+        err = s_spi_contex.lcd->spiWrite(val, len);
     }
     else {
     	s_spi_contex.p_data = (uint8_t *)val;
     	s_spi_contex.remain = len - SPI_TRANS_MAX_BYTES;
     	s_spi_contex.b.used = 1;
     	s_spi_contex.b.wrmemc = 1;
-    	err = inst->p_api->write(inst->p_ctrl, val, SPI_TRANS_MAX_BYTES, SPI_BIT_WIDTH_8_BITS);
+        err = s_spi_contex.lcd->spiWrite(val, SPI_TRANS_MAX_BYTES);
     }
     UNLIKE_RETURN(err, 0, "Failed when write val. err: %" PRIu32, err);
 
@@ -1111,7 +1117,7 @@ static uint32_t writeRegister(const spi_instance_t *inst, uint8_t reg, const uin
     R_BSP_PinWrite(ST7796U_PIN_DCX, BSP_IO_LEVEL_LOW);
     R_BSP_PinAccessDisable();
     s_spi_transfer_done = false;
-    err = inst->p_api->write(inst->p_ctrl, &wcache, 1, SPI_BIT_WIDTH_8_BITS);
+    err = s_spi_contex.lcd->spiWrite(&wcache, 1);
     UNLIKE_RETURN(err, 0, "Failed when write reg. err: %" PRIu32, err);
     err = waitTransferDone(inst, __ST7796U_DEFAULT_TIMEOUT);
     UNLIKE_RETURN(err, 0, "Timeout when wait writing reg");
@@ -1120,7 +1126,7 @@ static uint32_t writeRegister(const spi_instance_t *inst, uint8_t reg, const uin
         R_BSP_PinWrite(ST7796U_PIN_DCX, BSP_IO_LEVEL_HIGH);
         R_BSP_PinAccessDisable();
         s_spi_transfer_done = false;
-        err = inst->p_api->write(inst->p_ctrl, val, len, SPI_BIT_WIDTH_8_BITS);
+        err = s_spi_contex.lcd->spiWrite(val, len);
         UNLIKE_RETURN(err, 0, "Failed when write val. err: %" PRIu32, err);
     }
 
@@ -1142,7 +1148,7 @@ static void spiCallback(spi_callback_args_t *p_args)
     			R_BSP_PinAccessEnable();
     			R_BSP_PinWrite(ST7796U_PIN_DCX, BSP_IO_LEVEL_LOW);
     			R_BSP_PinAccessEnable();
-    			err = ctx->inst->p_api->write(ctx->inst->p_ctrl, &wrmemc, 1, SPI_BIT_WIDTH_8_BITS);
+				err = ctx->lcd->spiWrite(&wrmemc, 1);
     			if (err) {
     				ST7796U_LOGE("Write wrmemc failed: %" PRIu32, err);
     				ctx->b.used = 0;
@@ -1157,12 +1163,12 @@ static void spiCallback(spi_callback_args_t *p_args)
     			R_BSP_PinWrite(ST7796U_PIN_DCX, BSP_IO_LEVEL_HIGH);
     			R_BSP_PinAccessEnable();
     			if (ctx->remain <= SPI_TRANS_MAX_BYTES) {
-    				err = ctx->inst->p_api->write(ctx->inst->p_ctrl, &ctx->p_data[SPI_TRANS_MAX_BYTES], ctx->remain, SPI_BIT_WIDTH_8_BITS);
+					err = ctx->lcd->spiWrite(&ctx->p_data[SPI_TRANS_MAX_BYTES], ctx->remain);
     				ctx->remain = 0;
     				ctx->b.used = 0;
     			}
     			else {
-    				err = ctx->inst->p_api->write(ctx->inst->p_ctrl, &ctx->p_data[SPI_TRANS_MAX_BYTES], SPI_TRANS_MAX_BYTES, SPI_BIT_WIDTH_8_BITS);
+					err = ctx->lcd->spiWrite(&ctx->p_data[SPI_TRANS_MAX_BYTES], SPI_TRANS_MAX_BYTES);
     				ctx->remain -= SPI_TRANS_MAX_BYTES;
     				ctx->p_data = &ctx->p_data[SPI_TRANS_MAX_BYTES];
     				ctx->b.wrmemc = 1;

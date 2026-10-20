@@ -357,6 +357,10 @@ uint32_t LCD_Initialize(LCD_DeviceType *lcd, LCD_ConfigType *cfg)
     lcd->iicRead = cfg->iicRead;
 #endif
 
+#if LCD_EN_PERI_SCI_SPI
+    lcd->spiWrite = cfg->spiWrite;
+#endif
+
     lcd->vsync_cnt = 0;
 #if LCD_EN_PERI_GLCDC
     dirtyRectClear(&lcd->dirty_current);

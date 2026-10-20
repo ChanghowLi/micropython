@@ -454,10 +454,6 @@
       <description>SCI UART</description>
       <originalPack>Renesas.RA.6.4.0.pack</originalPack>
     </component>
-    <component apiversion="" class="Heaps" condition="" group="FreeRTOS" subgroup="heap_4" variant="" vendor="AWS" version="11.1.0+fsp.6.4.0">
-      <description>FreeRTOS - Memory Management - Heap 4</description>
-      <originalPack>Amazon.FreeRTOS-Kernel.11.1.0+fsp.6.4.0.pack</originalPack>
-    </component>
     <component apiversion="" class="BSP" condition="" group="Board" subgroup="custom" variant="" vendor="Renesas" version="6.4.0">
       <description>Custom Board Support Files</description>
       <originalPack>Renesas.RA_board_custom.6.4.0.pack</originalPack>
@@ -512,6 +508,30 @@
     </component>
     <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_glcdc" variant="" vendor="Renesas" version="6.4.0">
       <description>Graphics LCD Controller</description>
+      <originalPack>Renesas.RA.6.4.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_mipi_dsi" variant="" vendor="Renesas" version="6.4.0">
+      <description>MIPI DSI Host</description>
+      <originalPack>Renesas.RA.6.4.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_mipi_phy" variant="" vendor="Renesas" version="6.4.0">
+      <description>MIPI PHY Host</description>
+      <originalPack>Renesas.RA.6.4.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="Heaps" condition="" group="FreeRTOS" subgroup="heap_5" variant="" vendor="AWS" version="11.1.0+fsp.6.4.0">
+      <description>FreeRTOS - Memory Management - Heap 5</description>
+      <originalPack>Amazon.FreeRTOS-Kernel.11.1.0+fsp.6.4.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_ceu" variant="" vendor="Renesas" version="6.4.0">
+      <description>Capture Engine Unit (r_ceu)</description>
+      <originalPack>Renesas.RA.6.4.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_mipi_csi" variant="" vendor="Renesas" version="6.4.0">
+      <description>MIPI CSI</description>
+      <originalPack>Renesas.RA.6.4.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_vin" variant="" vendor="Renesas" version="6.4.0">
+      <description>Video Input (VIN)</description>
       <originalPack>Renesas.RA.6.4.0.pack</originalPack>
     </component>
   </raComponentSelection>
@@ -580,7 +600,6 @@
       <property id="module.driver.uart.tei_ipl" value="board.icu.common.irq.priority12"/>
       <property id="module.driver.uart.eri_ipl" value="board.icu.common.irq.priority12"/>
     </module>
-    <module id="module.freertos.heap.4.580846803"/>
     <module id="module.driver.rtc_on_rtc.2044189405">
       <property id="module.driver.rtc.name" value="g_rtc0"/>
       <property id="module.driver.rtc.clock_source" value="module.driver.rtc.clock_source.clock_source_subclk"/>
@@ -1479,19 +1498,90 @@
       <property id="module.driver.i2c_master.p_callback" value="i2c_callback"/>
       <property id="module.driver.i2c_master.ipl" value="board.icu.common.irq.priority12"/>
     </module>
-    <module id="module.driver.display_on_glcdc.729133655">
-      <property id="module.driver.display.name" value="g_lcdc_tfp410"/>
+    <module id="module.driver.mipi_phy.1219322826">
+      <property id="module.driver.mipi_phy.name" value="g_mipi_phy_st7796u"/>
+      <property id="module.driver.mipi_phy.pll_mhz" value="480.00"/>
+      <property id="module.driver.mipi_phy.lp_divisor" value="5"/>
+      <property id="module.driver.mipi_phy.t_init" value="600000"/>
+      <property id="module.driver.mipi_phy.t_hs_prep_ns" value="40"/>
+      <property id="module.driver.mipi_phy.t_hs_prep_ui" value="5"/>
+      <property id="module.driver.mipi_phy.t_hs_sett_ns" value="200"/>
+      <property id="module.driver.mipi_phy.t_hs_sett_ui" value="0"/>
+      <property id="module.driver.mipi_phy.t_hs_zero_ns" value="105"/>
+      <property id="module.driver.mipi_phy.t_hs_zero_ui" value="10"/>
+      <property id="module.driver.mipi_phy.t_hs_trail_ns" value="60"/>
+      <property id="module.driver.mipi_phy.t_hs_trail_ui" value="4"/>
+      <property id="module.driver.mipi_phy.t_clk_post_ns" value="60"/>
+      <property id="module.driver.mipi_phy.t_clk_post_ui" value="52"/>
+      <property id="module.driver.mipi_phy.t_clk_pre_ns" value="0"/>
+      <property id="module.driver.mipi_phy.t_clk_pre_ui" value="8"/>
+      <property id="module.driver.mipi_phy.t_clk_prep_ns" value="75"/>
+      <property id="module.driver.mipi_phy.t_clk_prep_ui" value="0"/>
+      <property id="module.driver.mipi_phy.t_clk_settle_ns" value="500"/>
+      <property id="module.driver.mipi_phy.t_clk_settle_ui" value="0"/>
+      <property id="module.driver.mipi_phy.t_clk_miss_ns" value="300"/>
+      <property id="module.driver.mipi_phy.t_clk_miss_ui" value="0"/>
+      <property id="module.driver.mipi_phy.t_lp_exit_ns" value="50"/>
+      <property id="module.driver.mipi_phy.t_lp_exit_ui" value="0"/>
+      <property id="module.driver.mipi_phy.t_clk_trail_ns" value="60"/>
+      <property id="module.driver.mipi_phy.t_clk_trail_ui" value="0"/>
+      <property id="module.driver.mipi_phy.t_clk_zero_ns" value="230"/>
+      <property id="module.driver.mipi_phy.t_clk_zero_ui" value="0"/>
+      <property id="module.driver.mipi_phy.t_hs_exit_ns" value="100"/>
+      <property id="module.driver.mipi_phy.t_hs_exit_ui" value="0"/>
+    </module>
+    <module id="module.driver.mipi_dsi.1515234616">
+      <property id="module.driver.mipi_dsi.name" value="g_mipi_dsi_st7796u"/>
+      <property id="module.driver.mipi_dsi.display.ext_clk_freq" value="0"/>
+      <property id="module.driver.mipi_dsi.ulps_wakeup_period" value="1000"/>
+      <property id="module.driver.mipi_dsi.continuous_clock" value="module.driver.mipi_dsi.continuous_clock.enable"/>
+      <property id="module.driver.mipi_dsi.num_lanes" value="1"/>
+      <property id="module.driver.mipi_dsi.txesync" value="module.driver.mipi_dsi.txesync.disable"/>
+      <property id="module.driver.mipi_dsi.vc" value="0"/>
+      <property id="module.driver.mipi_dsi.dly_override" value="0"/>
+      <property id="module.driver.mipi_dsi.no_lp" value=""/>
+      <property id="module.driver.mipi_dsi.ipl_seq0" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.mipi_dsi.ipl_seq1" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.mipi_dsi.ipl_vin1" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.mipi_dsi.ipl_rcv" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.mipi_dsi.ipl_ferr" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.mipi_dsi.ipl_ppi" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.mipi_dsi.rxie" value="module.driver.mipi_dsi.rxie.btarend,module.driver.mipi_dsi.rxie.lrxhto,module.driver.mipi_dsi.rxie.tato,module.driver.mipi_dsi.rxie.rxresp,module.driver.mipi_dsi.rxie.rxeotp_msk,module.driver.mipi_dsi.rxie.rxte,module.driver.mipi_dsi.rxie.rxack,module.driver.mipi_dsi.rxie.extedet,module.driver.mipi_dsi.rxie.mlferr,module.driver.mipi_dsi.rxie.eccerrm,module.driver.mipi_dsi.rxie.unexerr,module.driver.mipi_dsi.rxie.wcerr,module.driver.mipi_dsi.rxie.crcerr,module.driver.mipi_dsi.rxie.iberr,module.driver.mipi_dsi.rxie.rxovferr,module.driver.mipi_dsi.rxie.prtoerr,module.driver.mipi_dsi.rxie.noreserr,module.driver.mipi_dsi.rxie.rsizeerr,module.driver.mipi_dsi.rxie.eccerrs,module.driver.mipi_dsi.rxie.rxake"/>
+      <property id="module.driver.mipi_dsi.ferrie" value="module.driver.mipi_dsi.ferrie.htxto,module.driver.mipi_dsi.ferrie.lrxhto,module.driver.mipi_dsi.ferrie.tato,module.driver.mipi_dsi.ferrie.escent,module.driver.mipi_dsi.ferrie.syncesc,module.driver.mipi_dsi.ferrie.ctrl,module.driver.mipi_dsi.ferrie.clp0,module.driver.mipi_dsi.ferrie.clp1"/>
+      <property id="module.driver.mipi_dsi.plie" value=""/>
+      <property id="module.driver.mipi_dsi.vmie" value="module.driver.mipi_dsi.vmie.vbufudf,module.driver.mipi_dsi.vmie.vbufovf"/>
+      <property id="module.driver.mipi_dsi.sqch0ie" value="module.driver.mipi_dsi.sqch0ie.aactfin,module.driver.mipi_dsi.sqch0ie.adesfin,module.driver.mipi_dsi.sqch0ie.txiberr,module.driver.mipi_dsi.sqch0ie.rxferr,module.driver.mipi_dsi.sqch0ie.rxfail,module.driver.mipi_dsi.sqch0ie.rxpfail,module.driver.mipi_dsi.sqch0ie.rxcorerr,module.driver.mipi_dsi.sqch0ie.rxake"/>
+      <property id="module.driver.mipi_dsi.sqch1ie" value="module.driver.mipi_dsi.sqch1ie.aactfin,module.driver.mipi_dsi.sqch1ie.adesfin,module.driver.mipi_dsi.sqch1ie.sizeerr,module.driver.mipi_dsi.sqch1ie.txiberr,module.driver.mipi_dsi.sqch1ie.rxferr,module.driver.mipi_dsi.sqch1ie.rxfail,module.driver.mipi_dsi.sqch1ie.rxpfail,module.driver.mipi_dsi.sqch1ie.rxcorerr,module.driver.mipi_dsi.sqch1ie.rxake"/>
+      <property id="module.driver.mipi_dsi.p_callback" value="MIPI_DSI_Callback"/>
+      <property id="module.driver.mipi_dsi.p_context" value="NULL"/>
+      <property id="module.driver.mipi_dsi.scramble" value="module.driver.mipi_dsi.scramble.disable"/>
+      <property id="module.driver.mipi_dsi.dsisetr_b.eotpen" value="module.driver.mipi_dsi.dsisetr_b.eotpen.enable"/>
+      <property id="module.driver.mipi_dsi.ecc_enable" value="module.driver.mipi_dsi.ecc_enable.enable"/>
+      <property id="module.driver.mipi_dsi.crc_enable_mask" value=""/>
+      <property id="module.driver.mipi_dsi.mrpsz" value="1"/>
+      <property id="module.driver.mipi_dsi.extemd" value="1"/>
+      <property id="module.driver.mipi_dsi.hstxto" value="0"/>
+      <property id="module.driver.mipi_dsi.lrxhto" value="0"/>
+      <property id="module.driver.mipi_dsi.tato" value="0"/>
+      <property id="module.driver.mipi_dsi.bta_timeout" value="0"/>
+      <property id="module.driver.mipi_dsi.lpwrite_timeout" value="0"/>
+      <property id="module.driver.mipi_dsi.lpread_timeout" value="0"/>
+      <property id="module.driver.mipi_dsi.hswrite_timeout" value="0"/>
+      <property id="module.driver.mipi_dsi.hsread_timeout" value="0"/>
+    </module>
+    <module id="module.driver.display_on_glcdc.153265662">
+      <property id="module.driver.display.name" value="g_lcdc_st7796u_mipi"/>
       <property id="module.driver.display.callback" value="GLCDC_Callback"/>
-      <property id="module.driver.display.line_detect_ipl" value="board.icu.common.irq.priority11"/>
-      <property id="module.driver.display.underflow_1_ipl" value="_disabled"/>
+      <property id="module.driver.display.line_detect_ipl" value="board.icu.common.irq.priority13"/>
+      <property id="module.driver.display.underflow_1_ipl" value="board.icu.common.irq.priority13"/>
       <property id="module.driver.display.underflow_2_ipl" value="_disabled"/>
-      <property id="module.driver.display.input0.enable" value="module.driver.display.input0.enable.true"/>
-      <property id="module.driver.display.input0.hsize" value="1280"/>
-      <property id="module.driver.display.input0.vsize" value="720"/>
+      <property id="module.driver.display.input0.enable" value="module.driver.display.input0.enable.false"/>
+      <property id="module.driver.display.input0.hsize" value="224"/>
+      <property id="module.driver.display.input0.vsize" value="480"/>
       <property id="module.driver.display.layer0.coordinate.x" value="0"/>
       <property id="module.driver.display.layer0.coordinate.y" value="0"/>
-      <property id="module.driver.display.input0.buffer_name" value="g_framebuffer"/>
-      <property id="module.driver.display.input0.buffer_number" value="2"/>
+      <property id="module.driver.display.input0.buffer_name" value="fb_background"/>
+      <property id="module.driver.display.input0.buffer_number" value="1"/>
       <property id="module.driver.display.input0.section" value=".sdram_noinit"/>
       <property id="module.driver.display.input0.format" value="module.driver.display.input0.format.in_format_16bits_rgb565"/>
       <property id="module.driver.display.input0.line_descending_enable" value="module.driver.display.input0.line_descending_enable.false"/>
@@ -1500,32 +1590,32 @@
       <property id="module.driver.display.layer0.fade_control" value="module.driver.display.layer0.fade_control.fade_control_none"/>
       <property id="module.driver.display.layer0.fade_speed" value="0"/>
       <property id="module.driver.display.input1.enable" value="module.driver.display.input1.enable.false"/>
-      <property id="module.driver.display.input1.hsize" value="480"/>
-      <property id="module.driver.display.input1.vsize" value="854"/>
+      <property id="module.driver.display.input1.hsize" value="222"/>
+      <property id="module.driver.display.input1.vsize" value="480"/>
       <property id="module.driver.display.layer1.coordinate.x" value="0"/>
       <property id="module.driver.display.layer1.coordinate.y" value="0"/>
       <property id="module.driver.display.input1.buffer_name" value="fb_foreground"/>
-      <property id="module.driver.display.input1.buffer_number" value="2"/>
+      <property id="module.driver.display.input1.buffer_number" value="1"/>
       <property id="module.driver.display.input1.section" value=".sdram_noinit"/>
-      <property id="module.driver.display.input1.format" value="module.driver.display.input1.format.in_format_16bits_rgb565"/>
+      <property id="module.driver.display.input1.format" value="module.driver.display.input1.format.in_format_32bits_rgb888"/>
       <property id="module.driver.display.input1.line_descending_enable" value="module.driver.display.input1.line_descending_enable.false"/>
       <property id="module.driver.display.input1.lines_repeat_enable" value="module.driver.display.input1.lines_repeat_enable.false"/>
       <property id="module.driver.display.input1.lines_repeat_times" value="0"/>
       <property id="module.driver.display.layer1.fade_control" value="module.driver.display.layer1.fade_control.fade_control_none"/>
       <property id="module.driver.display.layer1.fade_speed" value="0"/>
-      <property id="module.driver.display.output.htiming.total_cyc" value="1355"/>
-      <property id="module.driver.display.output.htiming.display_cyc" value="1280"/>
-      <property id="module.driver.display.output.htiming.back_porch" value="55"/>
+      <property id="module.driver.display.output.htiming.total_cyc" value="332"/>
+      <property id="module.driver.display.output.htiming.display_cyc" value="222"/>
+      <property id="module.driver.display.output.htiming.back_porch" value="40"/>
       <property id="module.driver.display.output.htiming.sync_width" value="40"/>
       <property id="module.driver.display.output.htiming.sync_polarity" value="module.driver.display.output.htiming.sync_polarity.signal_polarity_loactive"/>
-      <property id="module.driver.display.output.vtiming.total_cyc" value="738"/>
-      <property id="module.driver.display.output.vtiming.display_cyc" value="720"/>
-      <property id="module.driver.display.output.vtiming.back_porch" value="10"/>
-      <property id="module.driver.display.output.vtiming.sync_width" value="5"/>
+      <property id="module.driver.display.output.vtiming.total_cyc" value="496"/>
+      <property id="module.driver.display.output.vtiming.display_cyc" value="480"/>
+      <property id="module.driver.display.output.vtiming.back_porch" value="8"/>
+      <property id="module.driver.display.output.vtiming.sync_width" value="4"/>
       <property id="module.driver.display.output.vtiming.sync_polarity" value="module.driver.display.output.vtiming.sync_polarity.signal_polarity_loactive"/>
       <property id="module.driver.display.output.data_enable_polarity" value="module.driver.display.output.data_enable_polarity.signal_polarity_hiactive"/>
       <property id="module.driver.display.output.sync_edge" value="module.driver.display.output.sync_edge.signal_sync_edge_falling"/>
-      <property id="module.driver.display.output.format" value="module.driver.display.output.format.out_format_24bits_rgb888"/>
+      <property id="module.driver.display.output.format" value="module.driver.display.output.format.out_format_16bits_rgb565"/>
       <property id="module.driver.display.output.color_order" value="module.driver.display.output.color_order.color_order_rgb"/>
       <property id="module.driver.display.output.endian" value="module.driver.display.output.endian.endian_little"/>
       <property id="module.driver.display.output.bg_color.byte.a" value="255"/>
@@ -1538,7 +1628,7 @@
       <property id="module.driver.display.tcon_vsync" value="module.driver.display.tcon_vsync.tcon_pin_0"/>
       <property id="module.driver.display.tcon_de" value="module.driver.display.tcon_de.tcon_pin_2"/>
       <property id="module.driver.display.clksrc" value="module.driver.display.clksrc.clk_src_internal"/>
-      <property id="module.driver.display.clock_div_ratio" value="module.driver.display.clock_div_ratio.panel_clk_divisor_4"/>
+      <property id="module.driver.display.clock_div_ratio" value="module.driver.display.clock_div_ratio.panel_clk_divisor_24"/>
       <property id="module.driver.display.correction_proc_order" value="module.driver.display.correction_proc_order.correction_proc_order_brightness_contrast2gamma"/>
       <property id="module.driver.display.output.brightness.enable" value="module.driver.display.output.brightness.false"/>
       <property id="module.driver.display.output.brightness.r" value="512"/>
@@ -1652,11 +1742,184 @@
       <property id="module.driver.display.dithering_pattern_C" value="module.driver.display.dithering_pattern_C.dithering_pattern_11"/>
       <property id="module.driver.display.dithering_pattern_D" value="module.driver.display.dithering_pattern_D.dithering_pattern_11"/>
     </module>
+    <module id="module.freertos.heap.5.525867250"/>
+    <module id="module.driver.ceu_on_capture.1582737100">
+      <property id="module.driver.ceu.name" value="g_ceu_ov5640"/>
+      <property id="module.driver.ceu.capture_format" value="module.driver.ceu.capture_format.data_synchronous"/>
+      <property id="module.driver.ceu.bus_size" value="module.driver.ceu.bus_size.8_bit"/>
+      <property id="module.driver.ceu.hsync_polarity" value="module.driver.ceu.hsync_polarity.high"/>
+      <property id="module.driver.ceu.vsync_polarity" value="module.driver.ceu.vsync_polarity.high"/>
+      <property id="module.driver.ceu.input_order" value="module.driver.ceu.input_order.cb0y0cr0y1"/>
+      <property id="module.driver.ceu.byte_swapping" value="module.driver.ceu.swap_bits.8bit_units,module.driver.ceu.swap_bits.16bit_units,module.driver.ceu.swap_bits.32bit_units"/>
+      <property id="module.driver.ceu.burst_mode" value="module.driver.ceu.burst_mode.x8"/>
+      <property id="module.driver.ceu.output_format" value="module.driver.ceu.output_format.YCbCr422"/>
+      <property id="module.driver.ceu.h_output_size" value="0"/>
+      <property id="module.driver.ceu.v_output_size" value="0"/>
+      <property id="module.driver.ceu.p_callback" value="CEU_OV5640_Callback"/>
+      <property id="module.driver.ceu.ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.ceu.interrupts_enabled.cpeie" value="module.driver.ceu.interrupts_enabled.cpeie.enabled"/>
+      <property id="module.driver.ceu.interrupts_enabled.hdie" value="module.driver.ceu.interrupts_enabled.hdie.disabled"/>
+      <property id="module.driver.ceu.interrupts_enabled.vdie" value="module.driver.ceu.interrupts_enabled.vdie.enabled"/>
+      <property id="module.driver.ceu.interrupts_enabled.cdtofie" value="module.driver.ceu.interrupts_enabled.cdtofie.enabled"/>
+      <property id="module.driver.ceu.interrupts_enabled.ighsie" value="module.driver.ceu.interrupts_enabled.ighsie.disabled"/>
+      <property id="module.driver.ceu.interrupts_enabled.igvsie" value="module.driver.ceu.interrupts_enabled.igvsie.disabled"/>
+      <property id="module.driver.ceu.interrupts_enabled.vbpie" value="module.driver.ceu.interrupts_enabled.vbpie.enabled"/>
+      <property id="module.driver.ceu.interrupts_enabled.nhdie" value="module.driver.ceu.interrupts_enabled.nhdie.enabled"/>
+      <property id="module.driver.ceu.interrupts_enabled.nvdie" value="module.driver.ceu.interrupts_enabled.nvdie.enabled"/>
+      <property id="module.driver.ceu.x_pixels" value="640"/>
+      <property id="module.driver.ceu.y_pixels" value="480"/>
+      <property id="module.driver.ceu.x_start_pixel" value="0"/>
+      <property id="module.driver.ceu.y_start_pixel" value="0"/>
+      <property id="module.driver.ceu.dsel" value="module.driver.ceu.dsel.rising"/>
+      <property id="module.driver.ceu.hdsel" value="module.driver.ceu.hdsel.rising"/>
+      <property id="module.driver.ceu.vdsel" value="module.driver.ceu.vdsel.rising"/>
+      <property id="module.driver.ceu.image_buffer_size" value="0"/>
+    </module>
+    <module id="module.driver.ceu_on_capture.329726319">
+      <property id="module.driver.ceu.name" value="g_ceu_ov7725"/>
+      <property id="module.driver.ceu.capture_format" value="module.driver.ceu.capture_format.data_synchronous"/>
+      <property id="module.driver.ceu.bus_size" value="module.driver.ceu.bus_size.8_bit"/>
+      <property id="module.driver.ceu.hsync_polarity" value="module.driver.ceu.hsync_polarity.high"/>
+      <property id="module.driver.ceu.vsync_polarity" value="module.driver.ceu.vsync_polarity.high"/>
+      <property id="module.driver.ceu.input_order" value="module.driver.ceu.input_order.cb0y0cr0y1"/>
+      <property id="module.driver.ceu.byte_swapping" value="module.driver.ceu.swap_bits.8bit_units,module.driver.ceu.swap_bits.16bit_units,module.driver.ceu.swap_bits.32bit_units"/>
+      <property id="module.driver.ceu.burst_mode" value="module.driver.ceu.burst_mode.x8"/>
+      <property id="module.driver.ceu.output_format" value="module.driver.ceu.output_format.YCbCr422"/>
+      <property id="module.driver.ceu.h_output_size" value="0"/>
+      <property id="module.driver.ceu.v_output_size" value="0"/>
+      <property id="module.driver.ceu.p_callback" value="CEU_OV7725_Callback"/>
+      <property id="module.driver.ceu.ipl" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.ceu.interrupts_enabled.cpeie" value="module.driver.ceu.interrupts_enabled.cpeie.enabled"/>
+      <property id="module.driver.ceu.interrupts_enabled.hdie" value="module.driver.ceu.interrupts_enabled.hdie.disabled"/>
+      <property id="module.driver.ceu.interrupts_enabled.vdie" value="module.driver.ceu.interrupts_enabled.vdie.enabled"/>
+      <property id="module.driver.ceu.interrupts_enabled.cdtofie" value="module.driver.ceu.interrupts_enabled.cdtofie.enabled"/>
+      <property id="module.driver.ceu.interrupts_enabled.ighsie" value="module.driver.ceu.interrupts_enabled.ighsie.disabled"/>
+      <property id="module.driver.ceu.interrupts_enabled.igvsie" value="module.driver.ceu.interrupts_enabled.igvsie.disabled"/>
+      <property id="module.driver.ceu.interrupts_enabled.vbpie" value="module.driver.ceu.interrupts_enabled.vbpie.enabled"/>
+      <property id="module.driver.ceu.interrupts_enabled.nhdie" value="module.driver.ceu.interrupts_enabled.nhdie.enabled"/>
+      <property id="module.driver.ceu.interrupts_enabled.nvdie" value="module.driver.ceu.interrupts_enabled.nvdie.enabled"/>
+      <property id="module.driver.ceu.x_pixels" value="640"/>
+      <property id="module.driver.ceu.y_pixels" value="480"/>
+      <property id="module.driver.ceu.x_start_pixel" value="0"/>
+      <property id="module.driver.ceu.y_start_pixel" value="0"/>
+      <property id="module.driver.ceu.dsel" value="module.driver.ceu.dsel.rising"/>
+      <property id="module.driver.ceu.hdsel" value="module.driver.ceu.hdsel.rising"/>
+      <property id="module.driver.ceu.vdsel" value="module.driver.ceu.vdsel.rising"/>
+      <property id="module.driver.ceu.image_buffer_size" value="0"/>
+    </module>
+    <module id="module.driver.mipi_csi.1415892120">
+      <property id="module.driver.mipi_csi.name" value="g_mipi_csi_ov5640"/>
+      <property id="module.driver.mipi_csi.control_0.lane_count" value="2"/>
+      <property id="module.driver.mipi_csi.control_0.zero_length_packet_output" value="enum.mcu.common_types.enabled_boolean.enabled"/>
+      <property id="module.driver.mipi_csi.control_0.err_frame_notify" value="enum.mcu.common_types.enabled_boolean.enabled"/>
+      <property id="module.driver.mipi_csi.control_0.reserved_packet_reception" value="enum.mcu.common_types.enabled_boolean.enabled"/>
+      <property id="module.driver.mipi_csi.control_0.ecc_check_24_bits" value="enum.mcu.common_types.enabled_boolean.enabled"/>
+      <property id="module.driver.mipi_csi.control_0.descramble_enable" value="enum.mcu.common_types.enabled_boolean.disabled"/>
+      <property id="module.driver.mipi_csi.control_2.frrclk_adjustment" value="0"/>
+      <property id="module.driver.mipi_csi.control_2.frrskw_adjustment" value="0"/>
+      <property id="module.driver.mipi_csi.option_data.data_type_enable_user" value=""/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.rx.priority" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.data_lane_0.priority" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.vc_0.priority" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.power_management.priority" value="_disabled"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.short_packet_fifo.priority" value="_disabled"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.rx.events" value=""/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.data_lane_0.events" value=""/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.data_lane_1.events" value=""/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.vc_0.events" value="enum.mcu.mipi_csi.interrupts.virtual_channel.eotp_detect"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.vc_1.events" value="enum.mcu.mipi_csi.interrupts.virtual_channel.malformed_packet_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_2_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_crc_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_id_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_word_count_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_1_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_sync_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_data_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.short_packet_fifo_overflow_detect"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.vc_2.events" value="enum.mcu.mipi_csi.interrupts.virtual_channel.malformed_packet_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_2_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_crc_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_id_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_word_count_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_1_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_sync_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_data_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.short_packet_fifo_overflow_detect"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.vc_3.events" value="enum.mcu.mipi_csi.interrupts.virtual_channel.malformed_packet_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_2_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_crc_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_id_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_word_count_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_1_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_sync_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_data_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.short_packet_fifo_overflow_detect"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.vc_4.events" value="enum.mcu.mipi_csi.interrupts.virtual_channel.malformed_packet_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_2_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_crc_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_id_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_word_count_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_1_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_sync_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_data_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.short_packet_fifo_overflow_detect"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.vc_5.events" value="enum.mcu.mipi_csi.interrupts.virtual_channel.malformed_packet_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_2_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_crc_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_id_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_word_count_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_1_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_sync_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_data_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.short_packet_fifo_overflow_detect"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.vc_6.events" value="enum.mcu.mipi_csi.interrupts.virtual_channel.malformed_packet_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_2_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_crc_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_id_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_word_count_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_1_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_sync_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_data_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.short_packet_fifo_overflow_detect"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.vc_7.events" value="enum.mcu.mipi_csi.interrupts.virtual_channel.malformed_packet_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_2_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_crc_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_id_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_word_count_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_1_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_sync_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_data_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.short_packet_fifo_overflow_detect"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.vc_8.events" value="enum.mcu.mipi_csi.interrupts.virtual_channel.malformed_packet_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_2_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_crc_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_id_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_word_count_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_1_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_sync_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_data_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.short_packet_fifo_overflow_detect"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.vc_9.events" value="enum.mcu.mipi_csi.interrupts.virtual_channel.malformed_packet_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_2_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_crc_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_id_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_word_count_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_1_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_sync_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_data_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.short_packet_fifo_overflow_detect"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.vc_10.events" value="enum.mcu.mipi_csi.interrupts.virtual_channel.malformed_packet_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_2_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_crc_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_id_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_word_count_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_1_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_sync_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_data_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.short_packet_fifo_overflow_detect"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.vc_11.events" value="enum.mcu.mipi_csi.interrupts.virtual_channel.malformed_packet_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_2_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_crc_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_id_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_word_count_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_1_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_sync_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_data_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.short_packet_fifo_overflow_detect"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.vc_12.events" value="enum.mcu.mipi_csi.interrupts.virtual_channel.malformed_packet_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_2_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_crc_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_id_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_word_count_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_1_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_sync_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_data_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.short_packet_fifo_overflow_detect"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.vc_13.events" value="enum.mcu.mipi_csi.interrupts.virtual_channel.malformed_packet_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_2_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_crc_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_id_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_word_count_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_1_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_sync_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_data_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.short_packet_fifo_overflow_detect"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.vc_14.events" value="enum.mcu.mipi_csi.interrupts.virtual_channel.malformed_packet_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_2_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_crc_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_id_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_word_count_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_1_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_sync_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_data_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.short_packet_fifo_overflow_detect"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.vc_15.events" value="enum.mcu.mipi_csi.interrupts.virtual_channel.malformed_packet_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_2_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_crc_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_id_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_word_count_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_ecc_1_bit_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_sync_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.error_frame_data_detect,enum.mcu.mipi_csi.interrupts.virtual_channel.short_packet_fifo_overflow_detect"/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.power_management.events" value=""/>
+      <property id="module.driver.mipi_csi.interrupt_ctrl.short_packet_fifo.events" value=""/>
+      <property id="module.driver.mipi_csi.p_callback" value="MIPI_CSI_Callback"/>
+      <property id="module.driver.mipi_csi.p_context" value="NULL"/>
+    </module>
+    <module id="module.driver.vin.1409171518">
+      <property id="module.driver.vin.name" value="g_vin_ov5640"/>
+      <property id="module.driver.vin.input_ctrl.cfg_bits.color_space_convert_bypass" value="enum.mcu.common_types.true_false_boolean.false"/>
+      <property id="module.driver.vin.input_ctrl.cfg_bits.interlace_mode" value="enum.mcu.vin.input_ctrl.cfg_bits.interlace_mode.odd_even"/>
+      <property id="module.driver.vin.input_ctrl.cfg_bits.big_endian" value="enum.mcu.common_types.big_endian.false"/>
+      <property id="module.driver.vin.input_ctrl.cfg_bits.dithering_mode" value="enum.mcu.vin.input_ctrl.cfg_bits.dithering_mode.with_addition"/>
+      <property id="module.driver.vin.input_ctrl.cfg_bits.input_mode" value="enum.mcu.vin.input_ctrl.cfg_bits.input_mode.ycbcr422_8_bit"/>
+      <property id="module.driver.vin.input_ctrl.cfg_bits.dithering_direction" value="enum.mcu.common_types.enabled_boolean.enabled"/>
+      <property id="module.driver.vin.input_ctrl.cfg_bits.yuv444_conversion" value="enum.mcu.vin.input_ctrl.cfg_bits.yuv444_conversion_mode.extend"/>
+      <property id="module.driver.vin.input_ctrl.cfg_bits.pixel_data_clipping" value="enum.mcu.vin.input_ctrl.cfg_bits.pixel_data_clipping.default"/>
+      <property id="module.driver.vin.input_ctrl.preclip.line_start" value="1"/>
+      <property id="module.driver.vin.input_ctrl.image.size.vertical" value="600"/>
+      <property id="module.driver.vin.input_ctrl.preclip.pixel_start" value="1"/>
+      <property id="module.driver.vin.input_ctrl.image.size.horizontal" value="1024"/>
+      <property id="module.driver.vin.input_ctrl.csi_mode_bits.virtual_channel" value="0"/>
+      <property id="module.driver.vin.input_ctrl.csi_mode_bits.sign_extend_disable" value="enum.mcu.common_types.true_false_boolean.true"/>
+      <property id="module.driver.vin.input_ctrl.csi_detect_bits.field_detect_enable" value="enum.mcu.common_types.enabled_boolean.enabled"/>
+      <property id="module.driver.vin.input_ctrl.csi_detect_bits.even_field_number" value="0"/>
+      <property id="module.driver.vin.output_ctrl.image_buffer_1_name" value="vin_image_buffer_1"/>
+      <property id="module.driver.vin.output_ctrl.image_buffer_2_name" value="vin_image_buffer_2"/>
+      <property id="module.driver.vin.output_ctrl.image_buffer_3_name" value="vin_image_buffer_3"/>
+      <property id="module.driver.vin.output_ctrl.image_buffer_1_section" value=".sdram_noinit"/>
+      <property id="module.driver.vin.output_ctrl.image_buffer_2_section" value=".sdram_noinit"/>
+      <property id="module.driver.vin.output_ctrl.image_buffer_3_section" value=".sdram_noinit"/>
+      <property id="module.driver.vin.conversion_ctrl.data_conversion_mode" value="enum.mcu.vin.conversion_ctrl.data_conversion_mode.none"/>
+      <property id="module.driver.vin.conversion_ctrl.alpha_bit_value" value="module.driver.vin.conversion_ctrl.alpha_bit_value.zero"/>
+      <property id="module.driver.vin.conversion_ctrl.output_data_byte_swap" value="enum.mcu.common_types.enabled_boolean.enabled"/>
+      <property id="module.driver.vin.conversion_ctrl.extend_rgb_converted_data" value="enum.mcu.common_types.enabled_boolean.disabled"/>
+      <property id="module.driver.vin.conversion_ctrl.yc_transform_disable" value="enum.mcu.common_types.true_false_boolean.false"/>
+      <property id="module.driver.vin.conversion_ctrl.yc_transform_mode" value="enum.mcu.vin.conversion_ctrl.yc_transformation_mode.y_cbcr"/>
+      <property id="module.driver.vin.conversion_ctrl.rgb8888_alpha_value" value="0xAA"/>
+      <property id="module.driver.vin.conversion_data.uv_address" value="0x0"/>
+      <property id="module.driver.vin.conversion_data.y_mul" value="1.164"/>
+      <property id="module.driver.vin.conversion_data.round_down_disable" value="enum.mcu.common_types.true_false_boolean.false"/>
+      <property id="module.driver.vin.conversion_data.ysub2" value="256"/>
+      <property id="module.driver.vin.conversion_data.cgrmul2" value="0.813"/>
+      <property id="module.driver.vin.conversion_data.rcrmul2" value="1.596"/>
+      <property id="module.driver.vin.conversion_data.gcbmul2" value="0.392"/>
+      <property id="module.driver.vin.conversion_data.bcbmul2" value="2.017"/>
+      <property id="module.driver.vin.conversion_data.ne_bcb" value="enum.mcu.vin.common_types.conversion_data.interpolation_method.nearest_neighbor"/>
+      <property id="module.driver.vin.conversion_data.ne_gy" value="enum.mcu.vin.common_types.conversion_data.interpolation_method.nearest_neighbor"/>
+      <property id="module.driver.vin.conversion_data.ne_rcr" value="enum.mcu.vin.common_types.conversion_data.interpolation_method.nearest_neighbor"/>
+      <property id="module.driver.vin.conversion_data.pixel_interpolation" value="module.driver.vin.conversion_data.pixel_interpolation.bilinear_or_nearest"/>
+      <property id="module.driver.vin.conversion_data.bilinear_advanced" value="enum.mcu.common_types.enabled_boolean.disabled"/>
+      <property id="module.driver.vin.conversion_data.scale_up_pixel_count" value="module.driver.vin.conversion_data.scale_up_pixel_count.full_size"/>
+      <property id="module.driver.vin.conversion_data.cl_vsize" value="600"/>
+      <property id="module.driver.vin.conversion_data.cl_hsize" value="1024"/>
+      <property id="module.driver.vin.conversion_data.setting_1_bits_y.lrp" value="263"/>
+      <property id="module.driver.vin.conversion_data.setting_2_bits_y.lgp" value="516"/>
+      <property id="module.driver.vin.conversion_data.setting_2_bits_y.lbp" value="100"/>
+      <property id="module.driver.vin.conversion_data.setting_3_bits_y.lap" value="256"/>
+      <property id="module.driver.vin.conversion_data.setting_3_bits_y.lhen" value="enum.mcu.common_types.enabled_boolean.disabled"/>
+      <property id="module.driver.vin.conversion_data.setting_1_bits_cb.lrp" value="-152"/>
+      <property id="module.driver.vin.conversion_data.setting_2_bits_cb.lgp" value="-298"/>
+      <property id="module.driver.vin.conversion_data.setting_2_bits_cb.lbp" value="450"/>
+      <property id="module.driver.vin.conversion_data.setting_3_bits_cb.lap" value="2048"/>
+      <property id="module.driver.vin.conversion_data.setting_3_bits_cb.lhen" value="enum.mcu.common_types.enabled_boolean.disabled"/>
+      <property id="module.driver.vin.conversion_data.setting_1_bits_cr.lrp" value="450"/>
+      <property id="module.driver.vin.conversion_data.setting_2_bits_cr.lgp" value="-377"/>
+      <property id="module.driver.vin.conversion_data.setting_2_bits_cr.lbp" value="-73"/>
+      <property id="module.driver.vin.conversion_data.setting_3_bits_cr.lap" value="2048"/>
+      <property id="module.driver.vin.conversion_data.setting_3_bits_cr.lhen" value="enum.mcu.common_types.enabled_boolean.disabled"/>
+      <property id="module.driver.vin.interrupt_ctrl.status_enable_mask" value="enum.mcu.vin.interrupts.short_packet_fifo.end_of_frame,enum.mcu.vin.interrupts.short_packet_fifo.frame_write_complete"/>
+      <property id="module.driver.vin.interrupt_ctrl.scanline_compare_value" value="0"/>
+      <property id="module.driver.vin.p_callback" value="VIN_Callback"/>
+      <property id="module.driver.vin.p_context" value="NULL"/>
+      <property id="module.driver.vin.interrupt_ctrl.status.ipl" value="board.icu.common.irq.priority2"/>
+      <property id="module.driver.vin.interrupt_ctrl.error.ipl" value="_disabled"/>
+    </module>
     <context id="_hal.0">
       <stack module="module.driver.ioport_on_ioport.0"/>
       <stack module="module.middleware.rm_freertos_port.0"/>
       <stack module="module.driver.uart_on_sci_b_uart.2005814588"/>
-      <stack module="module.freertos.heap.4.580846803"/>
       <stack module="module.driver.rtc_on_rtc.2044189405"/>
       <stack module="module.driver.ospi_on_ospi_b.1918429870">
         <stack module="module.driver.rsip_e50d_protected.667620750" requires="module.driver.ospi_on_ospi_b.requires.rsip_dotf"/>
@@ -1721,7 +1984,19 @@
       <stack module="module.driver.uart_on_sci_b_uart.2002949660"/>
       <stack module="module.driver.uart_on_sci_b_uart.182399513"/>
       <stack module="module.driver.i2c_on_iic_master.1145274473"/>
-      <stack module="module.driver.display_on_glcdc.729133655"/>
+      <stack module="module.driver.display_on_glcdc.153265662">
+        <stack module="module.driver.mipi_dsi.1515234616" requires="module.driver.display_on_glcdc.requires.dsi">
+          <stack module="module.driver.mipi_phy.1219322826" requires="module.driver.mipi_dsi.requires.mipi_phy"/>
+        </stack>
+      </stack>
+      <stack module="module.freertos.heap.5.525867250"/>
+      <stack module="module.driver.ceu_on_capture.1582737100"/>
+      <stack module="module.driver.ceu_on_capture.329726319"/>
+      <stack module="module.driver.vin.1409171518">
+        <stack module="module.driver.mipi_csi.1415892120" requires="module.driver.vin.requires.mipi_csi">
+          <stack module="module.driver.mipi_phy.1219322826" requires="module.driver.mipi_csi.requires.mipi_phy"/>
+        </stack>
+      </stack>
     </context>
     <context id="rtos.awsfreertos.thread.0">
       <property id="_symbol" value="repl_thread"/>
@@ -1816,6 +2091,9 @@
     <config id="config.driver.rm_block_media_sdmmc">
       <property id="config.driver.rm_block_media_sdmmc.param_checking_enable" value="config.driver.rm_block_media_sdmmc.param_checking_enable.bsp"/>
     </config>
+    <config id="config.driver.vin">
+      <property id="config.driver.vin.param_checking_enable" value="config.driver.vin.param_checking_enable.bsp"/>
+    </config>
     <config id="config.driver.glcdc">
       <property id="config.driver.glcdc.param_checking_enable" value="config.driver.glcdc.param_checking_enable.bsp"/>
       <property id="config.driver.glcdc.color_correction_enable" value="config.driver.glcdc.color_correction_enable.off"/>
@@ -1868,7 +2146,7 @@
       <property id="config.awsfreertos.thread.configsupport_static_allocation" value="config.awsfreertos.thread.configsupport_static_allocation.enabled"/>
       <property id="config.awsfreertos.thread.configsupport_dynamic_allocation" value="config.awsfreertos.thread.configsupport_dynamic_allocation.enabled"/>
       <property id="config.awsfreertos.thread.configtotal_heap_size" value="0x8000"/>
-      <property id="config.awsfreertos.thread.configapplication_allocated_heap" value="config.awsfreertos.thread.configapplication_allocated_heap.disabled"/>
+      <property id="config.awsfreertos.thread.configapplication_allocated_heap" value="config.awsfreertos.thread.configapplication_allocated_heap.enabled"/>
       <property id="config.awsfreertos.thread.configgenerate_run_time_stats" value="config.awsfreertos.thread.configgenerate_run_time_stats.disabled"/>
       <property id="config.awsfreertos.thread.configuse_timers" value="config.awsfreertos.thread.configuse_timers.enabled"/>
       <property id="config.awsfreertos.thread.configtimer_task_priority" value="3"/>
@@ -1900,9 +2178,18 @@
       <property id="config.awsfreertos.thread.debug_logging_name" value="Log Name"/>
       <property id="config.awsfreertos.thread.logging_level" value="config.awsfreertos.thread.logging_level.log_none"/>
     </config>
+    <config id="config.driver.mipi_csi">
+      <property id="config.driver.mipi_csi.param_checking_enable" value="config.driver.mipi_csi.param_checking_enable.bsp"/>
+    </config>
     <config id="config.driver.rtc">
       <property id="config.driver.rtc.param_checking_enable" value="config.driver.rtc.param_checking_enable.bsp"/>
       <property id="config.driver.rtc.open_set_source_clock" value="config.driver.rtc.open_set_source_clock.enabled"/>
+    </config>
+    <config id="config.driver.ceu">
+      <property id="config.driver.ceu.param_checking_enable" value="config.driver.ceu.param_checking_enable.bsp"/>
+    </config>
+    <config id="config.driver.mipi_dsi">
+      <property id="config.driver.mipi_dsi.param_checking_enable" value="config.driver.mipi_dsi.param_checking_enable.bsp"/>
     </config>
     <config id="config.driver.sdmmc">
       <property id="config.driver.sdmmc.param_checking_enable" value="config.driver.sdmmc.param_checking_enable.bsp"/>

@@ -39,6 +39,8 @@
 #include "py/objarray.h"
 #include "py/runtime.h"
 
+extern const mp_obj_type_t machine_lcd_type;
+
 #define TAG __FUNCTION__
 
 #ifndef __MODMACHINE_DEBUG
@@ -80,6 +82,7 @@
 
 /** RA8 machine 模块提供的额外全局对象。 */
 #define MICROPY_PY_MACHINE_EXTRA_GLOBALS \
+    { MP_ROM_QSTR(MP_QSTR_LCD),              MP_ROM_PTR(&machine_lcd_type) }, \
     { MP_ROM_QSTR(MP_QSTR_Pin),              MP_ROM_PTR(&machine_pin_type) }, \
     { MP_ROM_QSTR(MP_QSTR_SDCard),           MP_ROM_PTR(&machine_sdcard_type), }, \
     { MP_ROM_QSTR(MP_QSTR__pin_irq_stats),   MP_ROM_PTR(&machine_pin_irq_stats_obj) }, \
