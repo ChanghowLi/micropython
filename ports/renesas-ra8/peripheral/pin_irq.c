@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -19,15 +20,17 @@
 
 #if PIN_IRQ_DEBUG
 #include "utils/log.h"
-#define PIN_IRQ_LOGD(msg, ...)          LOG_D(__FUNCTION__, msg, ##__VA_ARGS__)
-#define PIN_IRQ_LOGI(msg, ...)          LOG_I(__FUNCTION__, msg, ##__VA_ARGS__)
-#define PIN_IRQ_LOGW(msg, ...)          LOG_W(__FUNCTION__, msg, ##__VA_ARGS__)
-#define PIN_IRQ_LOGE(msg, ...)          LOG_E(__FUNCTION__, msg, ##__VA_ARGS__)
+#define PIN_IRQ_LOGD(msg, ...)              LOG_D(__FUNCTION__, msg, ##__VA_ARGS__)
+#define PIN_IRQ_LOGI(msg, ...)              LOG_I(__FUNCTION__, msg, ##__VA_ARGS__)
+#define PIN_IRQ_LOGW(msg, ...)              LOG_W(__FUNCTION__, msg, ##__VA_ARGS__)
+#define PIN_IRQ_LOGE(msg, ...)              LOG_E(__FUNCTION__, msg, ##__VA_ARGS__)
+#define UNLIKE_RAISE_EIO(v, t, msg, ...)    if (v != t) { if (msg != NULL) { PIN_IRQ_LOGE(msg, ##__VA_ARGS__); mp_raise_OSError(MP_EIO); } }
 #else
 #define PIN_IRQ_LOGD(msg, ...)
 #define PIN_IRQ_LOGI(msg, ...)
 #define PIN_IRQ_LOGW(msg, ...)
 #define PIN_IRQ_LOGE(msg, ...)
+#define UNLIKE_RAISE_EIO(v, t, msg, ...)    if (v != t) { mp_raise_OSError(MP_EIO); }
 #endif
 
 typedef struct _machine_pin_irq_obj_t {
@@ -49,7 +52,6 @@ typedef struct _machine_pin_irq_obj_t {
     bool open;
     bool deferred_cleanup;
     bool pin_cfg_saved;
-    bool pin_taken;
 } machine_pin_irq_obj_t;
 
 static const external_irq_instance_t *const machine_pin_irq_instances[MACHINE_PIN_IRQ_CHANNEL_COUNT] = {
@@ -90,7 +92,12 @@ static const external_irq_instance_t *const machine_pin_irq_instances[MACHINE_PI
 MP_REGISTER_ROOT_POINTER(void *machine_pin_irq_obj[MACHINE_PIN_IRQ_CHANNEL_COUNT]);
 MP_REGISTER_ROOT_POINTER(void *machine_pin_irq_obj_list);
 
-static machine_pin_irq_obj_t *machine_pin_irq_find(const machine_pin_obj_t *pin)
+/**
+ * @brief   从 machine_pin_irq_obj_list 中查找已存在的 machine_pin_irq_obj_t 对象
+ * @param   pin machine_pin_obj_t 对象
+ * @return  如果 machine_pin_irq_obj_list 中有元素的 machine_pin_irq_obj_t::pin 指针指向 pin 对象，则返回该元素的指针，否则返回 NULL
+ */
+static machine_pin_irq_obj_t *find_exist_irq_obj(const machine_pin_obj_t *pin)
 {
     machine_pin_irq_obj_t *irq = MP_STATE_PORT(machine_pin_irq_obj_list);
 
@@ -122,19 +129,12 @@ bool machine_pin_irq_is_active(const machine_pin_obj_t *pin)
     return irq != NULL && irq->pin == pin && irq->open;
 }
 
-static void machine_pin_irq_raise_fsp_error(fsp_err_t err)
-{
-    if (err != FSP_SUCCESS) {
-        mp_raise_OSError(MP_EIO);
-    }
-}
-
 /**
  * @brief   将 Python 的触发枚举转为 FSP 的触发枚举值
  * @param   trigger Python 的触发枚举
  * @retval  FSP 的触发枚举
  */
-static external_irq_trigger_t machine_pin_irq_fsp_trigger(mp_uint_t trigger)
+static external_irq_trigger_t convert_to_fsp_enum(mp_uint_t trigger)
 {
     external_irq_trigger_t t = -1;
 
@@ -158,11 +158,18 @@ static external_irq_trigger_t machine_pin_irq_fsp_trigger(mp_uint_t trigger)
     return t;
 }
 
-static void machine_pin_irq_configure_pin(machine_pin_irq_obj_t *irq, bool enable)
+/**
+ * @brief   重配置引脚为 IRQ 功能或恢复引脚原功能
+ * @param   irq    machine_pin_irq_obj_t 对象
+ * @param   enable 是否配置为 IRQ，为 false 时会恢复先前的引脚配置
+ */
+static void configure_pin(machine_pin_irq_obj_t *irq, bool enable)
 {
+    uint32_t cfg, err;
+
     const machine_pin_obj_t *pin = irq->pin;
-    uint32_t port = (uint32_t)pin->pin >> 8;
-    uint32_t bit = (uint32_t)pin->pin & 0xffU;
+    uint32_t port = pin->pin >> 8;
+    uint32_t bit = pin->pin & 0xFF;
 
     if (enable) {
         if (!irq->pin_cfg_saved) {
@@ -170,43 +177,53 @@ static void machine_pin_irq_configure_pin(machine_pin_irq_obj_t *irq, bool enabl
             irq->pin_cfg_saved = true;
         }
 
-        uint32_t cfg = irq->saved_pin_cfg;
-
-        cfg &= ~((uint32_t)(IOPORT_CFG_ANALOG_ENABLE | IOPORT_CFG_PERIPHERAL_PIN |
-            IOPORT_CFG_PORT_DIRECTION_OUTPUT | R_PFS_PORT_PIN_PmnPFS_PSEL_Msk));
+        cfg = irq->saved_pin_cfg;
+        cfg &= ~((uint32_t)(IOPORT_CFG_ANALOG_ENABLE | IOPORT_CFG_PERIPHERAL_PIN | IOPORT_CFG_PORT_DIRECTION_OUTPUT | R_PFS_PORT_PIN_PmnPFS_PSEL_Msk));
         cfg |= IOPORT_CFG_IRQ_ENABLE | IOPORT_CFG_PORT_DIRECTION_INPUT;
 
-        machine_pin_irq_raise_fsp_error(R_IOPORT_PinCfg(g_ioport.p_ctrl, pin->pin, cfg));
-    } else if (irq->pin_cfg_saved) {
-        machine_pin_irq_raise_fsp_error(R_IOPORT_PinCfg(g_ioport.p_ctrl, pin->pin, irq->saved_pin_cfg));
+        err = R_IOPORT_PinCfg(g_ioport.p_ctrl, pin->pin, cfg);
+        UNLIKE_RAISE_EIO(err, 0, "R_IOPORT_PinCfg() failed: %" PRIu32, err);
+    }
+    else if (irq->pin_cfg_saved) {
+        err = R_IOPORT_PinCfg(g_ioport.p_ctrl, pin->pin, irq->saved_pin_cfg);
+        UNLIKE_RAISE_EIO(err, 0, "R_IOPORT_PinCfg() failed: %" PRIu32, err);
         irq->pin_cfg_saved = false;
     }
 }
 
-static void machine_pin_irq_close(machine_pin_irq_obj_t *irq)
+/**
+ * @brief   关闭指定的 external_irq 外设，并重配置引脚
+ * @param   irq machine_pin_irq_obj_t 对象
+ */
+static void fsp_irq_close(machine_pin_irq_obj_t *irq)
 {
+    uint32_t err;
+
     if (irq->open) {
-        machine_pin_irq_raise_fsp_error(irq->instance->p_api->disable(irq->instance->p_ctrl));
-        machine_pin_irq_raise_fsp_error(irq->instance->p_api->close(irq->instance->p_ctrl));
+        err = irq->instance->p_api->disable(irq->instance->p_ctrl);
+        UNLIKE_RAISE_EIO(err, 0, "disable() failed: %" PRIu32, err);
+        err = irq->instance->p_api->close(irq->instance->p_ctrl);
+        UNLIKE_RAISE_EIO(err, 0, "close() failed: %" PRIu32, err);
+
         irq->open = false;
     }
 
-    machine_pin_irq_configure_pin(irq, false);
+    configure_pin(irq, false);
 }
 
+/**
+ * @brief   释放 irq 资源
+ * @param   irq machine_pin_irq_obj_t 对象
+ * @details 移除 machine_pin_irq_obj 中的槽位
+ *          重置 irq 中的部分成员变量
+ */
 static void machine_pin_irq_release(machine_pin_irq_obj_t *irq)
 {
     size_t channel = (size_t)irq->pin->irq_channel;
 
     if (MP_STATE_PORT(machine_pin_irq_obj[channel]) == irq) {
-        machine_pin_irq_close(irq);
+        fsp_irq_close(irq);
         MP_STATE_PORT(machine_pin_irq_obj[channel]) = NULL;
-    }
-
-    if (irq->pin_taken) {
-        if (machine_pin_give(irq->pin->pin)) {
-            irq->pin_taken = false;
-        }
     }
 
     irq->flags = 0;
@@ -215,7 +232,11 @@ static void machine_pin_irq_release(machine_pin_irq_obj_t *irq)
     irq->deferred_cleanup = false;
 }
 
-static void machine_pin_irq_force_inactive(machine_pin_irq_obj_t *irq)
+/**
+ * @brief   强制关闭 irq 和清理 machine_pin_irq_obj_t 对象的内部变量
+ * @param   irq machine_pin_irq_obj_t 对象
+ */
+static void force_close_irq(machine_pin_irq_obj_t *irq)
 {
     if (irq->open) {
         irq->instance->p_api->disable(irq->instance->p_ctrl);
@@ -228,12 +249,6 @@ static void machine_pin_irq_force_inactive(machine_pin_irq_obj_t *irq)
         }
     }
 
-    if (irq->pin_taken) {
-        if (machine_pin_give(irq->pin->pin)) {
-            irq->pin_taken = false;
-        }
-    }
-
     irq->open = false;
     irq->trigger = 0;
     irq->pending_count = 0;
@@ -243,10 +258,18 @@ static void machine_pin_irq_force_inactive(machine_pin_irq_obj_t *irq)
     }
 }
 
+/**
+ * @brief   实际配置 irq 的触发和 machine_pin_irq_obj_t 对象内部成员变量维护
+ * @param   pin_in  machine_pin_obj_t 对象
+ * @param   truffer 触发方式，为 0 时表示关闭触发
+ * @return  总是返回 0，遇到错误时已通过异常机制抛出
+ */
 static mp_uint_t machine_pin_irq_trigger(mp_obj_t pin_in, mp_uint_t trigger)
 {
+    uint32_t err;
+
     const machine_pin_obj_t *pin = MP_OBJ_TO_PTR(pin_in);
-    machine_pin_irq_obj_t *irq = machine_pin_irq_find(pin);
+    machine_pin_irq_obj_t *irq = find_exist_irq_obj(pin);
 
     if (trigger == 0) {
         machine_pin_irq_release(irq);
@@ -256,22 +279,15 @@ static mp_uint_t machine_pin_irq_trigger(mp_obj_t pin_in, mp_uint_t trigger)
     irq->flags = 0;
 
     machine_pin_irq_obj_t *active_irq = MP_STATE_PORT(machine_pin_irq_obj[pin->irq_channel]);
-    external_irq_trigger_t fsp_trigger = machine_pin_irq_fsp_trigger(trigger);
+    external_irq_trigger_t fsp_trigger = convert_to_fsp_enum(trigger);
 
     if (active_irq != NULL && active_irq != irq) {
+        PIN_IRQ_LOGE("Error occur: irq object in machine_pin_irq_obj is not equal to object in machine_pin_irq_obj_list");
         mp_raise_OSError(MP_EBUSY);
     }
 
-    if (!irq->pin_taken) {
-        if (!machine_pin_take(pin->pin)) {
-            mp_raise_OSError(MP_EBUSY);
-        }
-
-        irq->pin_taken = true;
-    }
-
     if (irq->open) {
-        machine_pin_irq_close(irq);
+        fsp_irq_close(irq);
     }
 
     irq->trigger = trigger;
@@ -282,14 +298,14 @@ static mp_uint_t machine_pin_irq_trigger(mp_obj_t pin_in, mp_uint_t trigger)
     irq->raw_isr_count = 0;
     irq->overflow_count = 0;
 
-    machine_pin_irq_configure_pin(irq, true);
-
-    machine_pin_irq_raise_fsp_error(irq->instance->p_api->open(irq->instance->p_ctrl, &irq->cfg));
+    configure_pin(irq, true);
+    err = irq->instance->p_api->open(irq->instance->p_ctrl, &irq->cfg);
+    UNLIKE_RAISE_EIO(err, 0, "open() failed: %" PRIu32, err);
 
     irq->open = true;
     MP_STATE_PORT(machine_pin_irq_obj[pin->irq_channel]) = irq;
-
-    machine_pin_irq_raise_fsp_error(irq->instance->p_api->enable(irq->instance->p_ctrl));
+    err = irq->instance->p_api->enable(irq->instance->p_ctrl);
+    UNLIKE_RAISE_EIO(err, 0, "enable() failed: %" PRIu32, err);
 
     return 0;
 }
@@ -297,7 +313,7 @@ static mp_uint_t machine_pin_irq_trigger(mp_obj_t pin_in, mp_uint_t trigger)
 static mp_uint_t machine_pin_irq_info(mp_obj_t pin_in, mp_uint_t info_type)
 {
     const machine_pin_obj_t *pin = MP_OBJ_TO_PTR(pin_in);
-    machine_pin_irq_obj_t *irq = machine_pin_irq_find(pin);
+    machine_pin_irq_obj_t *irq = find_exist_irq_obj(pin);
 
     if (info_type == MP_IRQ_INFO_FLAGS) {
         return irq->flags;
@@ -315,6 +331,10 @@ static const mp_irq_methods_t machine_pin_irq_methods = {
     .info = machine_pin_irq_info,
 };
 
+/**
+ * @brief   irq Python 层回调函数异常处理
+ * @param   node 调度节点
+ */
 static void machine_pin_irq_deferred_cleanup(mp_sched_node_t *node)
 {
     machine_pin_irq_obj_t *irq = (machine_pin_irq_obj_t *)((uintptr_t)node - offsetof(machine_pin_irq_obj_t, cleanup_node));
@@ -327,11 +347,17 @@ static void machine_pin_irq_deferred_cleanup(mp_sched_node_t *node)
     if (nlr_push(&nlr) == 0) {
         machine_pin_irq_release(irq);
         nlr_pop();
-    } else {
-        machine_pin_irq_force_inactive(irq);
+    }
+    else {
+        force_close_irq(irq);
     }
 }
 
+/**
+ * @brief   hard=False 时的回调入口
+ * @param   node 调度节点
+ * @details 该函数不在中断上下文中
+ */
 static void machine_pin_irq_soft_dispatch(mp_sched_node_t *node)
 {
     machine_pin_irq_obj_t *irq = (machine_pin_irq_obj_t *)((uintptr_t)node - offsetof(machine_pin_irq_obj_t, soft_node));
@@ -340,7 +366,7 @@ static void machine_pin_irq_soft_dispatch(mp_sched_node_t *node)
     irq->pending_count = 0;
     MICROPY_END_ATOMIC_SECTION(atomic_state);
 
-    for (uint32_t index = 0; index < pending_count; ++index) {
+    for (uint32_t index = 0; index < pending_count; index++) {
         if (!irq->open || irq->base.ishard || irq->base.handler == mp_const_none) {
             break;
         }
@@ -361,23 +387,26 @@ void machine_pin_irq_callback(external_irq_callback_args_t *p_args)
         return;
     }
 
-    ++irq->raw_isr_count;
+    irq->raw_isr_count++;
     irq->flags = irq->trigger;
     if (!irq->base.ishard && irq->base.handler != mp_const_none) {
         if (irq->pending_count < MACHINE_PIN_IRQ_PENDING_MAX) {
-            ++irq->pending_count;
-        } else {
-            ++irq->overflow_count;
+            irq->pending_count++;
+        }
+        else {
+            irq->overflow_count++;
         }
         mp_sched_schedule_node(&irq->soft_node, machine_pin_irq_soft_dispatch);
-    } else if (irq->base.ishard && irq->base.handler != mp_const_none) {
+    }
+    else if (irq->base.ishard && irq->base.handler != mp_const_none) {
         if (mp_irq_dispatch(irq->base.handler, irq->base.parent, true) < 0) {
-            ++irq->hard_error_count;
+            irq->hard_error_count++;
             irq->base.handler = mp_const_none;
             irq->deferred_cleanup = true;
             mp_sched_schedule_node(&irq->cleanup_node, machine_pin_irq_deferred_cleanup);
-        } else {
-            ++irq->hard_callback_count;
+        }
+        else {
+            irq->hard_callback_count++;
         }
     }
 }
@@ -385,7 +414,7 @@ void machine_pin_irq_callback(external_irq_callback_args_t *p_args)
 static mp_obj_t machine_pin_irq_stats(mp_obj_t pin_in)
 {
     const machine_pin_obj_t *pin = machine_pin_find(pin_in);
-    machine_pin_irq_obj_t *irq = machine_pin_irq_find(pin);
+    machine_pin_irq_obj_t *irq = find_exist_irq_obj(pin);
 
     if (irq == NULL) {
         mp_raise_ValueError(MP_ERROR_TEXT("IRQ is not configured"));
@@ -435,7 +464,7 @@ static mp_obj_t machine_pin_irq(size_t n_args, const mp_obj_t *pos_args, mp_map_
         mp_raise_ValueError(MP_ERROR_TEXT("IRQ channel is not configured"));
     }
 
-    machine_pin_irq_obj_t *irq = machine_pin_irq_find(pin);
+    machine_pin_irq_obj_t *irq = find_exist_irq_obj(pin);
 
     if (irq == NULL) {
         irq = m_new_obj(machine_pin_irq_obj_t);
@@ -474,10 +503,6 @@ static mp_obj_t machine_pin_irq(size_t n_args, const mp_obj_t *pos_args, mp_map_
         //先验证，在旧状态之前
         mp_uint_t trigger = args[ARG_handler].u_obj == mp_const_none ? 0 : args[ARG_trigger].u_int;
 
-        if (trigger != 0) {
-            machine_pin_irq_fsp_trigger(trigger);
-        }
-
         mp_obj_t old_handler = irq->base.handler;
         bool old_ishard = irq->base.ishard;
         uint8_t old_ipl = irq->cfg.ipl;
@@ -492,7 +517,8 @@ static mp_obj_t machine_pin_irq(size_t n_args, const mp_obj_t *pos_args, mp_map_
         if (nlr_push(&nlr) == 0) {
             machine_pin_irq_trigger(MP_OBJ_FROM_PTR(pin), trigger);
             nlr_pop();
-        } else {
+        }
+        else {
             //4异常恢复旧配置
             mp_obj_t configure_exception = MP_OBJ_FROM_PTR(nlr.ret_val);
 
@@ -500,21 +526,27 @@ static mp_obj_t machine_pin_irq(size_t n_args, const mp_obj_t *pos_args, mp_map_
             irq->base.ishard = old_ishard;
             irq->cfg.ipl = old_ipl;
 
+            PIN_IRQ_LOGW("Restore irq config due to machine_pin_irq_trigger() error");
             if (old_open) {
                 nlr_buf_t restore_nlr;
                 if (nlr_push(&restore_nlr) == 0) {
                     machine_pin_irq_trigger(MP_OBJ_FROM_PTR(pin), old_trigger);
                     nlr_pop();
-                } else {
-                    machine_pin_irq_force_inactive(irq);
                 }
-            } else {
+                else {
+                    PIN_IRQ_LOGE("Force close IRQ due to restore irq config error");
+                    force_close_irq(irq);
+                }
+            }
+            else {
                 nlr_buf_t cleanup_nlr;
                 if (nlr_push(&cleanup_nlr) == 0) {
                     machine_pin_irq_trigger(MP_OBJ_FROM_PTR(pin), 0);
                     nlr_pop();
-                } else {
-                    machine_pin_irq_force_inactive(irq);
+                }
+                else {
+                    PIN_IRQ_LOGE("Force close IRQ due to restore irq config error");
+                    force_close_irq(irq);
                 }
             }
 

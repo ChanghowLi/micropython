@@ -182,10 +182,10 @@ API 完成情况。函数说明写在上方每个函数的标题下
     - Pin.IRQ_FALLING: 下降沿触发
     - Pin.IRQ_RISING: 上升沿触发
     - Pin.IRQ_LOW_LEVEL: 低电平触发
-    - Pin.IRQ_HIGH_LEVEL: 高电平触发
+    - Pin.IRQ_HIGH_LEVEL: 高电平触发，RA8 不支持此方式触发，选择该方式时会抛出 `ValueError` 异常
 - priority: 中断优先级，可用范围由端口决定，数值越小优先级越高，范围是 0-15
-- wake: 指定该中断可以从哪些低功耗模式唤醒系统，可使用 `machine.IDLE`、`machine.SLEEP`、`machine.DEEPSLEEP` 或它们的按位或组合
-- hard: 为 `True` 时使用硬中断。硬中断延迟更低，但中断处理函数中不能分配内存；并非所有端口都支持此参数
+- wake: 指定该中断可以从哪些低功耗模式唤醒系统，可使用 `machine.IDLE`、`machine.SLEEP`、`machine.DEEPSLEEP` 或它们的按位或组合。当前不支持，不要传递此参数，否则会抛出 `NotImplementedError` 异常
+- hard: 为 `True` 时回调函数将直接在中断上下文中执行，这种方式延迟更低，但在中断处理函数中不能分配内存。为 `False` 时依然使用硬件中断，但在中断上下文中只会向 MicroPython 调度器提交待执行回调，随后由 MicroPython 调度器执行，这种方式延迟高，但中断处理函数在非中断上下文，可以正常调用 MicroPython API
 
 当前 RA8P1 端口支持安全引脚使用的 IRQ0～IRQ19、IRQ21～IRQ31 通道，支持下降沿、上升沿、双边沿和低电平触发。当前 FSP ICU 驱动不支持高电平触发，使用 `Pin.IRQ_HIGH_LEVEL` 时抛出 `ValueError`。低功耗唤醒尚未实现，`wake` 仅支持 `None`，其它值抛出 `NotImplementedError`。
 
