@@ -31,6 +31,17 @@ typedef struct {
     bool read;
 } i2c_segment_t;
 
+/* Task-context board clients acquire/release once per device lifetime.
+ * IIC0 is exclusive to Python while any non-board owner has claimed it. */
+uint32_t IIC_BoardAcquire(i2c_t **bus);
+uint32_t IIC_BoardRelease(i2c_t *bus);
+/* Explicit claims survive Init failure and DeInit until Unclaim, so pin
+ * cleanup finishes before another owner can configure the controller. */
+uint32_t IIC_Claim(i2c_t *i2c);
+void IIC_Unclaim(i2c_t *i2c);
+uint32_t IIC_ReadRegSCCB(i2c_t *i2c, uint32_t slave, uint16_t reg,
+    uint8_t address_bytes, uint8_t *value);
+
 uint32_t IIC_DeInit(i2c_t *i2c);
 uint32_t IIC_Init(i2c_t *i2c);
 uint32_t IIC_ReadMemory(i2c_t *i2c, uint32_t slave, uint16_t mem_addr, uint8_t addr_width, uint8_t *rdata, uint16_t rlen);

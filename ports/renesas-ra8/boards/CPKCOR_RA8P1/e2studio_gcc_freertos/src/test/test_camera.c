@@ -5,33 +5,69 @@
 /*================================== INCLUDES =====================================================*/
 
 #include <inttypes.h>
+#include <stdio.h>
+#include "camera_board.h"
+#include "lcd_board.h"
+
+#include "r_gpt.h"
 
 #include "hal_data.h"
 #include "camera/camera.h"
 #include "camera/ov5640.h"
+#include "lcd/lcd.h"
+#include <string.h>
 #include "perf_counter/perf_counter.h"
 #include "utils/log.h"
 
 /*================================== MACROS =======================================================*/
 
 #ifndef TEST_CAMERA_EN_PERFORMANCE
-#define TEST_CAMERA_EN_PERFORMANCE			1
+#define TEST_CAMERA_EN_PERFORMANCE			0
 #endif
 
 #ifndef TEST_CAMERA_EN_PRESURE_REFINED
-#define TEST_CAMERA_EN_PRESURE_REFINED		1
+#define TEST_CAMERA_EN_PRESURE_REFINED		0
 #endif
 
 #ifndef TEST_CAMERA_EN_SINGLE_CAPTURE
-#define TEST_CAMERA_EN_SINGLE_CAPTURE		0
+#define TEST_CAMERA_EN_SINGLE_CAPTURE		1
+#endif
+
+/* Show the verified single DVP frame on the previously tested HDMI display. */
+#ifndef TEST_CAMERA_EN_HDMI_PREVIEW
+#define TEST_CAMERA_EN_HDMI_PREVIEW          1
+#endif
+
+/* C-layer HDMI video preview. With CEU A/B enabled below, acquisition into
+ * the next SDRAM buffer overlaps copying the completed frame to GLCDC. */
+#ifndef TEST_CAMERA_EN_VIDEO_PREVIEW
+#define TEST_CAMERA_EN_VIDEO_PREVIEW         1
+#endif
+
+#ifndef TEST_CAMERA_VIDEO_DURATION_MS
+/* 0: keep preview running (REPL will not start until reset).
+ * Set to 60000U for a bounded 60-second regression test. */
+#define TEST_CAMERA_VIDEO_DURATION_MS        0U
+#endif
+
+/* 1: HDMI preview uses CEU A/B; 0: preserve original serial preview. */
+#ifndef TEST_CAMERA_EN_DVP_DOUBLE_BUFFER
+#define TEST_CAMERA_EN_DVP_DOUBLE_BUFFER     1
+#endif
+/* The old CEU-only A/B test is retained as an optional regression test. */
+#ifndef TEST_CAMERA_EN_CEU_AB_STANDALONE
+#define TEST_CAMERA_EN_CEU_AB_STANDALONE     0
+#endif
+#ifndef TEST_CAMERA_DOUBLE_DURATION_MS
+#define TEST_CAMERA_DOUBLE_DURATION_MS      10000U
 #endif
 
 #ifndef TEST_CAMERA_DVP_CACHE_HSIZE
-#define TEST_CAMERA_DVP_CACHE_HSIZE			1920
+#define TEST_CAMERA_DVP_CACHE_HSIZE			640
 #endif
 
 #ifndef TEST_CAMERA_DVP_CACHE_VSIZE
-#define TEST_CAMERA_DVP_CACHE_VSIZE			1080
+#define TEST_CAMERA_DVP_CACHE_VSIZE			480
 #endif
 
 /**
@@ -66,8 +102,8 @@
 #define TEST_CAMERA_EN_PRESURE_REFINED		0
 #endif
 
-#if TEST_CAMERA_DVP_CACHE_POS == DVP_CACHE_IN_SDRAM
-#include "sdram.h"
+#ifndef TEST_CAMERA_SINGLE_TIMEOUT_MS
+#define TEST_CAMERA_SINGLE_TIMEOUT_MS 3000U
 #endif
 
 /*================================== TYPES ========================================================*/
@@ -85,6 +121,19 @@ static uint8_t s_dvp_image[TEST_CAMERA_DVP_CACHE_SIZE] __attribute__((aligned(8)
 static uint8_t s_dvp_image[TEST_CAMERA_DVP_CACHE_SIZE] __attribute__((aligned(8))) __attribute__((section(".sdram_noinit_nocache")));
 #elif TEST_CAMERA_DVP_CACHE_POS == DVP_CACHE_IN_HYPER_RAM
 static uint8_t s_dvp_image[TEST_CAMERA_DVP_CACHE_SIZE] __attribute__((aligned(8))) __attribute__((section(".ospi1_cs0_noinit_nocache")));
+#endif
+
+#if TEST_CAMERA_EN_DVP_DOUBLE_BUFFER
+#if TEST_CAMERA_DVP_CACHE_POS == DVP_CACHE_IN_SRAM
+static uint8_t s_dvp_image_b[TEST_CAMERA_DVP_CACHE_SIZE] __attribute__((aligned(8)));
+#elif TEST_CAMERA_DVP_CACHE_POS == DVP_CACHE_IN_SDRAM
+static uint8_t s_dvp_image_b[TEST_CAMERA_DVP_CACHE_SIZE] __attribute__((aligned(8))) __attribute__((section(".sdram_noinit_nocache")));
+#elif TEST_CAMERA_DVP_CACHE_POS == DVP_CACHE_IN_HYPER_RAM
+static uint8_t s_dvp_image_b[TEST_CAMERA_DVP_CACHE_SIZE] __attribute__((aligned(8))) __attribute__((section(".ospi1_cs0_noinit_nocache")));
+#endif
+#if TEST_CAMERA_EN_CEU_AB_STANDALONE
+static uint32_t testCameraDvpDoubleBuffer(Camera *camera);
+#endif
 #endif
 
 /*================================== Private Functions Prototypes =================================*/
@@ -105,22 +154,157 @@ static uint32_t testCameraPresureRefined2(Camera *camera1, Camera *camera2, uint
 uint32_t testCameraSingleCapture(Camera *camera);
 #endif
 
+#if TEST_CAMERA_EN_VIDEO_PREVIEW && TEST_CAMERA_EN_HDMI_PREVIEW && TEST_CAMERA_EN_SINGLE_CAPTURE
+#if TEST_CAMERA_EN_DVP_DOUBLE_BUFFER
+static uint32_t testCameraPipelinedVideoPreview(Camera *camera, LCD_DeviceType *lcd);
+#else
+static uint32_t testCameraVideoPreview(Camera *camera, LCD_DeviceType *lcd);
+#endif
+#endif
+
 /*================================== Public Functions =============================================*/
+
+/* GPTCLK = PLL2R / 2 = 240 MHz; 20 counts give 12 MHz XCLK.
+ * P109/GTIOC10A feeds J300 pin 13. This instance is owned by the test. */
+static gpt_instance_ctrl_t s_camera_xclk_ctrl;
+static const gpt_extended_cfg_t s_camera_xclk_extend = {
+    .gtioca = { .output_enabled = true, .stop_level = GPT_PIN_LEVEL_LOW },
+    .gtiocb = { .output_enabled = false, .stop_level = GPT_PIN_LEVEL_LOW },
+    .capture_a_irq = FSP_INVALID_VECTOR,
+    .capture_b_irq = FSP_INVALID_VECTOR,
+    .compare_match_c_irq = FSP_INVALID_VECTOR,
+    .compare_match_d_irq = FSP_INVALID_VECTOR,
+    .compare_match_e_irq = FSP_INVALID_VECTOR,
+    .compare_match_f_irq = FSP_INVALID_VECTOR,
+};
+static const timer_cfg_t s_camera_xclk_cfg = {
+    .mode = TIMER_MODE_PERIODIC,
+    .period_counts = 20,
+    .source_div = TIMER_SOURCE_DIV_1,
+    .duty_cycle_counts = 10,
+    .channel = 10,
+    .cycle_end_irq = FSP_INVALID_VECTOR,
+    .p_extend = &s_camera_xclk_extend,
+};
+static const timer_instance_t s_camera_xclk = {
+    .p_ctrl = &s_camera_xclk_ctrl,
+    .p_cfg = &s_camera_xclk_cfg,
+    .p_api = &g_timer_on_gpt,
+};
+
+void TestCameraStartup(void)
+{
+    printf("CAMERA: OV5640 DVP startup test\r\n");
+    fsp_err_t err = s_camera_xclk.p_api->open(s_camera_xclk.p_ctrl, s_camera_xclk.p_cfg);
+    printf("CAMERA: XCLK open=%lu\r\n", (unsigned long)err);
+    if (err != FSP_SUCCESS) {
+        return;
+    }
+    timer_info_t info;
+    err = s_camera_xclk.p_api->infoGet(s_camera_xclk.p_ctrl, &info);
+    if (err == FSP_SUCCESS && (info.period_counts == 0 ||
+        (uint64_t)info.period_counts * OV5640_DVP_XCLK_HZ != info.clock_frequency)) {
+        printf("CAMERA: configure GPT10 output to exactly 12000 kHz\r\n");
+        err = FSP_ERR_INVALID_ARGUMENT;
+    }
+    if (err == FSP_SUCCESS) {
+        err = R_IOPORT_PinCfg(&g_ioport_ctrl, BSP_IO_PORT_01_PIN_09,
+            IOPORT_CFG_PERIPHERAL_PIN | IOPORT_PERIPHERAL_GPT1);
+    }
+    if (err == FSP_SUCCESS) {
+        err = s_camera_xclk.p_api->start(s_camera_xclk.p_ctrl);
+    }
+    printf("CAMERA: XCLK start=%lu\r\n", (unsigned long)err);
+    if (err == FSP_SUCCESS) {
+        R_BSP_SoftwareDelay(10, BSP_DELAY_UNITS_MILLISECONDS);
+        Camera *camera = NULL;
+        uint32_t result = Camera_BoardInitialize(CAMERA_MODEL_OV5640, &camera);
+        printf("CAMERA: init=%lu\r\n", (unsigned long)result);
+        if (result == FSP_SUCCESS) {
+            result = TestCamera(camera);
+            printf("CAMERA: capture=%lu (%s)\r\n", (unsigned long)result,
+                result == FSP_SUCCESS ? "PASS" : "FAIL");
+#if TEST_CAMERA_EN_HDMI_PREVIEW && TEST_CAMERA_EN_SINGLE_CAPTURE
+            if (result == FSP_SUCCESS && camera->image_ready != NULL) {
+                LCD_DeviceType *lcd = LCD_BoardInitialize(LCD_STARTUP_TFP410);
+                if (lcd == NULL) {
+                    printf("CAMERA: HDMI init failed\r\n");
+                } else if (lcd->color_format != LCD_COLOR_FORMAT_RGB565 ||
+                           camera->length > lcd->x_length || camera->width > lcd->y_length) {
+                    printf("CAMERA: HDMI frame format or size unsupported\r\n");
+                } else {
+                    uint16_t x = (uint16_t)((lcd->x_length - camera->length) / 2U);
+                    uint16_t y = (uint16_t)((lcd->y_length - camera->width) / 2U);
+                    uint32_t display_err = LCD_Fill(lcd, LCD_COLOR_RGB565_BLACK);
+                    if (display_err == FSP_SUCCESS) {
+                        display_err = LCD_DrawBitmap(lcd, x, y, camera->length,
+                                                     camera->width, camera->image_ready);
+                    }
+                    if (display_err == FSP_SUCCESS) {
+                        display_err = LCD_Present(lcd);
+                    }
+                    printf("CAMERA: HDMI preview=%lu (%s)\r\n", (unsigned long)display_err,
+                           display_err == FSP_SUCCESS ? "PASS" : "FAIL");
+                    /* Keep the GLCDC and framebuffer active so the image remains on screen. */
+#if TEST_CAMERA_EN_VIDEO_PREVIEW
+                    if (display_err == FSP_SUCCESS) {
+#if TEST_CAMERA_EN_DVP_DOUBLE_BUFFER
+                        if (TEST_CAMERA_VIDEO_DURATION_MS == 0U) {
+                            printf("CAMERA: HDMI A/B preview starting (continuous; reset to stop)\r\n");
+                        } else {
+                            printf("CAMERA: HDMI A/B preview starting (%lu ms)\r\n",
+                                   (unsigned long)TEST_CAMERA_VIDEO_DURATION_MS);
+                        }
+                        uint32_t video_err = testCameraPipelinedVideoPreview(camera, lcd);
+#else
+                        printf("CAMERA: legacy HDMI preview starting (%lu ms; 0=continuous)\r\n",
+                               (unsigned long)TEST_CAMERA_VIDEO_DURATION_MS);
+                        uint32_t video_err = testCameraVideoPreview(camera, lcd);
+#endif
+                        printf("CAMERA: video preview=%lu (%s)\r\n", (unsigned long)video_err,
+                               video_err == FSP_SUCCESS ? "PASS" : "FAIL");
+                    }
+#endif
+                }
+            }
+#endif
+        }
+#if TEST_CAMERA_EN_DVP_DOUBLE_BUFFER && TEST_CAMERA_EN_CEU_AB_STANDALONE
+        if (result == FSP_SUCCESS) {
+            printf("CAMERA: CEU double buffer test starting (%lu ms)\r\n",
+                   (unsigned long)TEST_CAMERA_DOUBLE_DURATION_MS);
+            uint32_t double_err = testCameraDvpDoubleBuffer(camera);
+            printf("CAMERA: CEU double buffer=%lu (%s)\r\n",
+                   (unsigned long)double_err,
+                   double_err == FSP_SUCCESS ? "PASS" : "FAIL");
+        }
+#endif
+        uint32_t cleanup = Camera_BoardDeinitialize();
+        printf("CAMERA: cleanup=%lu\r\n", (unsigned long)cleanup);
+        if (cleanup != FSP_SUCCESS) {
+            return;
+        }
+    }
+    err = s_camera_xclk.p_api->close(s_camera_xclk.p_ctrl);
+    printf("CAMERA: XCLK close=%lu\r\n", (unsigned long)err);
+}
 
 uint32_t TestCamera(void *camera)
 {
 	(void)camera;
 
 #if TEST_CAMERA_EN_PERFORMANCE
-	testCameraPerformance(camera);
+	uint32_t err = testCameraPerformance(camera);
+	if (err != 0) { return err; }
 #endif
 
 #if TEST_CAMERA_EN_PRESURE_REFINED
-	testCameraPresureRefined(camera);
+	uint32_t pressure_err = testCameraPresureRefined(camera);
+	if (pressure_err != 0) { return pressure_err; }
 #endif
 
 #if TEST_CAMERA_EN_SINGLE_CAPTURE
-	testCameraSingleCapture(camera);
+	return testCameraSingleCapture(camera);
 #endif
 
 	return 0;
@@ -638,31 +822,489 @@ static uint32_t testCameraPresureRefined2(Camera *camera1, Camera *camera2, uint
 }
 #endif
 
+#if TEST_CAMERA_EN_DVP_DOUBLE_BUFFER && TEST_CAMERA_EN_CEU_AB_STANDALONE
+static uint32_t dvpSampleHash(const uint8_t *image, uint32_t size)
+{
+    uint32_t hash = 2166136261U;
+    for (uint32_t offset = 0U; offset < size; offset += 128U) {
+        hash = (hash ^ image[offset]) * 16777619U;
+    }
+    return hash;
+}
+
+/* Two physical capture buffers, with one-frame CEU rearming in the owning
+ * task. The ISR completes A; we start capture into B immediately and keep A
+ * locked while simulating CPU image processing. Only once A is released can
+ * the loop rearm it after B completes. No buffer can be overwritten while
+ * the CPU is still reading it; no per-frame CEU Close/Open is required. */
+static uint32_t testCameraDvpDoubleBuffer(Camera *camera)
+{
+    if (camera == NULL || camera->model != CAMERA_MODEL_OV5640 ||
+        camera->interface != CAMERA_INTERFACE_DVP ||
+        (uint32_t)camera->length * camera->width * 2U > sizeof(s_dvp_image_b)) {
+        return FSP_ERR_INVALID_ARGUMENT;
+    }
+
+    uint8_t *buffers[2] = {s_dvp_image, s_dvp_image_b};
+    uint32_t image_size = (uint32_t)camera->length * camera->width * 2U;
+    uint32_t frames = 0U;
+    uint32_t rearmed = 0U;
+    uint32_t first_count = 0U;
+    uint32_t last_count = 0U;
+    uint32_t stable_checks = 0U;
+    bool old_single_frame = camera->rotation_buffer.single_frame;
+    uint8_t index = 0U;
+    uint32_t err;
+
+    memset(buffers[0], 0xA5, image_size);
+    memset(buffers[1], 0xA5, image_size);
+    camera->rotation_buffer.single_frame = true;
+    (void) CameraGetCaptureCnt(camera, &first_count);
+    int64_t start_ms = get_system_ms();
+    err = CameraStartCapture(camera, buffers[0]);
+    if (err != FSP_SUCCESS) {
+        camera->rotation_buffer.single_frame = old_single_frame;
+        return err;
+    }
+
+    while ((get_system_ms() - start_ms) < TEST_CAMERA_DOUBLE_DURATION_MS) {
+        uint32_t ready;
+        int64_t wait_start = get_system_ms();
+        do {
+            ready = CameraIsCaptureDone(camera);
+            if (ready != 0U) {
+                break;
+            }
+            vTaskDelay(1);
+        } while ((get_system_ms() - wait_start) < TEST_CAMERA_SINGLE_TIMEOUT_MS);
+
+        if (ready != 1U) {
+            err = ready == 0U ? FSP_ERR_TIMEOUT : ready;
+            break;
+        }
+        uint8_t *completed = camera->image_ready;
+        if (completed != buffers[index]) {
+            err = FSP_ERR_INVALID_DATA;
+            printf("CAMERA: CEU A/B unexpected ready buffer %p, expected %p\r\n",
+                   (void *)completed, (void *)buffers[index]);
+            break;
+        }
+
+        /* CEU writes only the OTHER buffer while this frame is in use. */
+        uint8_t next = index ^ 1U;
+        err = OV5640_DVP_CaptureNext(buffers[next]);
+        if (err != FSP_SUCCESS) {
+            break;
+        }
+        rearmed++;
+
+        uint32_t hash_before = dvpSampleHash(completed, image_size);
+        /* Hold the completed frame during the next CEU acquisition.
+         * This intentionally exercises buffer ownership rather than HDMI. */
+        vTaskDelay(pdMS_TO_TICKS(50U));
+        if (hash_before != dvpSampleHash(completed, image_size)) {
+            err = FSP_ERR_INVALID_DATA;
+            printf("CAMERA: CEU A/B frame overwritten while CPU held it\r\n");
+            break;
+        }
+        stable_checks++;
+        frames++;
+        index = next;
+    }
+
+    uint32_t elapsed_ms = (uint32_t)(get_system_ms() - start_ms);
+    (void) CameraGetCaptureCnt(camera, &last_count);
+    uint32_t stop_err = CameraStopCapture(camera);
+    camera->rotation_buffer.single_frame = old_single_frame;
+    if (err == FSP_SUCCESS && stop_err != FSP_SUCCESS) {
+        err = stop_err;
+    }
+    float fps = elapsed_ms ? (1000.0f * frames) / (float)elapsed_ms : 0.0f;
+    printf("CAMERA: CEU A/B buffers=%p / %p, bytes=%lu each\r\n",
+           (void *)buffers[0], (void *)buffers[1], (unsigned long)image_size);
+    printf("CAMERA: CEU A/B frames=%lu, elapsed=%lu ms, FPS=%.2f, rearmed=%lu (CPU hold=50ms/frame)\r\n",
+           (unsigned long)frames, (unsigned long)elapsed_ms, (double)fps,
+           (unsigned long)rearmed);
+    printf("CAMERA: CEU A/B frame ends=%lu, stable held frames=%lu, stop=%lu\r\n",
+           (unsigned long)(last_count - first_count),
+           (unsigned long)stable_checks, (unsigned long)stop_err);
+    return err;
+}
+#endif
+
+#if TEST_CAMERA_EN_SINGLE_CAPTURE && TEST_CAMERA_EN_VIDEO_PREVIEW && \
+    TEST_CAMERA_EN_HDMI_PREVIEW && TEST_CAMERA_EN_DVP_DOUBLE_BUFFER
+/* HDMI preview with CEU A/B pipelining. The CEU frame-end interrupt stops
+ * the current one-shot capture; this task immediately starts the next shot
+ * into the other SDRAM buffer, THEN copies the completed one to GLCDC.
+ * The CEU cannot reuse a buffer until the CPU is finished copying from it.
+ * This is a video-preview test, not a replacement for the camera API. */
+static uint32_t testCameraPipelinedVideoPreview(Camera *camera, LCD_DeviceType *lcd)
+{
+    if (camera == NULL || lcd == NULL || camera->model != CAMERA_MODEL_OV5640 ||
+        camera->interface != CAMERA_INTERFACE_DVP ||
+        lcd->color_format != LCD_COLOR_FORMAT_RGB565 ||
+        camera->length > lcd->x_length || camera->width > lcd->y_length ||
+        (uint32_t)camera->length * camera->width * 2U > sizeof(s_dvp_image) ||
+        (uint32_t)camera->length * camera->width * 2U > sizeof(s_dvp_image_b)) {
+        return FSP_ERR_INVALID_ARGUMENT;
+    }
+
+    uint8_t *const buffers[2] = {s_dvp_image, s_dvp_image_b};
+    uint16_t x = (uint16_t)((lcd->x_length - camera->length) / 2U);
+    uint16_t y = (uint16_t)((lcd->y_length - camera->width) / 2U);
+    uint8_t index = 0U;
+    bool old_single_frame = camera->rotation_buffer.single_frame;
+    uint32_t err = FSP_SUCCESS;
+    uint32_t frames = 0U;
+    uint32_t copy_sum_ms = 0U;
+    uint32_t copy_max_ms = 0U;
+    uint32_t idle_sum_ms = 0U;
+    uint32_t ceu_count_start = 0U;
+    uint32_t ceu_count_end = 0U;
+    int64_t start_ms = get_system_ms();
+    int64_t report_ms = start_ms;
+
+    camera->rotation_buffer.single_frame = true;
+    (void) CameraGetCaptureCnt(camera, &ceu_count_start);
+    err = CameraStartCapture(camera, buffers[0]);
+    if (err != FSP_SUCCESS) {
+        camera->rotation_buffer.single_frame = old_single_frame;
+        return err;
+    }
+
+    for (;;) {
+        if (TEST_CAMERA_VIDEO_DURATION_MS != 0U &&
+            (get_system_ms() - start_ms) >= TEST_CAMERA_VIDEO_DURATION_MS) {
+            break;
+        }
+
+        /* Wait until the ISR reports a fully written frame. */
+        int64_t wait_start = get_system_ms();
+        uint32_t ready;
+        do {
+            ready = CameraIsCaptureDone(camera);
+            if (ready != 0U) {
+                break;
+            }
+            vTaskDelay(1);
+        } while ((get_system_ms() - wait_start) < TEST_CAMERA_SINGLE_TIMEOUT_MS);
+        if (ready != 1U) {
+            err = ready == 0U ? FSP_ERR_TIMEOUT : ready;
+            printf("CAMERA: HDMI A/B CEU wait failed: %lu\r\n", (unsigned long)err);
+            break;
+        }
+
+        const uint8_t *completed = camera->image_ready;
+        if (completed != buffers[index]) {
+            err = FSP_ERR_INVALID_DATA;
+            printf("CAMERA: HDMI A/B wrong completed buffer %p, expected %p\r\n",
+                   (const void *)completed, (void *)buffers[index]);
+            break;
+        }
+
+        /* Capture B can run while LCD_DrawBitmap copies completed A. */
+        uint8_t next = index ^ 1U;
+        err = OV5640_DVP_CaptureNext(buffers[next]);
+        if (err != FSP_SUCCESS) {
+            printf("CAMERA: HDMI A/B rearm failed: %lu\r\n", (unsigned long)err);
+            break;
+        }
+
+        int64_t idle_start = get_system_ms();
+        bool idle = false;
+        do {
+            err = LCD_IsIdle(lcd, &idle);
+            if (err != FSP_SUCCESS || idle) {
+                break;
+            }
+            vTaskDelay(1);
+        } while ((get_system_ms() - idle_start) < 1000U);
+        idle_sum_ms += (uint32_t)(get_system_ms() - idle_start);
+        if (err != FSP_SUCCESS || !idle) {
+            if (err == FSP_SUCCESS) {
+                err = FSP_ERR_TIMEOUT;
+            }
+            printf("CAMERA: HDMI A/B LCD idle failed: %lu\r\n", (unsigned long)err);
+            break;
+        }
+
+        int64_t copy_start = get_system_ms();
+        err = LCD_DrawBitmap(lcd, x, y, camera->length, camera->width, completed);
+        uint32_t copy_ms = (uint32_t)(get_system_ms() - copy_start);
+        copy_sum_ms += copy_ms;
+        if (copy_ms > copy_max_ms) {
+            copy_max_ms = copy_ms;
+        }
+        if (err != FSP_SUCCESS) {
+            printf("CAMERA: HDMI A/B bitmap failed: %lu\r\n", (unsigned long)err);
+            break;
+        }
+        err = LCD_Present(lcd);
+        if (err != FSP_SUCCESS) {
+            printf("CAMERA: HDMI A/B present failed: %lu\r\n", (unsigned long)err);
+            break;
+        }
+        /* The CEU buffer is no longer needed after synchronous bitmap copy.
+         * Only now may it become a capture target on the next iteration. */
+        frames++;
+        index = next;
+
+        int64_t now_ms = get_system_ms();
+        if ((now_ms - report_ms) >= 5000U) {
+            uint32_t elapsed = (uint32_t)(now_ms - start_ms);
+            float fps = elapsed ? (1000.0f * frames) / (float)elapsed : 0.0f;
+            printf("CAMERA: HDMI A/B live frames=%lu, elapsed=%lu ms, FPS=%.2f, LCD copy avg=%.2f max=%lu ms\r\n",
+                   (unsigned long)frames, (unsigned long)elapsed, (double)fps,
+                   (double)copy_sum_ms / frames, (unsigned long)copy_max_ms);
+            report_ms = now_ms;
+        }
+    }
+
+    /* Clean exit for a bounded run or any error. In unlimited mode a board
+     * reset stops the preview; REPL does not start until this returns. */
+    uint32_t elapsed_ms = (uint32_t)(get_system_ms() - start_ms);
+    (void) CameraGetCaptureCnt(camera, &ceu_count_end);
+    uint32_t stop_err = CameraStopCapture(camera);
+    camera->rotation_buffer.single_frame = old_single_frame;
+    if (err == FSP_SUCCESS && stop_err != FSP_SUCCESS) {
+        err = stop_err;
+    }
+    float fps = elapsed_ms ? (1000.0f * frames) / (float)elapsed_ms : 0.0f;
+    printf("CAMERA: HDMI A/B frames=%lu, elapsed=%lu ms, FPS=%.2f, CEU ends=%lu\r\n",
+           (unsigned long)frames, (unsigned long)elapsed_ms, (double)fps,
+           (unsigned long)(ceu_count_end - ceu_count_start));
+    if (frames != 0U) {
+        printf("CAMERA: HDMI A/B LCD copy avg=%.2f max=%lu ms, idle avg=%.2f ms, stop=%lu\r\n",
+               (double)copy_sum_ms / frames, (unsigned long)copy_max_ms,
+               (double)idle_sum_ms / frames, (unsigned long)stop_err);
+    }
+    return err;
+}
+#endif
+
 #if TEST_CAMERA_EN_SINGLE_CAPTURE
+#if TEST_CAMERA_EN_VIDEO_PREVIEW && TEST_CAMERA_EN_HDMI_PREVIEW && \
+    !TEST_CAMERA_EN_DVP_DOUBLE_BUFFER
+static uint32_t testCameraVideoPreview(Camera *camera, LCD_DeviceType *lcd)
+{
+    enum {
+        VIDEO_STAGE_CEU_START,
+        VIDEO_STAGE_FRAME_WAIT,
+        VIDEO_STAGE_CEU_STOP,
+        VIDEO_STAGE_LCD_WAIT,
+        VIDEO_STAGE_LCD_COPY,
+        VIDEO_STAGE_LCD_PRESENT,
+        VIDEO_STAGE_COUNT
+    };
+    static const char *const stage_names[VIDEO_STAGE_COUNT] = {
+        "CEU start/reopen",
+        "CEU frame wait",
+        "CEU stop",
+        "LCD idle wait",
+        "LCD bitmap copy",
+        "LCD present"
+    };
+
+    if (camera == NULL || lcd == NULL || camera->interface != CAMERA_INTERFACE_DVP ||
+        camera->length > lcd->x_length || camera->width > lcd->y_length ||
+        lcd->color_format != LCD_COLOR_FORMAT_RGB565) {
+        return FSP_ERR_INVALID_ARGUMENT;
+    }
+
+    uint16_t x = (uint16_t)((lcd->x_length - camera->length) / 2U);
+    uint16_t y = (uint16_t)((lcd->y_length - camera->width) / 2U);
+    uint32_t frames = 0U;
+    uint32_t stage_sum_ms[VIDEO_STAGE_COUNT] = {0};
+    uint32_t stage_max_ms[VIDEO_STAGE_COUNT] = {0};
+    bool old_single_frame = camera->rotation_buffer.single_frame;
+    int64_t start_ms = get_system_ms();
+    uint32_t err = FSP_SUCCESS;
+
+    while (TEST_CAMERA_VIDEO_DURATION_MS == 0U ||
+           (get_system_ms() - start_ms) < TEST_CAMERA_VIDEO_DURATION_MS) {
+        uint32_t stage_ms[VIDEO_STAGE_COUNT];
+        int64_t phase_start = get_system_ms();
+        /* The single-frame flag prevents automatic ISR buffer rotation. */
+        camera->rotation_buffer.single_frame = true;
+        err = CameraStartCapture(camera, s_dvp_image);
+        stage_ms[VIDEO_STAGE_CEU_START] = (uint32_t)(get_system_ms() - phase_start);
+        if (err != FSP_SUCCESS) {
+            break;
+        }
+
+        int64_t frame_start = get_system_ms();
+        uint32_t ready = 0U;
+        do {
+            ready = CameraIsCaptureDone(camera);
+            if (ready != 0U) {
+                break;
+            }
+            vTaskDelay(1);
+        } while ((get_system_ms() - frame_start) < TEST_CAMERA_SINGLE_TIMEOUT_MS);
+        stage_ms[VIDEO_STAGE_FRAME_WAIT] = (uint32_t)(get_system_ms() - frame_start);
+
+        phase_start = get_system_ms();
+        uint32_t stop_err = CameraStopCapture(camera);
+        stage_ms[VIDEO_STAGE_CEU_STOP] = (uint32_t)(get_system_ms() - phase_start);
+        if (ready != 1U) {
+            err = (ready == 0U) ? FSP_ERR_TIMEOUT : ready;
+            break;
+        }
+        if (stop_err != FSP_SUCCESS) {
+            err = stop_err;
+            break;
+        }
+        if (camera->image_ready == NULL) {
+            err = FSP_ERR_INVALID_POINTER;
+            break;
+        }
+
+        /* Wait for the previous GLCDC present before modifying its framebuffer. */
+        int64_t display_start = get_system_ms();
+        bool idle = false;
+        do {
+            err = LCD_IsIdle(lcd, &idle);
+            if (err != FSP_SUCCESS || idle) {
+                break;
+            }
+            vTaskDelay(1);
+        } while ((get_system_ms() - display_start) < 1000U);
+        stage_ms[VIDEO_STAGE_LCD_WAIT] = (uint32_t)(get_system_ms() - display_start);
+        if (err != FSP_SUCCESS) {
+            break;
+        }
+        if (!idle) {
+            err = FSP_ERR_TIMEOUT;
+            break;
+        }
+
+        phase_start = get_system_ms();
+        err = LCD_DrawBitmap(lcd, x, y, camera->length, camera->width, camera->image_ready);
+        stage_ms[VIDEO_STAGE_LCD_COPY] = (uint32_t)(get_system_ms() - phase_start);
+        if (err != FSP_SUCCESS) {
+            break;
+        }
+        phase_start = get_system_ms();
+        err = LCD_Present(lcd);
+        stage_ms[VIDEO_STAGE_LCD_PRESENT] = (uint32_t)(get_system_ms() - phase_start);
+        if (err != FSP_SUCCESS) {
+            break;
+        }
+        for (uint32_t i = 0U; i < VIDEO_STAGE_COUNT; i++) {
+            stage_sum_ms[i] += stage_ms[i];
+            if (stage_ms[i] > stage_max_ms[i]) {
+                stage_max_ms[i] = stage_ms[i];
+            }
+        }
+        frames++;
+    }
+    camera->rotation_buffer.single_frame = old_single_frame;
+    uint32_t elapsed_ms = (uint32_t)(get_system_ms() - start_ms);
+    float fps = elapsed_ms ? (float)frames * 1000.0f / (float)elapsed_ms : 0.0f;
+    printf("CAMERA: video frames=%" PRIu32 ", elapsed=%" PRIu32 " ms, FPS=%.2f\r\n",
+           frames, elapsed_ms, fps);
+    if (frames != 0U) {
+        printf("CAMERA: timing over %" PRIu32 " complete frames (ms, avg/max):\r\n", frames);
+        for (uint32_t i = 0U; i < VIDEO_STAGE_COUNT; i++) {
+            printf("CAMERA: %-17s avg=%7.2f, max=%" PRIu32 "\r\n",
+                   stage_names[i], (double)stage_sum_ms[i] / (double)frames,
+                   stage_max_ms[i]);
+        }
+    }
+    return err;
+}
+#endif
+
 uint32_t testCameraSingleCapture(Camera *camera)
 {
-	uint32_t ret;
+    if (camera == NULL || camera->interface != CAMERA_INTERFACE_DVP) {
+        return FSP_ERR_UNSUPPORTED;
+    }
+    if (camera->length == 0 || camera->width == 0 ||
+        (uint32_t)camera->length * camera->width * 2U > sizeof(s_dvp_image)) {
+        return FSP_ERR_INVALID_SIZE;
+    }
+    uint32_t image_size = (uint32_t)camera->length * camera->width * 2U;
+    bool started;
+    uint32_t err = CameraIsCaptureStart(camera, &started);
+    if (err != FSP_SUCCESS) { return err; }
+    if (started) { return FSP_ERR_IN_USE; }
+    /* Distinguish a DMA-written frame from unchanged SDRAM test data. */
+    memset(s_dvp_image, 0xA5, image_size);
+    bool old_single_frame = camera->rotation_buffer.single_frame;
+    camera->rotation_buffer.single_frame = true;
+    err = CameraStartCapture(camera, s_dvp_image);
+    if (err != FSP_SUCCESS) {
+        camera->rotation_buffer.single_frame = old_single_frame;
+        return err;
+    }
+    int64_t start = get_system_ms();
+    do {
+        uint32_t ready = CameraIsCaptureDone(camera);
+        if (ready == 1U) {
+            err = FSP_SUCCESS;
+            break;
+        }
+        if (ready != 0U) {
+            err = ready;
+            break;
+        }
+        err = FSP_ERR_TIMEOUT;
+        vTaskDelay(1);
+    } while (get_system_ms() - start < TEST_CAMERA_SINGLE_TIMEOUT_MS);
+    uint32_t stop_err = CameraStopCapture(camera);
+    camera->rotation_buffer.single_frame = old_single_frame;
+    if (err != FSP_SUCCESS) {
+        LOG_E(__FUNCTION__, "Capture failed: %" PRIu32, err);
+        return err;
+    }
+    if (stop_err != FSP_SUCCESS) { return stop_err; }
+    LOG_I(__FUNCTION__, "Frame ready: %ux%u at %p", camera->length,
+        camera->width, (void *)camera->image_ready);
+    if (camera->image_ready == NULL) { return FSP_ERR_INVALID_POINTER; }
 
-	uint8_t cnt = 0;
+    /* Sample the frame without dumping 600 KiB through the serial console. */
+    const uint8_t *image = camera->image_ready;
+    uint32_t changed = 0U;
+    uint32_t samples = 0U;
+    uint8_t min_value = 0xFFU;
+    uint8_t max_value = 0U;
+    for (uint32_t i = 0U; i < image_size; i += 128U) {
+        uint8_t value = image[i];
+        if (value != 0xA5U) { changed++; }
+        if (value < min_value) { min_value = value; }
+        if (value > max_value) { max_value = value; }
+        samples++;
+    }
+    printf("CAMERA: frame bytes=%" PRIu32 ", sampled=%" PRIu32 ", changed=%" PRIu32
+           ", min=0x%02X, max=0x%02X\r\n", image_size, samples, changed,
+           (unsigned)min_value, (unsigned)max_value);
+    printf("CAMERA: first 8 bytes:");
+    for (uint32_t i = 0U; i < 8U; i++) {
+        printf(" %02X", (unsigned)image[i]);
+    }
+    printf("\r\n");
+    if (changed == 0U) {
+        printf("CAMERA: WARNING: sampled data unchanged; check CEU/SDRAM path\r\n");
+    }
+    return FSP_SUCCESS;
+}
 
-	LOG_I(__FUNCTION__, "TEST_CAMERA_EN_SINGLE_CAPTURE");
-
-	ret = CameraStartCapture(camera, s_dvp_image);
-	UNLIKE_RETURN(ret, 0, "StartCapture failed: %" PRIu32, ret);
-
-	while (cnt < 1) {
-		ret = CameraIsCaptureDone(camera);
-		while (ret == 0) {
-			R_BSP_SoftwareDelay(10, BSP_DELAY_UNITS_MILLISECONDS);
-			ret = CameraIsCaptureDone(camera);
-		}
-		cnt++;
-	}
-
-	LOG_D(__FUNCTION__, "Capture done, check: 0x%" PRIX32, (uint32_t)s_dvp_image);
-	__BKPT(0);
-
-	return 0;
+/* Caller supplies an initialized RGB565 display; no bus or pins are chosen here. */
+uint32_t TestCameraDisplay(void *camera_device, void *lcd_device)
+{
+    Camera *camera = camera_device;
+    LCD_DeviceType *lcd = lcd_device;
+    if (camera == NULL || lcd == NULL || lcd->color_format != LCD_COLOR_FORMAT_RGB565 ||
+        camera->length > lcd->x_length || camera->width > lcd->y_length) {
+        return FSP_ERR_INVALID_ARGUMENT;
+    }
+    uint32_t err = testCameraSingleCapture(camera);
+    if (err != FSP_SUCCESS) { return err; }
+    err = LCD_DrawBitmap(lcd, 0, 0, camera->length, camera->width, camera->image_ready);
+    if (err != FSP_SUCCESS) { return err; }
+    return LCD_Present(lcd);
 }
 #endif
 

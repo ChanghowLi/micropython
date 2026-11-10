@@ -5,7 +5,9 @@
 
 #include "extmod/font_petme128_8x8.h"
 #include "hal_data.h"
+#include "camera_board.h"
 #include "lcd_board.h"
+#include "modmachine.h"
 #include "py/mperrno.h"
 #include "py/runtime.h"
 
@@ -18,6 +20,11 @@ typedef struct {
 /* The display remains initialized across MicroPython soft resets. */
 static machine_lcd_obj_t s_machine_lcd;
 
+bool machine_lcd_is_initialized(void)
+{
+    return s_machine_lcd.lcd != NULL;
+}
+
 static LCD_DeviceType *machine_lcd_get_device(machine_lcd_obj_t *self)
 {
     if (self->lcd == NULL) {
@@ -29,6 +36,9 @@ static LCD_DeviceType *machine_lcd_get_device(machine_lcd_obj_t *self)
 static mp_obj_t machine_lcd_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args)
 {
     mp_arg_check_num(n_args, n_kw, 1, 1, false);
+    if (CameraPreview_IsRunning()) {
+        mp_raise_OSError(MP_EBUSY);
+    }
 
     const char *name = mp_obj_str_get_str(args[0]);
     LCD_BoardMode mode;

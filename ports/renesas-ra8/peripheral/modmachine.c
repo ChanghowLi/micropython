@@ -28,6 +28,7 @@
 // extmod/modmachine.c via MICROPY_PY_MACHINE_INCLUDEFILE.
 
 #include <stdint.h>
+#include <stdio.h>
 
 #include "hal_data.h"
 #include "i2c.h"
@@ -39,6 +40,7 @@
 #include "py/objarray.h"
 #include "py/runtime.h"
 
+extern const mp_obj_type_t machine_camera_type;
 extern const mp_obj_type_t machine_lcd_type;
 
 #define TAG __FUNCTION__
@@ -82,6 +84,7 @@ extern const mp_obj_type_t machine_lcd_type;
 
 /** RA8 machine 模块提供的额外全局对象。 */
 #define MICROPY_PY_MACHINE_EXTRA_GLOBALS \
+    { MP_ROM_QSTR(MP_QSTR_Camera),           MP_ROM_PTR(&machine_camera_type) }, \
     { MP_ROM_QSTR(MP_QSTR_LCD),              MP_ROM_PTR(&machine_lcd_type) }, \
     { MP_ROM_QSTR(MP_QSTR_Pin),              MP_ROM_PTR(&machine_pin_type) }, \
     { MP_ROM_QSTR(MP_QSTR_SDCard),           MP_ROM_PTR(&machine_sdcard_type), }, \
@@ -224,6 +227,17 @@ void machine_init(void)
 
 void machine_deinit(void)
 {
+    /* Soft reset must stop CEU/VIN and its preview task before resetting
+     * MicroPython's I2C/pin state. Failed cleanup keeps DMA ownership intact. */
+    uint32_t camera_err = machine_camera_stop_all();
+    machine_camera_deinit_all();
+    if (camera_err != FSP_SUCCESS) {
+        printf("MPY: camera stop on soft reset failed=%lu; resources retained\r\n",
+               (unsigned long)camera_err);
+        machine_reset_cause_value = MACHINE_RESET_SOFT;
+        machine_wake_reason_value = MACHINE_WAKE_UNKNOWN;
+        return;
+    }
     machine_pin_irq_deinit();
     #if MICROPY_PY_MACHINE_I2C
     machine_i2c_deinit_all();

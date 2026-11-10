@@ -1,7 +1,165 @@
 #include "i2c.h"
 #include "bsp_api.h"
+#include "hal_data.h"
 #include "r_iic_master.h"
 #include "r_sci_b_i2c.h"
+
+/* Board IIC0 is shared by the camera and TFP410. Other IIC0 objects
+ * reserve the controller exclusively before changing pins or opening FSP. */
+static i2c_t s_board_i2c = {.instance = &g_i2c_master0};
+static i2c_t *s_iic0_owner;
+static bool s_iic0_explicit_claim;
+static uint32_t s_board_users;
+#if BSP_CFG_RTOS == 2
+static SemaphoreHandle_t s_board_lock;
+static StaticSemaphore_t s_board_lock_storage;
+#endif
+
+static uint32_t i2c_claim(i2c_t *i2c, bool explicit_claim)
+{
+    if (i2c == NULL || i2c->instance == NULL) {
+        return FSP_ERR_ASSERTION;
+    }
+    if (i2c->instance->p_ctrl != g_i2c_master0.p_ctrl) {
+        return FSP_SUCCESS;
+    }
+    FSP_CRITICAL_SECTION_DEFINE;
+    FSP_CRITICAL_SECTION_ENTER;
+    bool busy = s_iic0_owner != NULL && s_iic0_owner != i2c;
+    if (!busy) {
+        s_iic0_owner = i2c;
+        s_iic0_explicit_claim |= explicit_claim;
+    }
+    FSP_CRITICAL_SECTION_EXIT;
+    return busy ? FSP_ERR_IN_USE : FSP_SUCCESS;
+}
+
+uint32_t IIC_Claim(i2c_t *i2c)
+{
+    return i2c_claim(i2c, true);
+}
+
+void IIC_Unclaim(i2c_t *i2c)
+{
+    FSP_CRITICAL_SECTION_DEFINE;
+    FSP_CRITICAL_SECTION_ENTER;
+    if (s_iic0_owner == i2c && i2c != NULL && !i2c->opened) {
+        s_iic0_owner = NULL;
+        s_iic0_explicit_claim = false;
+    }
+    FSP_CRITICAL_SECTION_EXIT;
+}
+
+static void i2c_unclaim_implicit(i2c_t *i2c)
+{
+    FSP_CRITICAL_SECTION_DEFINE;
+    FSP_CRITICAL_SECTION_ENTER;
+    if (s_iic0_owner == i2c && !s_iic0_explicit_claim && !i2c->opened) {
+        s_iic0_owner = NULL;
+    }
+    FSP_CRITICAL_SECTION_EXIT;
+}
+
+static uint32_t i2c_board_lock(void)
+{
+#if BSP_CFG_RTOS == 2
+    /* Binary semaphore: bounded exclusion, without priority inheritance.
+     * Creation is serialized; the object persists across client lifetimes. */
+    FSP_CRITICAL_SECTION_DEFINE;
+    FSP_CRITICAL_SECTION_ENTER;
+    if (s_board_lock == NULL) {
+        s_board_lock = xSemaphoreCreateBinaryStatic(&s_board_lock_storage);
+        if (s_board_lock != NULL) {
+            (void)xSemaphoreGive(s_board_lock);
+        }
+    }
+    FSP_CRITICAL_SECTION_EXIT;
+    if (s_board_lock == NULL) {
+        return FSP_ERR_OUT_OF_MEMORY;
+    }
+    TickType_t ticks = (TickType_t)(((uint64_t)I2C_DEFAULT_TIMEOUT_US * configTICK_RATE_HZ + 999999ULL) / 1000000ULL);
+    if (ticks == 0U) {
+        ticks = 1U;
+    }
+    if (xSemaphoreTake(s_board_lock, ticks) != pdTRUE) {
+        return FSP_ERR_TIMEOUT;
+    }
+#endif
+    return FSP_SUCCESS;
+}
+
+static void i2c_board_unlock(void)
+{
+#if BSP_CFG_RTOS == 2
+    (void)xSemaphoreGive(s_board_lock);
+#endif
+}
+
+uint32_t IIC_BoardAcquire(i2c_t **bus)
+{
+    if (bus == NULL) {
+        return FSP_ERR_INVALID_ARGUMENT;
+    }
+    *bus = NULL;
+    uint32_t err = i2c_board_lock();
+    if (err != FSP_SUCCESS) {
+        return err;
+    }
+    if (s_board_users == UINT32_MAX) {
+        i2c_board_unlock();
+        return FSP_ERR_IN_USE;
+    }
+    if (s_board_users == 0U) {
+        err = IIC_Claim(&s_board_i2c);
+        if (err == FSP_SUCCESS) {
+            uint32_t options = IOPORT_CFG_PERIPHERAL_PIN | IOPORT_CFG_NMOS_ENABLE
+                | IOPORT_CFG_DRIVE_MID | IOPORT_PERIPHERAL_IIC;
+            err = R_IOPORT_PinCfg(g_ioport.p_ctrl, BSP_IO_PORT_04_PIN_10, options);
+            if (err == FSP_SUCCESS) {
+                err = R_IOPORT_PinCfg(g_ioport.p_ctrl, BSP_IO_PORT_04_PIN_09, options);
+            }
+            if (err == FSP_SUCCESS) {
+                err = IIC_Init(&s_board_i2c);
+            }
+            if (err != FSP_SUCCESS) {
+                IIC_Unclaim(&s_board_i2c);
+            }
+        }
+    }
+    if (err == FSP_SUCCESS) {
+        ++s_board_users;
+        *bus = &s_board_i2c;
+    }
+    i2c_board_unlock();
+    return err;
+}
+
+uint32_t IIC_BoardRelease(i2c_t *bus)
+{
+    if (bus != &s_board_i2c) {
+        return FSP_ERR_INVALID_ARGUMENT;
+    }
+    uint32_t err = i2c_board_lock();
+    if (err != FSP_SUCCESS) {
+        return err;
+    }
+    if (s_board_users == 0U) {
+        err = FSP_ERR_NOT_OPEN;
+    } else if (s_board_users > 1U) {
+        --s_board_users;
+    } else {
+        /* Keep the reservation until close succeeds. A failed close can be retried. */
+        err = bus->instance->p_api->close(bus->instance->p_ctrl);
+        if (err == FSP_SUCCESS) {
+            bus->opened = false;
+            bus->event = (i2c_master_event_t)0;
+            s_board_users = 0U;
+            IIC_Unclaim(bus);
+        }
+    }
+    i2c_board_unlock();
+    return err;
+}
 
 static bool i2c_get_active_slave(i2c_t *i2c, uint32_t *slave)
 {
@@ -135,10 +293,19 @@ uint32_t IIC_Init(i2c_t *i2c)
         return FSP_ERR_ASSERTION;
     }
 
+    if (i2c->opened) {
+        return FSP_ERR_ALREADY_OPEN;
+    }
+    uint32_t claim_err = i2c_claim(i2c, false);
+    if (claim_err != FSP_SUCCESS) {
+        return claim_err;
+    }
+
 #if BSP_CFG_RTOS == 2
     if (i2c->completion == NULL) {
         i2c->completion = xSemaphoreCreateBinaryStatic(&i2c->completion_storage);
         if (i2c->completion == NULL) {
+            i2c_unclaim_implicit(i2c);
             return FSP_ERR_OUT_OF_MEMORY;
         }
     }
@@ -154,6 +321,7 @@ uint32_t IIC_Init(i2c_t *i2c)
 
     fsp_err_t err = i2c->instance->p_api->open(i2c->instance->p_ctrl, &i2c->cfg);
     if (err != FSP_SUCCESS) {
+        i2c_unclaim_implicit(i2c);
         return err;
     }
 
@@ -167,6 +335,10 @@ uint32_t IIC_DeInit(i2c_t *i2c)
         return FSP_ERR_ASSERTION;
     }
 
+    if (i2c == &s_board_i2c) {
+        return FSP_ERR_IN_USE; /* Board clients must release their reference. */
+    }
+
     if (!i2c->opened) {
         return FSP_ERR_NOT_OPEN;
     }
@@ -178,10 +350,11 @@ uint32_t IIC_DeInit(i2c_t *i2c)
 
     i2c->event = (i2c_master_event_t)0;
     i2c->opened = false;
+    i2c_unclaim_implicit(i2c);
     return FSP_SUCCESS;
 }
 
-uint32_t IIC_Transfer(i2c_t *i2c, uint32_t slave, i2c_segment_t *segments, uint32_t count, bool stop)
+static uint32_t i2c_transfer_unlocked(i2c_t *i2c, uint32_t slave, i2c_segment_t *segments, uint32_t count, bool stop)
 {
     if (i2c == NULL || i2c->instance == NULL || i2c->instance->p_api == NULL || i2c->instance->p_ctrl == NULL) {
         return FSP_ERR_ASSERTION;
@@ -242,6 +415,58 @@ uint32_t IIC_Transfer(i2c_t *i2c, uint32_t slave, i2c_segment_t *segments, uint3
     }
 
     return FSP_SUCCESS;
+}
+
+
+uint32_t IIC_Transfer(i2c_t *i2c, uint32_t slave, i2c_segment_t *segments, uint32_t count, bool stop)
+{
+    if (i2c != &s_board_i2c) {
+        return i2c_transfer_unlocked(i2c, slave, segments, count, stop);
+    }
+    /* Do not leave the shared wire in a transaction between API calls. */
+    if (!stop) {
+        return FSP_ERR_UNSUPPORTED;
+    }
+    uint32_t err = i2c_board_lock();
+    if (err != FSP_SUCCESS) {
+        return err;
+    }
+    err = i2c_transfer_unlocked(i2c, slave, segments, count, true);
+    i2c_board_unlock();
+    return err;
+}
+
+uint32_t IIC_ReadRegSCCB(i2c_t *i2c, uint32_t slave, uint16_t reg,
+    uint8_t address_bytes, uint8_t *value)
+{
+    if (value == NULL) {
+        return FSP_ERR_INVALID_ARGUMENT;
+    }
+    uint8_t address[2];
+    uint32_t err = i2c_encode_address(reg, address_bytes, address);
+    if (err != FSP_SUCCESS) {
+        return err;
+    }
+    bool shared = i2c == &s_board_i2c;
+    if (shared) {
+        err = i2c_board_lock();
+        if (err != FSP_SUCCESS) {
+            return err;
+        }
+    }
+    /* SCCB needs STOP between phases, but the shared bus stays locked. */
+    i2c_segment_t segment = {.data = address, .length = address_bytes, .read = false};
+    err = i2c_transfer_unlocked(i2c, slave, &segment, 1U, true);
+    if (err == FSP_SUCCESS) {
+        segment.data = value;
+        segment.length = 1U;
+        segment.read = true;
+        err = i2c_transfer_unlocked(i2c, slave, &segment, 1U, true);
+    }
+    if (shared) {
+        i2c_board_unlock();
+    }
+    return err;
 }
 
 uint32_t IIC_ReadMemory(i2c_t *i2c, uint32_t slave, uint16_t mem_addr, uint8_t addr_width, uint8_t *rdata, uint16_t rlen)

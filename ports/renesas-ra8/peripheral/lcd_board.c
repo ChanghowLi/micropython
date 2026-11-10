@@ -99,13 +99,11 @@ static LCD_DeviceType s_lcd_tfp410;
 static bool s_tfp410_initialized;
 static void *s_tfp410_fb_allocation;
 static uint8_t *s_tfp410_framebuffer;
-static i2c_t s_tfp410_i2c = {
-    .instance = &g_i2c_master0,
-};
+static i2c_t *s_tfp410_i2c;
 
 static uint32_t TFP410_IicWrite(uint8_t *data, uint8_t len)
 {
-    return IIC_Write(&s_tfp410_i2c, TFP410_IIC_ADDR, data, len);
+    return IIC_Write(s_tfp410_i2c, TFP410_IIC_ADDR, data, len);
 }
 
 static uint32_t TFP410_IicRead(uint8_t *data_w, uint8_t len_w, uint8_t *data_r, uint8_t len_r)
@@ -113,7 +111,7 @@ static uint32_t TFP410_IicRead(uint8_t *data_w, uint8_t len_w, uint8_t *data_r, 
     if (data_w == NULL || len_w != 1U) {
         return FSP_ERR_INVALID_ARGUMENT;
     }
-    return IIC_ReadMemory(&s_tfp410_i2c, TFP410_IIC_ADDR, data_w[0], 1U, data_r, len_r);
+    return IIC_ReadMemory(s_tfp410_i2c, TFP410_IIC_ADDR, data_w[0], 1U, data_r, len_r);
 }
 
 static bool TFP410_AllocateFramebuffer(void)
@@ -244,7 +242,11 @@ LCD_DeviceType *LCD_BoardInitialize(LCD_BoardMode mode)
             LOG_E(TAG, "TFP410 SDRAM framebuffer allocation failed");
             return NULL;
         }
-        err = IIC_Init(&s_tfp410_i2c);
+        if (s_tfp410_i2c == NULL) {
+            err = IIC_BoardAcquire(&s_tfp410_i2c);
+        } else {
+            err = FSP_SUCCESS;
+        }
         if (err != FSP_SUCCESS) {
             LOG_E(TAG, "TFP410 IIC initialization failed: 0x%08lX", (unsigned long)err);
             TFP410_FreeFramebuffer();
@@ -263,6 +265,10 @@ LCD_DeviceType *LCD_BoardInitialize(LCD_BoardMode mode)
 #if LCD_EN_ST7796U && LCD_EN_PERI_GLCDC && LCD_EN_PERI_MIPI
         if (s_st7796u_mipi_initialized) {
             return &s_lcd_st7796u;
+        }
+        if (g_vin_ov5640_ctrl.open != 0U) {
+            LOG_E(TAG, "MIPI PHY is in use by the camera");
+            return NULL;
         }
         if (!ST7796U_MipiAllocateFramebuffer()) {
             LOG_E(TAG, "ST7796U MIPI SDRAM framebuffer allocation failed");
@@ -313,7 +319,9 @@ LCD_DeviceType *LCD_BoardInitialize(LCD_BoardMode mode)
                 }
             }
             s_tfp410_glcdc_cfg.input[0].p_base = NULL;
-            (void)IIC_DeInit(&s_tfp410_i2c);
+            if (IIC_BoardRelease(s_tfp410_i2c) == FSP_SUCCESS) {
+                s_tfp410_i2c = NULL;
+            }
             TFP410_FreeFramebuffer();
         }
 #endif
@@ -361,11 +369,15 @@ uint32_t LCD_BoardDeinitialize(LCD_DeviceType *lcd)
                 return err; /* Never free memory while GLCDC may still be reading it. */
             }
         }
+        uint32_t bus_err = IIC_BoardRelease(s_tfp410_i2c);
+        if (bus_err != FSP_SUCCESS) {
+            return bus_err;
+        }
         s_tfp410_glcdc_cfg.input[0].p_base = NULL;
         lcd->graphic_mem_1 = NULL;
         lcd->graphic_mem_2 = NULL;
         lcd->graphic_writeable = NULL;
-        (void)IIC_DeInit(&s_tfp410_i2c);
+        s_tfp410_i2c = NULL;
         TFP410_FreeFramebuffer();
         s_tfp410_initialized = false;
         return FSP_SUCCESS;

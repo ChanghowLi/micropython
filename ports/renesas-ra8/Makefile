@@ -68,9 +68,11 @@ endif
 SRC_C := $(FSP_SRC_C)
 
 # Peripheral source file
+SRC_C += peripheral/camera_board.c
 SRC_C += peripheral/irq.c
 SRC_C += peripheral/i2c.c
 SRC_C += peripheral/lcd_board.c
+SRC_C += peripheral/machine_camera.c
 SRC_C += peripheral/machine_i2c.c
 SRC_C += peripheral/machine_lcd.c
 SRC_C += peripheral/machine_spi.c
@@ -237,6 +239,7 @@ SRC_QSTR += extmod/modrandom.c
 SRC_QSTR += extmod/modre.c
 SRC_QSTR += extmod/modtime.c
 SRC_QSTR += extmod/moductypes.c
+SRC_QSTR += peripheral/machine_camera.c
 SRC_QSTR += extmod/modvfs.c
 SRC_QSTR += extmod/vfs.c
 SRC_QSTR += extmod/vfs_reader.c

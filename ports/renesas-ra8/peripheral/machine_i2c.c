@@ -289,6 +289,7 @@ static void machine_hard_i2c_stop(machine_hard_i2c_obj_t *self)
     self->initialized = false;
     bool pins_released = machine_hard_i2c_give_pins(self);
     machine_hard_i2c_give_sci(self);
+    IIC_Unclaim(self->i2c);
     if (!pins_released) {
         mp_raise_OSError(MP_EIO);
     }
@@ -296,13 +297,22 @@ static void machine_hard_i2c_stop(machine_hard_i2c_obj_t *self)
 
 static void machine_hard_i2c_start(machine_hard_i2c_obj_t *self)
 {
+    /* Reserve before pin ownership/configuration: a rejected I2C(0) must
+     * not disturb a running HDMI/camera bus. */
+    fsp_err_t claim_error = (fsp_err_t)IIC_Claim(self->i2c);
+    if (claim_error != FSP_SUCCESS) {
+        mp_raise_OSError(machine_hard_i2c_fsp_error(claim_error));
+    }
+
     if (!machine_hard_i2c_take_pins(self)) {
+        IIC_Unclaim(self->i2c);
         mp_raise_OSError(MP_EBUSY);
     }
 
     if (machine_hard_i2c_is_sci(self)) {
         if (!machine_sci_take(self->channel, MACHINE_SCI_OWNER_I2C)) {
             machine_hard_i2c_give_pins(self);
+            IIC_Unclaim(self->i2c);
             mp_raise_OSError(MP_EBUSY);
         }
         self->sci_taken = true;
@@ -315,6 +325,7 @@ static void machine_hard_i2c_start(machine_hard_i2c_obj_t *self)
     } else {
         machine_hard_i2c_give_sci(self);
         machine_hard_i2c_give_pins(self);
+        IIC_Unclaim(self->i2c);
         nlr_jump(nlr.ret_val);
     }
 
@@ -322,6 +333,7 @@ static void machine_hard_i2c_start(machine_hard_i2c_obj_t *self)
     if (error != FSP_SUCCESS) {
         machine_hard_i2c_give_sci(self);
         machine_hard_i2c_give_pins(self);
+        IIC_Unclaim(self->i2c);
         mp_raise_OSError(machine_hard_i2c_fsp_error(error));
     }
 
@@ -509,6 +521,7 @@ void machine_i2c_deinit_all(void)
             self->initialized = false;
             machine_hard_i2c_give_pins(self);
             machine_hard_i2c_give_sci(self);
+            IIC_Unclaim(self->i2c);
         }
     }
 }

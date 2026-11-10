@@ -138,7 +138,20 @@ uint32_t LCD_DrawBitmap(LCD_DeviceType *lcd, uint16_t x, uint16_t y, uint16_t le
         width = lcd->y_length - y;
     }
 
-    err = prepareWriteBuffer(lcd, false);
+    /* If this bitmap completely replaces the last submitted dirty area,
+     * copying that old area into the back buffer is wasted work. This is
+     * common for camera preview, which redraws the same rectangle per frame.
+     * For partial coverage, retain the normal sync to preserve other pixels. */
+    bool replaces_previous = lcd->graphic_mem_2 != NULL &&
+        lcd->dirty_submitted.valid &&
+        x <= lcd->dirty_submitted.x &&
+        y <= lcd->dirty_submitted.y &&
+        (uint32_t)x + length >=
+            (uint32_t)lcd->dirty_submitted.x + lcd->dirty_submitted.length &&
+        (uint32_t)y + width >=
+            (uint32_t)lcd->dirty_submitted.y + lcd->dirty_submitted.width;
+
+    err = prepareWriteBuffer(lcd, replaces_previous);
     UNLIKE_RETURN(err, 0, "prepareWriteBuffer() failed: %" PRIu32, err);
 
     switch (lcd->color_format) {

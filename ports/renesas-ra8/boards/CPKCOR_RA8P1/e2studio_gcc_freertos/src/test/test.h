@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 #ifndef TEST_EN_CAMERA
-#define TEST_EN_CAMERA		0
+#define TEST_EN_CAMERA		1
 #endif
 
 #ifndef TEST_EN_HYPER_RAM
@@ -41,7 +41,10 @@ uint32_t TestAudio(void);
 #endif
 
 #if TEST_EN_CAMERA
+void TestCameraStartup(void);
 uint32_t TestCamera(void *camera);
+/* Available with TEST_CAMERA_EN_SINGLE_CAPTURE (enabled by default). */
+uint32_t TestCameraDisplay(void *camera, void *lcd);
 uint32_t TestCamera2(void *camera1, void *camera_cfg1, void *camera2, void *camera_cfg2);
 #endif
 

@@ -10,6 +10,7 @@
 #include "rtc.h"
 #include "sd.h"
 #include "lcd_board.h"
+#include "camera_board.h"
 #include "perf_counter/perf_counter.h"
 #include "SEGGER_RTT/SEGGER_RTT.h"
 #include "test/test.h"
@@ -27,6 +28,18 @@
 #include "py/cstack.h"
 
 #define TAG __FUNCTION__
+
+/* Manual preview by default: `import camera; camera.start()` from REPL.
+ * Set to 1 only when automatic camera startup is specifically desired. */
+#ifndef CAMERA_PREVIEW_AUTOSTART
+#define CAMERA_PREVIEW_AUTOSTART 0
+#endif
+
+/* Keep the original board-camera startup test available but disabled:
+ * it contains an infinite preview loop and would block the REPL. */
+#ifndef CAMERA_PREVIEW_RUN_LEGACY_TEST
+#define CAMERA_PREVIEW_RUN_LEGACY_TEST 0
+#endif
 
 static bool s_load_script_failed = false;
 static char s_mp_heap[MICROPY_HEAP_SIZE];
@@ -105,6 +118,14 @@ void repl_thread_entry(void *pvParameters)
     if (lcd != NULL && LCD_STARTUP_MODE != LCD_STARTUP_TFP410) {
         TestLCD(lcd);
     }
+#endif
+
+#if CAMERA_PREVIEW_AUTOSTART
+    if (!CameraPreview_Start()) {
+        printf("CAMERA_TASK: task creation failed; continuing to MicroPython REPL\r\n");
+    }
+#elif CAMERA_PREVIEW_RUN_LEGACY_TEST && TEST_EN_CAMERA
+    TestCameraStartup();
 #endif
 
 soft_reset:
