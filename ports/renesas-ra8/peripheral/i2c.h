@@ -11,6 +11,7 @@
 #if BSP_CFG_RTOS == 2
 #include "FreeRTOS.h"
 #include "semphr.h"
+#include "task.h"
 #endif
 
 typedef struct {
@@ -22,6 +23,10 @@ typedef struct {
 #if BSP_CFG_RTOS == 2
     SemaphoreHandle_t completion;
     StaticSemaphore_t completion_storage;
+    /* One mutex per non-board controller, held across repeated START calls. */
+    SemaphoreHandle_t transfer_mutex;
+    StaticSemaphore_t transfer_mutex_storage;
+    TaskHandle_t transfer_owner;
 #endif
 } i2c_t;
 

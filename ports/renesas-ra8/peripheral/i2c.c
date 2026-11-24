@@ -63,15 +63,12 @@ static void i2c_unclaim_implicit(i2c_t *i2c)
 static uint32_t i2c_board_lock(void)
 {
 #if BSP_CFG_RTOS == 2
-    /* Binary semaphore: bounded exclusion, without priority inheritance.
+    /* Mutex: serialize board IIC0 users with priority inheritance.
      * Creation is serialized; the object persists across client lifetimes. */
     FSP_CRITICAL_SECTION_DEFINE;
     FSP_CRITICAL_SECTION_ENTER;
     if (s_board_lock == NULL) {
-        s_board_lock = xSemaphoreCreateBinaryStatic(&s_board_lock_storage);
-        if (s_board_lock != NULL) {
-            (void)xSemaphoreGive(s_board_lock);
-        }
+        s_board_lock = xSemaphoreCreateMutexStatic(&s_board_lock_storage);
     }
     FSP_CRITICAL_SECTION_EXIT;
     if (s_board_lock == NULL) {
@@ -92,6 +89,55 @@ static void i2c_board_unlock(void)
 {
 #if BSP_CFG_RTOS == 2
     (void)xSemaphoreGive(s_board_lock);
+#endif
+}
+
+/* Each Python IIC/SCI-I2C instance has its own transfer mutex. A transfer
+ * ending without STOP keeps ownership until the same task completes it. */
+static uint32_t i2c_transfer_lock(i2c_t *i2c)
+{
+#if BSP_CFG_RTOS == 2
+    if (i2c == NULL) {
+        return FSP_ERR_ASSERTION;
+    }
+    if (i2c->transfer_mutex == NULL) {
+        return FSP_ERR_NOT_OPEN;
+    }
+
+    TaskHandle_t current = xTaskGetCurrentTaskHandle();
+    taskENTER_CRITICAL();
+    bool already_owned = i2c->transfer_owner == current;
+    taskEXIT_CRITICAL();
+    if (already_owned) {
+        return FSP_SUCCESS;
+    }
+
+    uint32_t timeout_us = i2c->timeout_us ? i2c->timeout_us : I2C_DEFAULT_TIMEOUT_US;
+    TickType_t ticks = (TickType_t)(((uint64_t)timeout_us * configTICK_RATE_HZ + 999999ULL) / 1000000ULL);
+    if (ticks == 0U) {
+        ticks = 1U;
+    }
+    if (xSemaphoreTake(i2c->transfer_mutex, ticks) != pdTRUE) {
+        return FSP_ERR_TIMEOUT;
+    }
+    taskENTER_CRITICAL();
+    i2c->transfer_owner = current;
+    taskEXIT_CRITICAL();
+#else
+    (void)i2c;
+#endif
+    return FSP_SUCCESS;
+}
+
+static void i2c_transfer_unlock(i2c_t *i2c)
+{
+#if BSP_CFG_RTOS == 2
+    taskENTER_CRITICAL();
+    i2c->transfer_owner = NULL;
+    taskEXIT_CRITICAL();
+    (void)xSemaphoreGive(i2c->transfer_mutex);
+#else
+    (void)i2c;
 #endif
 }
 
@@ -309,6 +355,13 @@ uint32_t IIC_Init(i2c_t *i2c)
             return FSP_ERR_OUT_OF_MEMORY;
         }
     }
+    if (i2c != &s_board_i2c && i2c->transfer_mutex == NULL) {
+        i2c->transfer_mutex = xSemaphoreCreateMutexStatic(&i2c->transfer_mutex_storage);
+        if (i2c->transfer_mutex == NULL) {
+            i2c_unclaim_implicit(i2c);
+            return FSP_ERR_OUT_OF_MEMORY;
+        }
+    }
 #endif
 
     i2c->cfg = *i2c->instance->p_cfg;
@@ -343,14 +396,33 @@ uint32_t IIC_DeInit(i2c_t *i2c)
         return FSP_ERR_NOT_OPEN;
     }
 
+    uint32_t lock_err = i2c_transfer_lock(i2c);
+    if (lock_err != FSP_SUCCESS) {
+        return lock_err;
+    }
+    if (!i2c->opened) {
+        i2c_transfer_unlock(i2c);
+        return FSP_ERR_NOT_OPEN;
+    }
+    /* Close must also handle an unfinished stop=False transaction. */
+    uint32_t active_slave = 0U;
+    if (i2c_get_active_slave(i2c, &active_slave)) {
+        fsp_err_t abort_err = i2c->instance->p_api->abort(i2c->instance->p_ctrl);
+        if (abort_err != FSP_SUCCESS) {
+            i2c_transfer_unlock(i2c);
+            return abort_err;
+        }
+    }
     fsp_err_t err = i2c->instance->p_api->close(i2c->instance->p_ctrl);
     if (err != FSP_SUCCESS) {
+        i2c_transfer_unlock(i2c);
         return err;
     }
 
     i2c->event = (i2c_master_event_t)0;
     i2c->opened = false;
     i2c_unclaim_implicit(i2c);
+    i2c_transfer_unlock(i2c);
     return FSP_SUCCESS;
 }
 
@@ -421,7 +493,25 @@ static uint32_t i2c_transfer_unlocked(i2c_t *i2c, uint32_t slave, i2c_segment_t 
 uint32_t IIC_Transfer(i2c_t *i2c, uint32_t slave, i2c_segment_t *segments, uint32_t count, bool stop)
 {
     if (i2c != &s_board_i2c) {
-        return i2c_transfer_unlocked(i2c, slave, segments, count, stop);
+        uint32_t err = i2c_transfer_lock(i2c);
+        if (err != FSP_SUCCESS) {
+            return err;
+        }
+        err = i2c_transfer_unlocked(i2c, slave, segments, count, stop);
+        if (err != FSP_SUCCESS) {
+            /* An error must not strand the bus in a repeated-START state. */
+            uint32_t active_slave = 0U;
+            if (i2c != NULL && i2c->opened && i2c_get_active_slave(i2c, &active_slave)) {
+                fsp_err_t abort_err = i2c->instance->p_api->abort(i2c->instance->p_ctrl);
+                if (abort_err != FSP_SUCCESS) {
+                    err = abort_err;
+                }
+            }
+        }
+        if (stop || err != FSP_SUCCESS) {
+            i2c_transfer_unlock(i2c);
+        }
+        return err;
     }
     /* Do not leave the shared wire in a transaction between API calls. */
     if (!stop) {
@@ -448,11 +538,9 @@ uint32_t IIC_ReadRegSCCB(i2c_t *i2c, uint32_t slave, uint16_t reg,
         return err;
     }
     bool shared = i2c == &s_board_i2c;
-    if (shared) {
-        err = i2c_board_lock();
-        if (err != FSP_SUCCESS) {
-            return err;
-        }
+    err = shared ? i2c_board_lock() : i2c_transfer_lock(i2c);
+    if (err != FSP_SUCCESS) {
+        return err;
     }
     /* SCCB needs STOP between phases, but the shared bus stays locked. */
     i2c_segment_t segment = {.data = address, .length = address_bytes, .read = false};
@@ -463,8 +551,16 @@ uint32_t IIC_ReadRegSCCB(i2c_t *i2c, uint32_t slave, uint16_t reg,
         segment.read = true;
         err = i2c_transfer_unlocked(i2c, slave, &segment, 1U, true);
     }
+    if (err != FSP_SUCCESS && !shared && i2c != NULL && i2c->opened) {
+        uint32_t active_slave = 0U;
+        if (i2c_get_active_slave(i2c, &active_slave)) {
+            (void)i2c->instance->p_api->abort(i2c->instance->p_ctrl);
+        }
+    }
     if (shared) {
         i2c_board_unlock();
+    } else {
+        i2c_transfer_unlock(i2c);
     }
     return err;
 }
